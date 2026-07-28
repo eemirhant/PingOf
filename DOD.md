@@ -44,7 +44,7 @@ Adım adım: [STAGING.md](STAGING.md)
 
 | Madde | Durum |
 |---|---|
-| Git repo (`main`) | PASS — `8e40654` |
+| Git repo (`main`) | PASS — `08757d5` |
 | GitHub remote / push | BEKLIYOR — `gh auth login` gerekli |
 | Neon DB | BEKLIYOR — hesap |
 | Vercel deploy | BEKLIYOR — CLI/hesap |
