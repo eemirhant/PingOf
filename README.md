@@ -67,14 +67,7 @@ npm run dev
 
 ## Staging deploy (Vercel + Neon)
 
-1. [Neon](https://neon.tech) üzerinde staging DB oluştur; `DATABASE_URL` kopyala.
-2. GitHub’a push et; [Vercel](https://vercel.com) ile projeyi bağla.
-3. Vercel Environment Variables:
-   - `DATABASE_URL` — Neon connection string
-   - `AUTH_SECRET` — güçlü rastgele secret
-   - `AUTH_URL` — `https://<proje>.vercel.app` (veya custom staging URL)
-4. Build Command: `npm run vercel-build` (veya `vercel.json` içindeki ayar).
-5. Deploy sonrası [DOD.md](DOD.md) staging satırlarını doldur; kısa smoke (kayıt → maç → turnuva → `/manifest.webmanifest`) çalıştır.
+Ayrıntılı adımlar: [STAGING.md](STAGING.md). Özet: Neon `DATABASE_URL` + Vercel env (`AUTH_SECRET`, `AUTH_URL`) + `npm run vercel-build`.
 
 **Not:** `public/uploads` dosya sistemi Vercel’de kalıcı değildir.
 

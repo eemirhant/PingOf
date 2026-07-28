@@ -40,10 +40,16 @@ Aşağıdakiler staging veya yerel oturumla doğrulanmalı (tarayıcı DevTools 
 
 Hazırlık kodda tamam (`vercel.json`, `npm run vercel-build`, `postinstall`).
 
-**Deploy adımları (Neon + Vercel):** bkz. [README.md](README.md) “Staging deploy” bölümü.
+Adım adım: [STAGING.md](STAGING.md)
 
-Staging URL: _(deploy sonrası buraya yaz)_  
-Doğrulama tarihi: _(deploy sonrası)_
+| Madde | Durum |
+|---|---|
+| Git repo (`main`) | PASS — `8e40654` |
+| GitHub remote / push | BEKLIYOR — `gh auth login` gerekli |
+| Neon DB | BEKLIYOR — hesap |
+| Vercel deploy | BEKLIYOR — CLI/hesap |
+| Staging URL | _(deploy sonrası)_ |
+| Staging doğrulama tarihi | _(deploy sonrası)_ |
 
 ## Bilinen sınırlamalar
 
