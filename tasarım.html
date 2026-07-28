@@ -1,0 +1,2843 @@
+<!DOCTYPE html>
+<!-- saved from url=(0062)file:///C:/Users/emirh/Downloads/Telegram%20Desktop/index.html -->
+<html lang="tr"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PingOf — Ofis Masa Tenisi</title>
+<meta name="description" content="Ofis masa tenisi maçlarınızı, turnuvalarınızı ve istatistiklerinizi takip edin.">
+<link rel="preconnect" href="https://fonts.googleapis.com/">
+<link href="./tasarım_files/css2" rel="stylesheet">
+<style>
+/* =================== DESIGN TOKENS =================== */
+:root {
+  --bg-900: #0a0b0f;
+  --bg-800: #0f1117;
+  --bg-700: #14161e;
+  --bg-600: #1a1d27;
+  --bg-500: #21253a;
+  --bg-card: rgba(255,255,255,0.04);
+  --bg-card-hover: rgba(255,255,255,0.07);
+  --border: rgba(255,255,255,0.08);
+  --border-active: rgba(255,255,255,0.18);
+
+  --accent: #6366f1;
+  --accent-light: #818cf8;
+  --accent-dark: #4f46e5;
+  --accent-glow: rgba(99,102,241,0.3);
+
+  --green: #10b981;
+  --green-light: #34d399;
+  --green-glow: rgba(16,185,129,0.25);
+  --red: #f43f5e;
+  --red-light: #fb7185;
+  --orange: #f97316;
+  --orange-light: #fb923c;
+  --yellow: #eab308;
+  --purple: #a855f7;
+  --pink: #ec4899;
+
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #475569;
+  --text-accent: #818cf8;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-2xl: 32px;
+
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.4);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.5);
+  --shadow-glow: 0 0 40px var(--accent-glow);
+
+  --nav-width: 240px;
+  --nav-height: 72px;
+
+  --transition: 0.2s cubic-bezier(0.4,0,0.2,1);
+  --transition-slow: 0.4s cubic-bezier(0.4,0,0.2,1);
+}
+
+/* =================== RESET & BASE =================== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Inter', -apple-system, sans-serif;
+  background: var(--bg-900);
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+a { text-decoration: none; color: inherit; cursor: pointer; }
+button { cursor: pointer; font-family: inherit; border: none; background: none; }
+input, select, textarea { font-family: inherit; }
+svg { display: block; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+img { max-width: 100%; display: block; }
+
+/* =================== TYPOGRAPHY =================== */
+h1 { font-size: clamp(1.75rem, 4vw, 2.5rem); font-weight: 800; letter-spacing: -0.03em; }
+h2 { font-size: clamp(1.25rem, 3vw, 1.75rem); font-weight: 700; letter-spacing: -0.02em; }
+h3 { font-size: 1.125rem; font-weight: 600; }
+h4 { font-size: 0.9375rem; font-weight: 600; }
+p { line-height: 1.6; }
+.text-sm { font-size: 0.875rem; }
+.text-xs { font-size: 0.75rem; }
+.text-lg { font-size: 1.125rem; }
+.text-xl { font-size: 1.25rem; }
+.text-muted { color: var(--text-secondary); }
+.text-accent { color: var(--text-accent); }
+.text-success { color: var(--green); }
+.text-danger { color: var(--red); }
+.font-medium { font-weight: 500; }
+.font-semibold { font-weight: 600; }
+.font-bold { font-weight: 700; }
+
+/* =================== LAYOUT =================== */
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+}
+.page-content {
+  flex: 1;
+  padding: 24px;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+.page-header {
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.page-header-left h2 { line-height: 1; }
+.page-header-left p { color: var(--text-secondary); font-size: 0.875rem; margin-top: 4px; }
+.container { max-width: 1200px; margin: 0 auto; }
+.grid { display: grid; }
+.grid-2 { grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.grid-3 { grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.grid-4 { grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.justify-center { justify-content: center; }
+.gap-2 { gap: 8px; }
+.gap-3 { gap: 12px; }
+.gap-4 { gap: 16px; }
+.gap-6 { gap: 24px; }
+.w-full { width: 100%; }
+.hidden { display: none !important; }
+.mt-2 { margin-top: 8px; }
+.mt-4 { margin-top: 16px; }
+.mb-4 { margin-bottom: 16px; }
+
+/* =================== CARD =================== */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  transition: var(--transition);
+  backdrop-filter: blur(8px);
+}
+.card:hover { border-color: var(--border-active); background: var(--bg-card-hover); }
+.card-sm { padding: 14px 16px; border-radius: var(--radius-md); }
+.card-title { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-secondary); margin-bottom: 12px; }
+.card-glass {
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+}
+
+/* =================== BUTTONS =================== */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 0 20px; height: 44px;
+  border-radius: var(--radius-md);
+  font-size: 0.9375rem; font-weight: 600;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+.btn svg { width: 18px; height: 18px; }
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  color: white;
+  box-shadow: 0 4px 16px rgba(99,102,241,0.35);
+}
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 24px rgba(99,102,241,0.5);
+}
+.btn-primary:active { transform: translateY(0); }
+.btn-secondary {
+  background: rgba(255,255,255,0.07);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+.btn-secondary:hover { background: rgba(255,255,255,0.12); border-color: var(--border-active); }
+.btn-success {
+  background: linear-gradient(135deg, var(--green), #059669);
+  color: white;
+  box-shadow: 0 4px 16px rgba(16,185,129,0.35);
+}
+.btn-danger {
+  background: linear-gradient(135deg, var(--red), #e11d48);
+  color: white;
+  box-shadow: 0 4px 16px rgba(244,63,94,0.3);
+}
+.btn-ghost { background: transparent; color: var(--text-secondary); }
+.btn-ghost:hover { color: var(--text-primary); background: rgba(255,255,255,0.06); }
+.btn-sm { height: 36px; padding: 0 14px; font-size: 0.875rem; border-radius: var(--radius-sm); }
+.btn-sm svg { width: 15px; height: 15px; }
+.btn-lg { height: 52px; padding: 0 28px; font-size: 1rem; border-radius: var(--radius-md); }
+.btn-icon { width: 44px; height: 44px; padding: 0; border-radius: 50%; }
+.btn-icon.btn-sm { width: 36px; height: 36px; }
+.btn-full { width: 100%; }
+
+/* =================== FORMS =================== */
+.form-group { margin-bottom: 16px; }
+.form-label {
+  display: block;
+  font-size: 0.875rem; font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+.form-input {
+  width: 100%;
+  height: 48px;
+  padding: 0 16px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 0.9375rem;
+  transition: var(--transition);
+  outline: none;
+}
+.form-input:focus {
+  border-color: var(--accent);
+  background: rgba(99,102,241,0.08);
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+}
+.form-input::placeholder { color: var(--text-muted); }
+.form-input.error { border-color: var(--red); background: rgba(244,63,94,0.06); }
+.form-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 18px;
+  padding-right: 44px;
+}
+.form-textarea {
+  width: 100%;
+  padding: 12px 16px;
+  min-height: 100px;
+  resize: vertical;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 0.9375rem;
+  transition: var(--transition);
+  outline: none;
+}
+.form-textarea:focus { border-color: var(--accent); background: rgba(99,102,241,0.08); box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
+.form-error { font-size: 0.8125rem; color: var(--red-light); margin-top: 6px; }
+.form-helper { font-size: 0.8125rem; color: var(--text-muted); margin-top: 5px; }
+
+/* =================== BADGES =================== */
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 10px;
+  border-radius: 100px;
+  font-size: 0.75rem; font-weight: 600;
+  white-space: nowrap;
+}
+.badge-win { background: rgba(16,185,129,0.15); color: var(--green-light); border: 1px solid rgba(16,185,129,0.25); }
+.badge-loss { background: rgba(244,63,94,0.12); color: var(--red-light); border: 1px solid rgba(244,63,94,0.2); }
+.badge-planned { background: rgba(99,102,241,0.15); color: var(--accent-light); border: 1px solid rgba(99,102,241,0.25); }
+.badge-pending { background: rgba(234,179,8,0.12); color: #fde047; border: 1px solid rgba(234,179,8,0.2); }
+.badge-cancelled { background: rgba(71,85,105,0.3); color: var(--text-muted); border: 1px solid var(--border); }
+.badge-1v1 { background: rgba(168,85,247,0.12); color: #c084fc; border: 1px solid rgba(168,85,247,0.2); }
+.badge-2v2 { background: rgba(249,115,22,0.12); color: #fb923c; border: 1px solid rgba(249,115,22,0.2); }
+
+/* =================== AVATAR =================== */
+.avatar {
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; color: white;
+  flex-shrink: 0;
+}
+.avatar-xs { width: 28px; height: 28px; font-size: 0.625rem; }
+.avatar-sm { width: 36px; height: 36px; font-size: 0.75rem; }
+.avatar-md { width: 48px; height: 48px; font-size: 1rem; }
+.avatar-lg { width: 64px; height: 64px; font-size: 1.25rem; }
+.avatar-xl { width: 80px; height: 80px; font-size: 1.5rem; }
+.avatar-2xl { width: 96px; height: 96px; font-size: 1.75rem; }
+
+/* =================== SIDEBAR NAV =================== */
+.sidebar {
+  width: var(--nav-width);
+  min-height: 100vh;
+  background: var(--bg-800);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  position: sticky; top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  flex-shrink: 0;
+  z-index: 100;
+}
+.sidebar-brand {
+  display: flex; align-items: center; gap: 10px;
+  padding: 24px 20px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.sidebar-logo {
+  width: 38px; height: 38px;
+  background: linear-gradient(135deg, var(--accent), var(--purple));
+  border-radius: var(--radius-md);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.25rem;
+  box-shadow: 0 4px 12px var(--accent-glow);
+}
+.sidebar-title { font-size: 1.125rem; font-weight: 800; letter-spacing: -0.03em; }
+.sidebar-subtitle { font-size: 0.7rem; color: var(--text-muted); }
+.sidebar-nav { padding: 16px 12px; flex: 1; }
+.sidebar-section-title { font-size: 0.6875rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); padding: 0 8px; margin: 16px 0 6px; }
+.sidebar-link {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 10px;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: 0.9rem; font-weight: 500;
+  transition: var(--transition);
+  margin-bottom: 2px;
+  position: relative;
+}
+.sidebar-link svg { width: 20px; height: 20px; flex-shrink: 0; }
+.sidebar-link:hover { color: var(--text-primary); background: rgba(255,255,255,0.06); }
+.sidebar-link.active {
+  color: var(--accent-light);
+  background: rgba(99,102,241,0.12);
+  border: 1px solid rgba(99,102,241,0.2);
+}
+.sidebar-link.active::before {
+  content: '';
+  position: absolute; left: -13px; top: 50%; transform: translateY(-50%);
+  width: 4px; height: 24px;
+  background: var(--accent);
+  border-radius: 0 4px 4px 0;
+}
+.sidebar-bottom {
+  padding: 12px;
+  border-top: 1px solid var(--border);
+}
+.sidebar-user {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: var(--transition);
+}
+.sidebar-user:hover { background: rgba(255,255,255,0.06); }
+.sidebar-user-info { flex: 1; overflow: hidden; }
+.sidebar-user-name { font-size: 0.875rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sidebar-user-org { font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* =================== MOBILE NAV =================== */
+.mobile-bottom-nav {
+  display: none;
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: rgba(15,17,23,0.95);
+  backdrop-filter: blur(20px);
+  border-top: 1px solid var(--border);
+  z-index: 200;
+  padding: 8px 0 max(8px, env(safe-area-inset-bottom));
+}
+.mobile-bottom-nav .nav-items {
+  display: flex; align-items: center; justify-content: space-around;
+}
+.mobile-nav-item {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 4px 12px;
+  color: var(--text-muted);
+  font-size: 0.625rem; font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.mobile-nav-item svg { width: 22px; height: 22px; }
+.mobile-nav-item.active { color: var(--accent-light); }
+.mobile-nav-item:active { transform: scale(0.92); }
+.mobile-nav-fab {
+  width: 52px; height: 52px;
+  background: linear-gradient(135deg, var(--accent), var(--purple));
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 20px rgba(99,102,241,0.5);
+  margin-top: -20px;
+}
+.mobile-nav-fab svg { width: 24px; height: 24px; stroke: white; }
+
+/* =================== TOP BAR =================== */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 24px;
+  background: rgba(15,17,23,0.8);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 50;
+}
+.topbar-title { font-size: 1.125rem; font-weight: 700; }
+.topbar-actions { display: flex; align-items: center; gap: 8px; }
+
+/* =================== STAT CARD =================== */
+.stat-card {
+  padding: 20px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  position: relative;
+  overflow: hidden;
+  transition: var(--transition);
+}
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+.stat-card.accent::before { background: linear-gradient(90deg, var(--accent), var(--purple)); }
+.stat-card.green::before { background: linear-gradient(90deg, var(--green), #34d399); }
+.stat-card.orange::before { background: linear-gradient(90deg, var(--orange), #fbbf24); }
+.stat-card.red::before { background: linear-gradient(90deg, var(--red), var(--pink)); }
+.stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: var(--border-active); }
+.stat-icon {
+  width: 40px; height: 40px;
+  border-radius: var(--radius-md);
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 12px;
+  font-size: 1.25rem;
+}
+.stat-value { font-size: 2rem; font-weight: 800; letter-spacing: -0.04em; line-height: 1; }
+.stat-label { font-size: 0.8125rem; color: var(--text-secondary); margin-top: 4px; }
+.stat-change { font-size: 0.75rem; font-weight: 600; margin-top: 8px; }
+.stat-change.up { color: var(--green); }
+.stat-change.down { color: var(--red); }
+
+/* =================== MATCH CARD =================== */
+.match-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  transition: var(--transition);
+  cursor: pointer;
+}
+.match-card:hover { border-color: var(--border-active); background: var(--bg-card-hover); transform: translateY(-1px); }
+.match-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.match-teams { display: flex; align-items: center; gap: 8px; }
+.match-vs { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); }
+.match-score { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.03em; }
+.match-score .winner { color: var(--green); }
+.match-score .loser { color: var(--red-light); }
+.match-score .separator { color: var(--text-muted); font-size: 1rem; }
+.match-footer { display: flex; align-items: center; justify-content: space-between; }
+.match-date { font-size: 0.75rem; color: var(--text-muted); }
+.match-set-scores { font-size: 0.75rem; color: var(--text-secondary); }
+
+/* =================== PLAYER CARD =================== */
+.player-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  text-align: center;
+  transition: var(--transition);
+  cursor: pointer;
+}
+.player-card:hover { border-color: var(--border-active); background: var(--bg-card-hover); transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.player-card-rank {
+  font-size: 0.75rem; font-weight: 700;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+.player-card-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; }
+.player-stat { text-align: center; }
+.player-stat-value { font-size: 1.125rem; font-weight: 700; }
+.player-stat-label { font-size: 0.625rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; }
+
+/* =================== TABLE =================== */
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table th {
+  font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text-muted);
+  text-align: left; padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.data-table td { padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 0.9rem; }
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tr:hover td { background: rgba(255,255,255,0.03); }
+.data-table tr.highlighted td { background: rgba(99,102,241,0.08); }
+.data-table tr.highlighted:hover td { background: rgba(99,102,241,0.12); }
+
+/* =================== TABS =================== */
+.tabs {
+  display: flex; gap: 4px;
+  background: rgba(255,255,255,0.05);
+  border-radius: var(--radius-lg);
+  padding: 4px;
+}
+.tab-btn {
+  flex: 1; padding: 8px 16px;
+  border-radius: var(--radius-md);
+  font-size: 0.875rem; font-weight: 600;
+  color: var(--text-secondary);
+  transition: var(--transition);
+  white-space: nowrap;
+}
+.tab-btn.active {
+  background: rgba(99,102,241,0.2);
+  color: var(--accent-light);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+.tab-btn:hover:not(.active) { color: var(--text-primary); }
+
+/* =================== FORM PROGRESS =================== */
+.form-wizard { margin-bottom: 24px; }
+.form-wizard-steps { display: flex; align-items: center; gap: 0; }
+.wizard-step {
+  display: flex; align-items: center; gap: 8px;
+  flex: 1;
+}
+.wizard-step-dot {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.8125rem; font-weight: 700;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  transition: var(--transition);
+}
+.wizard-step.done .wizard-step-dot { background: var(--green); border-color: var(--green); color: white; }
+.wizard-step.active .wizard-step-dot { background: var(--accent); border-color: var(--accent); color: white; box-shadow: 0 0 0 4px rgba(99,102,241,0.2); }
+.wizard-step-label { font-size: 0.8125rem; font-weight: 500; color: var(--text-muted); }
+.wizard-step.active .wizard-step-label { color: var(--text-primary); }
+.wizard-connector { flex: 1; height: 2px; background: var(--border); border-radius: 2px; }
+.wizard-connector.done { background: var(--green); }
+
+/* =================== NOTIFICATION =================== */
+.notif-item {
+  display: flex; gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: var(--transition);
+  position: relative;
+}
+.notif-item:hover { background: rgba(255,255,255,0.05); }
+.notif-item.unread { background: rgba(99,102,241,0.06); }
+.notif-dot {
+  position: absolute; top: 18px; right: 16px;
+  width: 8px; height: 8px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+.notif-icon {
+  width: 40px; height: 40px;
+  border-radius: var(--radius-md);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  font-size: 1.1rem;
+}
+.notif-content { flex: 1; }
+.notif-title { font-size: 0.875rem; font-weight: 600; margin-bottom: 2px; }
+.notif-body { font-size: 0.8125rem; color: var(--text-secondary); }
+.notif-time { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
+
+/* =================== BADGE/RANK =================== */
+.rank-gold { color: #ffd700; }
+.rank-silver { color: #c0c0c0; }
+.rank-bronze { color: #cd7f32; }
+.medal { font-size: 1.1rem; }
+
+/* =================== FORM SCORE =================== */
+.score-input-row { display: grid; grid-template-columns: 1fr 48px 1fr; gap: 8px; align-items: center; margin-bottom: 8px; }
+.score-divider { text-align: center; color: var(--text-muted); font-weight: 700; font-size: 1.125rem; }
+.score-input { text-align: center; font-size: 1.25rem; font-weight: 700; }
+.set-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.set-label { font-size: 0.8125rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.score-summary { background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.2); border-radius: var(--radius-md); padding: 12px 16px; margin-top: 16px; text-align: center; }
+.score-summary-big { font-size: 2rem; font-weight: 800; letter-spacing: -0.04em; }
+
+/* =================== BRACKET =================== */
+.bracket-round { margin-bottom: 32px; }
+.bracket-round-title { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); margin-bottom: 12px; }
+.bracket-match {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-bottom: 8px;
+  max-width: 300px;
+  transition: var(--transition);
+}
+.bracket-match:hover { border-color: var(--border-active); }
+.bracket-player {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px;
+  transition: var(--transition);
+}
+.bracket-player:first-child { border-bottom: 1px solid var(--border); }
+.bracket-player.winner { background: rgba(16,185,129,0.1); }
+.bracket-player-info { display: flex; align-items: center; gap: 8px; }
+.bracket-player-score { font-weight: 700; font-size: 1.05rem; }
+
+/* =================== FORM SECTION =================== */
+.form-section { margin-bottom: 24px; }
+.form-section-title {
+  font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* =================== TOGGLE =================== */
+.toggle-group { display: flex; border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--border); }
+.toggle-btn {
+  flex: 1; padding: 10px;
+  font-size: 0.875rem; font-weight: 600;
+  color: var(--text-secondary);
+  transition: var(--transition);
+  text-align: center;
+}
+.toggle-btn.active { background: var(--accent); color: white; }
+.toggle-btn:hover:not(.active) { background: rgba(255,255,255,0.05); color: var(--text-primary); }
+
+/* =================== CHIP =================== */
+.chip-group { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  padding: 6px 14px;
+  border-radius: 100px;
+  border: 1px solid var(--border);
+  font-size: 0.8125rem; font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex; align-items: center; gap: 6px;
+}
+.chip:hover { border-color: var(--accent); color: var(--accent-light); }
+.chip.selected { background: rgba(99,102,241,0.15); border-color: var(--accent); color: var(--accent-light); }
+.chip.selected-player { background: rgba(99,102,241,0.15); border-color: var(--accent); color: var(--accent-light); }
+
+/* =================== FORM BG DECORATION =================== */
+.auth-bg {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-900);
+  position: relative;
+  overflow: hidden;
+  padding: 24px;
+}
+.auth-bg::before {
+  content: '';
+  position: absolute;
+  top: -40%;
+  left: -20%;
+  width: 70%;
+  height: 80%;
+  background: radial-gradient(ellipse, rgba(99,102,241,0.15) 0%, transparent 70%);
+  pointer-events: none;
+}
+.auth-bg::after {
+  content: '';
+  position: absolute;
+  bottom: -30%;
+  right: -10%;
+  width: 60%;
+  height: 70%;
+  background: radial-gradient(ellipse, rgba(168,85,247,0.1) 0%, transparent 70%);
+  pointer-events: none;
+}
+.auth-card {
+  width: 100%; max-width: 440px;
+  position: relative; z-index: 1;
+}
+.auth-logo { text-align: center; margin-bottom: 32px; }
+.auth-logo-icon {
+  width: 64px; height: 64px;
+  background: linear-gradient(135deg, var(--accent), var(--purple));
+  border-radius: var(--radius-xl);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2rem;
+  margin: 0 auto 12px;
+  box-shadow: 0 8px 32px rgba(99,102,241,0.4);
+}
+.auth-title { font-size: 1.75rem; font-weight: 800; letter-spacing: -0.03em; }
+.auth-subtitle { color: var(--text-secondary); font-size: 0.9rem; margin-top: 6px; }
+.auth-divider { display: flex; align-items: center; gap: 12px; margin: 20px 0; }
+.auth-divider::before, .auth-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.auth-divider span { font-size: 0.8125rem; color: var(--text-muted); }
+.auth-link { color: var(--accent-light); font-weight: 600; }
+.auth-link:hover { color: var(--accent); }
+
+/* =================== EMPTY STATE =================== */
+.empty-state { text-align: center; padding: 64px 32px; }
+.empty-icon { font-size: 3rem; margin-bottom: 16px; }
+.empty-title { font-size: 1.125rem; font-weight: 700; margin-bottom: 8px; }
+.empty-desc { color: var(--text-secondary); font-size: 0.9rem; max-width: 360px; margin: 0 auto 24px; }
+
+/* =================== FORM TAG INPUT =================== */
+.player-select-area {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  min-height: 60px;
+  display: flex; flex-wrap: wrap; gap: 8px;
+  cursor: text;
+}
+.player-chip {
+  display: flex; align-items: center; gap: 6px;
+  background: rgba(99,102,241,0.15);
+  border: 1px solid rgba(99,102,241,0.3);
+  border-radius: 100px;
+  padding: 4px 12px;
+  font-size: 0.8125rem; font-weight: 600;
+  color: var(--accent-light);
+}
+.player-chip-remove { color: var(--accent-light); opacity: 0.7; cursor: pointer; }
+.player-chip-remove:hover { opacity: 1; }
+
+/* =================== MODAL =================== */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(8px);
+  z-index: 1000;
+  display: flex; align-items: flex-end; justify-content: center;
+  padding: 0;
+}
+@media (min-width: 640px) {
+  .modal-overlay { align-items: center; padding: 24px; }
+}
+.modal-content {
+  background: var(--bg-700);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  padding: 24px;
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+@media (min-width: 640px) {
+  .modal-content { border-radius: var(--radius-xl); }
+}
+.modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.modal-title { font-size: 1.125rem; font-weight: 700; }
+.modal-close { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.07); color: var(--text-secondary); transition: var(--transition); }
+.modal-close:hover { background: rgba(255,255,255,0.12); color: var(--text-primary); }
+
+/* =================== TIMELINE =================== */
+.timeline { position: relative; }
+.timeline::before { content: ''; position: absolute; left: 19px; top: 0; bottom: 0; width: 2px; background: var(--border); }
+.timeline-item { display: flex; gap: 16px; margin-bottom: 20px; position: relative; }
+.timeline-dot { width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 1rem; position: relative; z-index: 1; }
+
+/* =================== RESPONSIVE =================== */
+@media (max-width: 768px) {
+  .sidebar { display: none !important; }
+  .mobile-bottom-nav { display: flex !important; }
+  .page-content { padding: 16px 16px 80px; }
+  .grid-3 { grid-template-columns: 1fr; }
+  .grid-4 { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 640px) {
+  .grid-2 { grid-template-columns: 1fr; }
+  .grid-4 { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 769px) {
+  .mobile-bottom-nav { display: none !important; }
+}
+
+/* =================== ANIMATIONS =================== */
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+.animate-fade { animation: fadeIn 0.4s var(--transition-slow) both; }
+.animate-slide { animation: slideUp 0.4s var(--transition-slow) both; }
+.skeleton {
+  background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-sm);
+}
+
+/* =================== PAGE SPECIFIC =================== */
+/* Divider */
+.divider { height: 1px; background: var(--border); margin: 20px 0; }
+.divider-v { width: 1px; background: var(--border); }
+
+/* Score badge */
+.score-badge { font-size: 1.75rem; font-weight: 800; letter-spacing: -0.04em; }
+
+/* Progress bar */
+.progress { height: 6px; background: rgba(255,255,255,0.1); border-radius: 100px; overflow: hidden; }
+.progress-bar { height: 100%; border-radius: 100px; transition: width 0.6s ease; }
+
+/* Section */
+.section { margin-bottom: 32px; }
+.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.section-title { font-size: 1rem; font-weight: 700; }
+.section-link { font-size: 0.875rem; color: var(--accent-light); font-weight: 600; }
+
+/* Pill nav */
+.pill-nav { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 16px; }
+.pill-nav::-webkit-scrollbar { display: none; }
+.pill-btn { padding: 6px 16px; border-radius: 100px; border: 1px solid var(--border); font-size: 0.875rem; font-weight: 500; color: var(--text-secondary); white-space: nowrap; transition: var(--transition); cursor: pointer; }
+.pill-btn.active { background: var(--accent); border-color: var(--accent); color: white; }
+
+/* Team area */
+.team-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.team-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.vs-divider { font-size: 0.75rem; font-weight: 800; color: var(--text-muted); padding: 0 4px; }
+
+/* Settings list */
+.settings-item { display: flex; align-items: center; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid var(--border); }
+.settings-item:last-child { border-bottom: none; }
+.settings-item-info { display: flex; flex-direction: column; gap: 3px; }
+.settings-item-title { font-size: 0.9375rem; font-weight: 600; }
+.settings-item-desc { font-size: 0.8125rem; color: var(--text-secondary); }
+
+/* Switch toggle */
+.switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+.switch input { display: none; }
+.switch-slider { position: absolute; inset: 0; background: var(--bg-500); border-radius: 100px; cursor: pointer; transition: var(--transition); }
+.switch-slider::before { content: ''; position: absolute; left: 3px; top: 3px; width: 18px; height: 18px; background: white; border-radius: 50%; transition: var(--transition); }
+.switch input:checked + .switch-slider { background: var(--accent); }
+.switch input:checked + .switch-slider::before { transform: translateX(20px); }
+
+/* Invite code */
+.invite-code {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 1rem; font-weight: 600;
+  background: rgba(255,255,255,0.06);
+  border: 1px dashed var(--border-active);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  text-align: center;
+  letter-spacing: 0.08em;
+  color: var(--accent-light);
+}
+
+/* Head-to-head */
+.h2h-bar { display: flex; align-items: center; gap: 8px; }
+.h2h-label { font-size: 0.8125rem; font-weight: 600; width: 28px; text-align: right; }
+.h2h-track { flex: 1; height: 8px; background: rgba(255,255,255,0.08); border-radius: 100px; overflow: hidden; }
+.h2h-fill-left { height: 100%; float: left; border-radius: 100px 0 0 100px; }
+.h2h-fill-right { height: 100%; float: right; border-radius: 0 100px 100px 0; }
+
+/* Form badges */
+.form-badge {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 0.7rem; font-weight: 800;
+}
+.form-badge.win { background: rgba(16,185,129,0.2); color: var(--green); }
+.form-badge.loss { background: rgba(244,63,94,0.15); color: var(--red-light); }
+
+/* User row in list */
+.user-row { display: flex; align-items: center; gap: 12px; }
+.user-row-info { flex: 1; overflow: hidden; }
+.user-row-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.user-row-sub { font-size: 0.8125rem; color: var(--text-secondary); }
+
+/* Status dot */
+.status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.status-dot.online { background: var(--green); }
+.status-dot.offline { background: var(--text-muted); }
+
+/* Back button */
+.back-btn { display: inline-flex; align-items: center; gap: 6px; color: var(--text-secondary); font-size: 0.875rem; font-weight: 500; cursor: pointer; transition: var(--transition); }
+.back-btn svg { width: 16px; height: 16px; }
+.back-btn:hover { color: var(--text-primary); }
+
+/* Color dot */
+.color-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="app-layout">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="sidebar-logo">🏓</div>
+        <div>
+          <div class="sidebar-title">PingOf</div>
+          <div class="sidebar-subtitle">Ofis Masa Tenisi</div>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="sidebar-section-title">Genel</div>
+        <a class="sidebar-link active" data-nav-link="dashboard" onclick="showPage(&#39;dashboard&#39;)" href="file:///C:/Users/emirh/Downloads/Telegram%20Desktop/index.html#">
+    <svg viewBox="0 0 24 24" width="20" height="20"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg><span style="flex:1;">Ana Sayfa</span>
+  </a>
+        <a class="sidebar-link " data-nav-link="matches" onclick="showPage(&#39;matches&#39;)" href="file:///C:/Users/emirh/Downloads/Telegram%20Desktop/index.html#">
+    <svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"></path></svg><span style="flex:1;">Maçlar</span>
+  </a>
+        <a class="sidebar-link " data-nav-link="leaderboard" onclick="showPage(&#39;leaderboard&#39;)" href="file:///C:/Users/emirh/Downloads/Telegram%20Desktop/index.html#">
+    <svg viewBox="0 0 24 24" width="20" height="20"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg><span style="flex:1;">Sıralama</span>
+  </a>
+        <div class="sidebar-section-title">Oyuncular</div>
+        <a class="sidebar-link " data-nav-link="players" onclick="showPage(&#39;players&#39;)" href="file:///C:/Users/emirh/Downloads/Telegram%20Desktop/index.html#">
+    <svg viewBox="0 0 24 24" width="20" height="20"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 00-3-3.87"></path><path d="M16 3.13a4 4 0 010 7.75"></path></svg><span style="flex:1;">Oyuncular</span>
+  </a>
+        <a class="sidebar-link " data-nav-link="tournaments" onclick="showPage(&#39;tournaments&#39;)" href="file:///C:/Users/emirh/Downloads/Telegram%20Desktop/index.html#">
+    <svg viewBox="0 0 24 24" width="20" height="20"><path d="M6 9H4.5a2.5 2.5 0 010-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 000-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path><path d="M18 2H6v7a6 6 0 0012 0V2z"></path></svg><span style="flex:1;">Turnuvalar</span>
+  </a>
+        <div class="sidebar-section-title">Hesap</div>
+        <a class="sidebar-link " data-nav-link="notifications" onclick="showPage(&#39;notifications&#39;)" href="file:///C:/Users/emirh/Downloads/Telegram%20Desktop/index.html#">
+    <svg viewBox="0 0 24 24" width="20" height="20"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 01-3.46 0"></path></svg><span style="flex:1;">Bildirimler</span><span class="badge" style="background:rgba(244,63,94,0.15);color:#fb7185;border:1px solid rgba(244,63,94,0.2);padding:2px 7px;font-size:0.6875rem;border-radius:100px;margin-left:auto;">3</span>
+  </a>
+        <a class="sidebar-link " data-nav-link="settings" onclick="showPage(&#39;settings&#39;)" href="file:///C:/Users/emirh/Downloads/Telegram%20Desktop/index.html#">
+    <svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="3"></circle><path d="M19.07 4.93a10 10 0 010 14.14M4.93 19.07a10 10 0 010-14.14M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path></svg><span style="flex:1;">Ayarlar</span>
+  </a>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="sidebar-user" onclick="showPage(&#39;profile&#39;)">
+          <div class="avatar avatar-sm" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);">AY</div>
+          <div class="sidebar-user-info">
+            <div class="sidebar-user-name">Ahmet Yılmaz</div>
+            <div class="sidebar-user-org">Teknoloji A.Ş.</div>
+          </div>
+          <svg viewBox="0 0 24 24" width="16" height="16" style="color:var(--text-muted);flex-shrink:0;"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </div>
+      </div>
+    </aside>
+    <div style="flex:1;display:flex;flex-direction:column;min-width:0;">
+      
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">Ana Sayfa</div>
+      <div style="font-size:0.75rem;color:var(--text-muted);">Pazartesi, 28 Temmuz 2025</div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn btn-primary btn-sm" onclick="showPage(&#39;match-new&#39;)">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        Maç Ekle
+      </button>
+    </div>
+  </div>
+  <div class="page-content animate-fade">
+    <!-- Welcome Banner -->
+    <div style="background:linear-gradient(135deg,rgba(99,102,241,0.2) 0%,rgba(168,85,247,0.15) 100%);border:1px solid rgba(99,102,241,0.25);border-radius:var(--radius-xl);padding:24px 28px;margin-bottom:24px;position:relative;overflow:hidden;">
+      <div style="position:absolute;right:-20px;top:-20px;font-size:6rem;opacity:0.12;pointer-events:none;">🏓</div>
+      <div style="display:flex;align-items:center;gap:16px;">
+        <div class="avatar avatar-lg" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);box-shadow:0 4px 20px rgba(99,102,241,0.4);">AY</div>
+        <div>
+          <div style="font-size:0.875rem;color:var(--accent-light);font-weight:600;">Hoşgeldin 👋</div>
+          <h2 style="font-size:1.5rem;margin-top:2px;">Ahmet Yılmaz</h2>
+          <div style="display:flex;align-items:center;gap:12px;margin-top:8px;">
+            <div style="display:flex;gap:4px;">
+              <span class="form-badge win">G</span>
+              <span class="form-badge win">G</span>
+              <span class="form-badge loss">M</span>
+              <span class="form-badge win">G</span>
+              <span class="form-badge loss">M</span>
+            </div>
+            <span style="font-size:0.8125rem;color:var(--text-secondary);">Son 5 maç formu</span>
+          </div>
+        </div>
+        <div style="margin-left:auto;text-align:right;">
+          <div style="font-size:2rem;font-weight:800;color:var(--accent-light);">#2</div>
+          <div style="font-size:0.75rem;color:var(--text-muted);">Sıralaman</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Kişisel İstatistikler -->
+    <div class="section">
+      <div class="section-header">
+        <h3 class="section-title">📊 Kişisel İstatistiklerim</h3>
+      </div>
+      <div class="grid-4">
+        <div class="stat-card accent">
+          <div class="stat-icon" style="background:rgba(99,102,241,0.15);">🎯</div>
+          <div class="stat-value" style="color:var(--accent-light);">28</div>
+          <div class="stat-label">Toplam Maç</div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-icon" style="background:rgba(16,185,129,0.15);">✅</div>
+          <div class="stat-value" style="color:var(--green);">19</div>
+          <div class="stat-label">Galibiyet</div>
+          <div class="stat-change up">↑ %67.8 kazanma</div>
+        </div>
+        <div class="stat-card red">
+          <div class="stat-icon" style="background:rgba(244,63,94,0.15);">❌</div>
+          <div class="stat-value" style="color:var(--red-light);">9</div>
+          <div class="stat-label">Mağlubiyet</div>
+        </div>
+        <div class="stat-card orange">
+          <div class="stat-icon" style="background:rgba(249,115,22,0.15);">🔥</div>
+          <div class="stat-value" style="color:var(--orange);">4</div>
+          <div class="stat-label">Galibiyet Serisi</div>
+          <div class="stat-change up">↑ Devam ediyor!</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Two column layout -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;" class="dash-grid">
+
+      <!-- Son Maçlar -->
+      <div>
+        <div class="section-header">
+          <h3 class="section-title">🏓 Son Maçlar</h3>
+          <a class="section-link" onclick="showPage(&#39;matches&#39;)">Tümünü gör →</a>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div class="match-card" onclick="showPage(&#39;match-detail&#39;)">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div class="avatar avatar-sm" style="background:rgba(16,185,129,0.2);">MK</div>
+      <div style="flex:1;">
+        <div style="font-size:0.875rem;font-weight:600;">Mehmet K.</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);">2sa önce · <span class="text-accent" style="font-size:0.7rem;">1v1</span></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="font-size:1.25rem;font-weight:800;color:var(--green);">3</div>
+        <div style="color:var(--text-muted);font-size:0.875rem;">-</div>
+        <div style="font-size:1.25rem;font-weight:800;color:var(--red-light);">1</div>
+        <span class="badge badge-win">G</span>
+      </div>
+    </div>
+  </div>
+          <div class="match-card" onclick="showPage(&#39;match-detail&#39;)">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div class="avatar avatar-sm" style="background:rgba(16,185,129,0.2);">ÖT</div>
+      <div style="flex:1;">
+        <div style="font-size:0.875rem;font-weight:600;">Özgür T.</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);">Dün · <span class="text-accent" style="font-size:0.7rem;">1v1</span></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="font-size:1.25rem;font-weight:800;color:var(--green);">3</div>
+        <div style="color:var(--text-muted);font-size:0.875rem;">-</div>
+        <div style="font-size:1.25rem;font-weight:800;color:var(--red-light);">2</div>
+        <span class="badge badge-win">G</span>
+      </div>
+    </div>
+  </div>
+          <div class="match-card" onclick="showPage(&#39;match-detail&#39;)">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div class="avatar avatar-sm" style="background:rgba(244,63,94,0.15);">CA</div>
+      <div style="flex:1;">
+        <div style="font-size:0.875rem;font-weight:600;">Can A.</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);">2 gün önce · <span class="text-accent" style="font-size:0.7rem;">1v1</span></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="font-size:1.25rem;font-weight:800;color:var(--red-light);">1</div>
+        <div style="color:var(--text-muted);font-size:0.875rem;">-</div>
+        <div style="font-size:1.25rem;font-weight:800;color:var(--green);">3</div>
+        <span class="badge badge-loss">M</span>
+      </div>
+    </div>
+  </div>
+          <div class="match-card" onclick="showPage(&#39;match-detail&#39;)">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div class="avatar avatar-sm" style="background:rgba(16,185,129,0.2);">SB</div>
+      <div style="flex:1;">
+        <div style="font-size:0.875rem;font-weight:600;">Selin B.</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);">3 gün önce · <span class="" style="font-size:0.7rem;">2v2</span></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="font-size:1.25rem;font-weight:800;color:var(--green);">3</div>
+        <div style="color:var(--text-muted);font-size:0.875rem;">-</div>
+        <div style="font-size:1.25rem;font-weight:800;color:var(--red-light);">0</div>
+        <span class="badge badge-win">G</span>
+      </div>
+    </div>
+  </div>
+          <div class="match-card" onclick="showPage(&#39;match-detail&#39;)">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div class="avatar avatar-sm" style="background:rgba(244,63,94,0.15);">EY</div>
+      <div style="flex:1;">
+        <div style="font-size:0.875rem;font-weight:600;">Emre Y.</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);">4 gün önce · <span class="text-accent" style="font-size:0.7rem;">1v1</span></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="font-size:1.25rem;font-weight:800;color:var(--red-light);">2</div>
+        <div style="color:var(--text-muted);font-size:0.875rem;">-</div>
+        <div style="font-size:1.25rem;font-weight:800;color:var(--green);">3</div>
+        <span class="badge badge-loss">M</span>
+      </div>
+    </div>
+  </div>
+        </div>
+      </div>
+
+      <!-- Sağ Kolon -->
+      <div>
+        <!-- Yaklaşan Maçlar -->
+        <div class="section-header">
+          <h3 class="section-title">📅 Yaklaşan Maçlar</h3>
+          <a class="section-link" onclick="showPage(&#39;match-new&#39;)">Planla +</a>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:24px;">
+          <div class="card card-sm" style="display:flex;align-items:center;gap:12px;cursor:pointer;" onclick="showPage(&#39;match-detail&#39;)">
+    <div style="width:40px;height:40px;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.2);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;">📅</div>
+    <div style="flex:1;">
+      <div style="font-size:0.875rem;font-weight:600;">Mehmet K.</div>
+      <div style="font-size:0.75rem;color:var(--text-muted);">Bugün 14:00</div>
+    </div>
+    <span class="badge badge-planned">1v1</span>
+  </div>
+          <div class="card card-sm" style="display:flex;align-items:center;gap:12px;cursor:pointer;" onclick="showPage(&#39;match-detail&#39;)">
+    <div style="width:40px;height:40px;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.2);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;">📅</div>
+    <div style="flex:1;">
+      <div style="font-size:0.875rem;font-weight:600;">Özgür T.</div>
+      <div style="font-size:0.75rem;color:var(--text-muted);">Yarın 11:30</div>
+    </div>
+    <span class="badge badge-planned">1v1</span>
+  </div>
+        </div>
+
+        <!-- Top 5 Liderlik -->
+        <div class="section-header">
+          <h3 class="section-title">🏆 Liderlik Tablosu</h3>
+          <a class="section-link" onclick="showPage(&#39;leaderboard&#39;)">Tümü →</a>
+        </div>
+        <div class="card" style="padding:0;overflow:hidden;">
+          <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid var(--border);" onclick="showPage(&#39;profile&#39;)">
+    <div style="width:24px;text-align:center;font-size:1rem;font-weight:700;color:var(--text-muted);">🥇</div>
+    <div class="avatar avatar-xs" style="background:#f97316;">MK</div>
+    <div style="flex:1;font-size:0.875rem;font-weight:500;">Mehmet K.</div>
+    <div style="font-weight:700;font-size:0.875rem;color:var(--green);">22G</div>
+    <div style="font-size:0.8125rem;color:var(--text-muted);">73.3%</div>
+  </div>
+          <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:rgba(99,102,241,0.08);border-bottom:1px solid var(--border);" onclick="showPage(&#39;profile&#39;)">
+    <div style="width:24px;text-align:center;font-size:1rem;font-weight:700;color:var(--text-muted);">🥈</div>
+    <div class="avatar avatar-xs" style="background:#6366f1;">AY</div>
+    <div style="flex:1;font-size:0.875rem;font-weight:700;">Ahmet Y. <span style="font-size:0.7rem;color:var(--accent-light);">(Sen)</span></div>
+    <div style="font-weight:700;font-size:0.875rem;color:var(--green);">19G</div>
+    <div style="font-size:0.8125rem;color:var(--text-muted);">67.8%</div>
+  </div>
+          <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid var(--border);" onclick="showPage(&#39;profile&#39;)">
+    <div style="width:24px;text-align:center;font-size:1rem;font-weight:700;color:var(--text-muted);">🥉</div>
+    <div class="avatar avatar-xs" style="background:#10b981;">ÖT</div>
+    <div style="flex:1;font-size:0.875rem;font-weight:500;">Özgür T.</div>
+    <div style="font-weight:700;font-size:0.875rem;color:var(--green);">15G</div>
+    <div style="font-size:0.8125rem;color:var(--text-muted);">65.2%</div>
+  </div>
+          <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid var(--border);" onclick="showPage(&#39;profile&#39;)">
+    <div style="width:24px;text-align:center;font-size:0.875rem;font-weight:700;color:var(--text-muted);">#4</div>
+    <div class="avatar avatar-xs" style="background:#ec4899;">CA</div>
+    <div style="flex:1;font-size:0.875rem;font-weight:500;">Can A.</div>
+    <div style="font-weight:700;font-size:0.875rem;color:var(--green);">12G</div>
+    <div style="font-size:0.8125rem;color:var(--text-muted);">57.1%</div>
+  </div>
+          <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid var(--border);border-bottom:none" onclick="showPage(&#39;profile&#39;)">
+    <div style="width:24px;text-align:center;font-size:0.875rem;font-weight:700;color:var(--text-muted);">#5</div>
+    <div class="avatar avatar-xs" style="background:#eab308;">SB</div>
+    <div style="flex:1;font-size:0.875rem;font-weight:500;">Selin B.</div>
+    <div style="font-weight:700;font-size:0.875rem;color:var(--green);">10G</div>
+    <div style="font-size:0.8125rem;color:var(--text-muted);">55.5%</div>
+  </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Aktif Turnuva -->
+    <div class="section" style="margin-top:24px;">
+      <div class="section-header">
+        <h3 class="section-title">🏅 Aktif Turnuva</h3>
+        <a class="section-link" onclick="showPage(&#39;tournament-detail&#39;)">Detay →</a>
+      </div>
+      <div class="card" style="background:linear-gradient(135deg,rgba(234,179,8,0.08),rgba(249,115,22,0.08));border-color:rgba(234,179,8,0.2);">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+          <div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+              <span class="badge" style="background:rgba(234,179,8,0.15);color:#fde047;border:1px solid rgba(234,179,8,0.3);">DEVAM EDİYOR</span>
+              <span class="badge badge-1v1">1v1</span>
+              <span class="badge" style="background:rgba(99,102,241,0.15);color:var(--accent-light);border:1px solid rgba(99,102,241,0.25);">Tek Eleme</span>
+            </div>
+            <h3>Yaz Şampiyonası 2025</h3>
+            <p style="color:var(--text-secondary);font-size:0.875rem;margin-top:4px;">Çeyrek Final aşamasında · 4/8 maç tamamlandı</p>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:0.75rem;color:var(--text-muted);">Sonraki maçın</div>
+            <div style="font-weight:700;color:var(--yellow);">Bugün 15:30</div>
+            <div style="font-size:0.8125rem;color:var(--text-secondary);">vs Mehmet K.</div>
+          </div>
+        </div>
+        <div class="progress" style="margin-top:16px;">
+          <div class="progress-bar" style="width:50%;background:linear-gradient(90deg,var(--yellow),var(--orange));"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--text-muted);margin-top:6px;"><span>4 maç tamamlandı</span><span>8 maç toplam</span></div>
+      </div>
+    </div>
+
+    <!-- Hızlı Aksiyonlar -->
+    <div class="section">
+      <h3 class="section-title" style="margin-bottom:12px;">⚡ Hızlı Aksiyonlar</h3>
+      <div class="grid-3">
+        <button class="btn btn-primary" onclick="showPage(&#39;match-new&#39;)" style="height:56px;border-radius:var(--radius-md);">
+          🏓 Anlık Maç Gir
+        </button>
+        <button class="btn btn-secondary" onclick="showPage(&#39;match-new&#39;)" style="height:56px;">
+          📅 Maç Planla
+        </button>
+        <button class="btn btn-secondary" onclick="showPage(&#39;players&#39;)" style="height:56px;">
+          ⚔️ Meydan Oku
+        </button>
+      </div>
+    </div>
+  </div>
+  <style>
+  @media(max-width:900px){.dash-grid{grid-template-columns:1fr!important;}}
+  </style>
+    </div>
+  </div>
+  <nav class="mobile-bottom-nav">
+    <div class="nav-items">
+      <div class="mobile-nav-item active" onclick="showPage(&#39;dashboard&#39;)"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg><span>Ana Sayfa</span></div><div class="mobile-nav-item " onclick="showPage(&#39;matches&#39;)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line></svg><span>Maçlar</span></div>
+      <div class="mobile-nav-item" onclick="showPage(&#39;match-new&#39;)">
+        <div class="mobile-nav-fab"><svg viewBox="0 0 24 24" stroke="white"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></div>
+      </div>
+      <div class="mobile-nav-item " onclick="showPage(&#39;leaderboard&#39;)"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg><span>Sıralama</span></div><div class="mobile-nav-item " onclick="showPage(&#39;players&#39;)"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg><span>Oyuncular</span></div>
+    </div>
+  </nav></div>
+
+<script>
+/* ============================================
+   APP ROUTER & STATE
+   ============================================ */
+const APP_STATE = {
+  currentPage: 'login',
+  isLoggedIn: false,
+  user: { name: 'Ahmet Yılmaz', initials: 'AY', org: 'Teknoloji A.Ş.', role: 'OWNER' },
+  theme: 'dark'
+};
+
+const PAGES_WITH_NAV = ['dashboard','matches','match-detail','match-new','players','profile','leaderboard','tournaments','tournament-detail','notifications','settings'];
+
+function showPage(pageId, data) {
+  APP_STATE.currentPage = pageId;
+  document.getElementById('app').innerHTML = renderPage(pageId, data);
+  window.scrollTo(0, 0);
+  updateNavActiveState(pageId);
+}
+
+function updateNavActiveState(pageId) {
+  document.querySelectorAll('[data-nav-link]').forEach(el => {
+    el.classList.toggle('active', el.dataset.navLink === pageId);
+  });
+}
+
+/* ============================================
+   LAYOUT WRAPPER
+   ============================================ */
+function withLayout(content, activeNav = '') {
+  return `
+  <div class="app-layout">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="sidebar-logo">🏓</div>
+        <div>
+          <div class="sidebar-title">PingOf</div>
+          <div class="sidebar-subtitle">Ofis Masa Tenisi</div>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="sidebar-section-title">Genel</div>
+        ${sidebarLink('dashboard', activeNav, `<svg viewBox="0 0 24 24" width="20" height="20"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`, 'Ana Sayfa')}
+        ${sidebarLink('matches', activeNav, `<svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>`, 'Maçlar')}
+        ${sidebarLink('leaderboard', activeNav, `<svg viewBox="0 0 24 24" width="20" height="20"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>`, 'Sıralama')}
+        <div class="sidebar-section-title">Oyuncular</div>
+        ${sidebarLink('players', activeNav, `<svg viewBox="0 0 24 24" width="20" height="20"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>`, 'Oyuncular')}
+        ${sidebarLink('tournaments', activeNav, `<svg viewBox="0 0 24 24" width="20" height="20"><path d="M6 9H4.5a2.5 2.5 0 010-5H6"/><path d="M18 9h1.5a2.5 2.5 0 000-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0012 0V2z"/></svg>`, 'Turnuvalar')}
+        <div class="sidebar-section-title">Hesap</div>
+        ${sidebarLink('notifications', activeNav, `<svg viewBox="0 0 24 24" width="20" height="20"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>`, 'Bildirimler', '<span class="badge" style="background:rgba(244,63,94,0.15);color:#fb7185;border:1px solid rgba(244,63,94,0.2);padding:2px 7px;font-size:0.6875rem;border-radius:100px;margin-left:auto;">3</span>')}
+        ${sidebarLink('settings', activeNav, `<svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 19.07a10 10 0 010-14.14M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>`, 'Ayarlar')}
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="sidebar-user" onclick="showPage('profile')">
+          <div class="avatar avatar-sm" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);">${APP_STATE.user.initials}</div>
+          <div class="sidebar-user-info">
+            <div class="sidebar-user-name">${APP_STATE.user.name}</div>
+            <div class="sidebar-user-org">${APP_STATE.user.org}</div>
+          </div>
+          <svg viewBox="0 0 24 24" width="16" height="16" style="color:var(--text-muted);flex-shrink:0;"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+      </div>
+    </aside>
+    <div style="flex:1;display:flex;flex-direction:column;min-width:0;">
+      ${content}
+    </div>
+  </div>
+  ${mobileNav(activeNav)}`;
+}
+
+function sidebarLink(page, active, icon, label, extra = '') {
+  return `<a class="sidebar-link ${active === page ? 'active' : ''}" data-nav-link="${page}" onclick="showPage('${page}')" href="#">
+    ${icon}<span style="flex:1;">${label}</span>${extra}
+  </a>`;
+}
+
+function mobileNav(active) {
+  const items = [
+    { page: 'dashboard', icon: `<svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`, label: 'Ana Sayfa' },
+    { page: 'matches', icon: `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/></svg>`, label: 'Maçlar' },
+    { page: 'leaderboard', icon: `<svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>`, label: 'Sıralama' },
+    { page: 'players', icon: `<svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>`, label: 'Oyuncular' },
+  ];
+  return `<nav class="mobile-bottom-nav">
+    <div class="nav-items">
+      ${items.slice(0,2).map(i => `<div class="mobile-nav-item ${active===i.page?'active':''}" onclick="showPage('${i.page}')">${i.icon}<span>${i.label}</span></div>`).join('')}
+      <div class="mobile-nav-item" onclick="showPage('match-new')">
+        <div class="mobile-nav-fab"><svg viewBox="0 0 24 24" stroke="white"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+      </div>
+      ${items.slice(2).map(i => `<div class="mobile-nav-item ${active===i.page?'active':''}" onclick="showPage('${i.page}')">${i.icon}<span>${i.label}</span></div>`).join('')}
+    </div>
+  </nav>`;
+}
+
+/* ============================================
+   PAGES ROUTER
+   ============================================ */
+function renderPage(pageId, data) {
+  switch(pageId) {
+    case 'login': return renderLogin();
+    case 'register': return renderRegister();
+    case 'join': return renderJoin();
+    case 'forgot-password': return renderForgotPassword();
+    case 'dashboard': return withLayout(renderDashboard(), 'dashboard');
+    case 'matches': return withLayout(renderMatches(), 'matches');
+    case 'match-detail': return withLayout(renderMatchDetail(), 'matches');
+    case 'match-new': return withLayout(renderMatchNew(), 'matches');
+    case 'players': return withLayout(renderPlayers(), 'players');
+    case 'profile': return withLayout(renderProfile(), 'players');
+    case 'leaderboard': return withLayout(renderLeaderboard(), 'leaderboard');
+    case 'tournaments': return withLayout(renderTournaments(), 'tournaments');
+    case 'tournament-detail': return withLayout(renderTournamentDetail(), 'tournaments');
+    case 'notifications': return withLayout(renderNotifications(), 'notifications');
+    case 'settings': return withLayout(renderSettings(), 'settings');
+    default: return renderLogin();
+  }
+}
+
+/* ============================================
+   PAGE: LOGIN
+   ============================================ */
+function renderLogin() {
+  return `<div class="auth-bg">
+    <div class="auth-card card-glass animate-fade" style="padding:40px;">
+      <div class="auth-logo">
+        <div class="auth-logo-icon">🏓</div>
+        <h1 class="auth-title">PingOf</h1>
+        <p class="auth-subtitle">Ofis masa tenisi takip platformu</p>
+      </div>
+      <div class="form-group">
+        <label class="form-label">E-posta adresi</label>
+        <input class="form-input" type="email" placeholder="ahmet@sirket.com" id="login-email" />
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="display:flex;justify-content:space-between;">
+          <span>Şifre</span>
+          <a class="auth-link text-sm" onclick="showPage('forgot-password')">Şifremi unuttum</a>
+        </label>
+        <input class="form-input" type="password" placeholder="••••••••" id="login-password" />
+      </div>
+      <button class="btn btn-primary btn-full btn-lg" onclick="showPage('dashboard')" style="margin-top:8px;">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+        Giriş Yap
+      </button>
+      <div class="auth-divider"><span>ya da</span></div>
+      <p style="text-align:center;font-size:0.9rem;color:var(--text-secondary);">
+        Hesabın yok mu? <a class="auth-link" onclick="showPage('register')">Organizasyon oluştur</a>
+      </p>
+      <p style="text-align:center;font-size:0.875rem;color:var(--text-muted);margin-top:12px;">
+        Davet linki mi aldın? <a class="auth-link" onclick="showPage('join')">Buradan katıl</a>
+      </p>
+    </div>
+  </div>`;
+}
+
+/* ============================================
+   PAGE: REGISTER
+   ============================================ */
+function renderRegister() {
+  return `<div class="auth-bg">
+    <div class="auth-card card-glass animate-fade" style="padding:40px;max-width:500px;">
+      <div style="margin-bottom:28px;">
+        <a class="back-btn" onclick="showPage('login')">
+          <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+          Giriş sayfasına dön
+        </a>
+        <h2 style="margin-top:20px;">Yeni organizasyon oluştur</h2>
+        <p style="color:var(--text-secondary);font-size:0.9rem;margin-top:6px;">Ofisini PingOf'a ekle, hemen oynamaya başla.</p>
+      </div>
+
+      <div style="background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);border-radius:var(--radius-md);padding:14px 16px;margin-bottom:20px;">
+        <p style="font-size:0.875rem;color:var(--accent-light);font-weight:500;">👑 Sen organizasyonun <strong>kurucusu</strong> olacaksın.</p>
+      </div>
+
+      <div class="grid-2" style="gap:12px;">
+        <div class="form-group">
+          <label class="form-label">Ad</label>
+          <input class="form-input" type="text" placeholder="Ahmet" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Soyad</label>
+          <input class="form-input" type="text" placeholder="Yılmaz" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">E-posta adresi</label>
+        <input class="form-input" type="email" placeholder="ahmet@sirket.com" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Organizasyon adı</label>
+        <input class="form-input" type="text" placeholder="Teknoloji A.Ş." />
+        <p class="form-helper">Çalıştığın şirket veya takım adı</p>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Şifre</label>
+        <input class="form-input" type="password" placeholder="En az 8 karakter" />
+        <p class="form-helper">En az 8 karakter olmalı</p>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Şifre tekrar</label>
+        <input class="form-input" type="password" placeholder="Şifreni tekrar gir" />
+      </div>
+      <button class="btn btn-primary btn-full btn-lg" onclick="showPage('dashboard')" style="margin-top:8px;">
+        Organizasyonu Oluştur
+        <svg viewBox="0 0 24 24" width="18" height="18"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </button>
+      <p style="text-align:center;font-size:0.875rem;color:var(--text-muted);margin-top:16px;">
+        Zaten hesabın var mı? <a class="auth-link" onclick="showPage('login')">Giriş yap</a>
+      </p>
+    </div>
+  </div>`;
+}
+
+/* ============================================
+   PAGE: JOIN
+   ============================================ */
+function renderJoin() {
+  return `<div class="auth-bg">
+    <div class="auth-card card-glass animate-fade" style="padding:40px;">
+      <div class="auth-logo">
+        <div class="auth-logo-icon" style="background:linear-gradient(135deg,#10b981,#059669);">🎉</div>
+        <h2 class="auth-title">Davet edildin!</h2>
+        <p class="auth-subtitle">Teknoloji A.Ş. organizasyonuna katılmak için kaydol.</p>
+      </div>
+      <div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:var(--radius-md);padding:14px 16px;margin-bottom:20px;text-align:center;">
+        <span style="font-size:0.875rem;color:var(--green);">✅ Davet kodu geçerli: <strong>AbC123xY</strong></span>
+      </div>
+      <div class="grid-2" style="gap:12px;">
+        <div class="form-group">
+          <label class="form-label">Ad</label>
+          <input class="form-input" type="text" placeholder="Ahmet" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Soyad</label>
+          <input class="form-input" type="text" placeholder="Yılmaz" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">E-posta adresi</label>
+        <input class="form-input" type="email" placeholder="ahmet@sirket.com" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Şifre</label>
+        <input class="form-input" type="password" placeholder="En az 8 karakter" />
+      </div>
+      <button class="btn btn-success btn-full btn-lg" onclick="showPage('dashboard')">
+        🏓 Organizasyona Katıl
+      </button>
+      <p style="text-align:center;font-size:0.8125rem;color:var(--text-muted);margin-top:16px;">Zaten hesabın var mı? <a class="auth-link" onclick="showPage('login')">Giriş yap</a></p>
+    </div>
+  </div>`;
+}
+
+/* ============================================
+   PAGE: FORGOT PASSWORD
+   ============================================ */
+function renderForgotPassword() {
+  return `<div class="auth-bg">
+    <div class="auth-card card-glass animate-fade" style="padding:40px;">
+      <div style="margin-bottom:28px;">
+        <a class="back-btn" onclick="showPage('login')">
+          <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> Geri dön
+        </a>
+        <div style="margin-top:24px;text-align:center;">
+          <div style="width:56px;height:56px;background:rgba(234,179,8,0.15);border:1px solid rgba(234,179,8,0.3);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:1.5rem;">🔐</div>
+          <h2>Şifremi Unuttum</h2>
+          <p style="color:var(--text-secondary);font-size:0.9rem;margin-top:8px;">E-posta adresini gir, sıfırlama linki gönderelim.</p>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">E-posta adresi</label>
+        <input class="form-input" type="email" placeholder="ahmet@sirket.com" />
+      </div>
+      <button class="btn btn-primary btn-full btn-lg">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        Sıfırlama Linki Gönder
+      </button>
+      <div style="margin-top:20px;padding:14px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:var(--radius-md);display:none;" id="reset-success">
+        <p style="font-size:0.875rem;color:var(--green);text-align:center;">✅ Sıfırlama linki gönderildi! E-posta kutunu kontrol et.</p>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ============================================
+   PAGE: DASHBOARD
+   ============================================ */
+function renderDashboard() {
+  return `
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">Ana Sayfa</div>
+      <div style="font-size:0.75rem;color:var(--text-muted);">Pazartesi, 28 Temmuz 2025</div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn btn-primary btn-sm" onclick="showPage('match-new')">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Maç Ekle
+      </button>
+    </div>
+  </div>
+  <div class="page-content animate-fade">
+    <!-- Welcome Banner -->
+    <div style="background:linear-gradient(135deg,rgba(99,102,241,0.2) 0%,rgba(168,85,247,0.15) 100%);border:1px solid rgba(99,102,241,0.25);border-radius:var(--radius-xl);padding:24px 28px;margin-bottom:24px;position:relative;overflow:hidden;">
+      <div style="position:absolute;right:-20px;top:-20px;font-size:6rem;opacity:0.12;pointer-events:none;">🏓</div>
+      <div style="display:flex;align-items:center;gap:16px;">
+        <div class="avatar avatar-lg" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);box-shadow:0 4px 20px rgba(99,102,241,0.4);">AY</div>
+        <div>
+          <div style="font-size:0.875rem;color:var(--accent-light);font-weight:600;">Hoşgeldin 👋</div>
+          <h2 style="font-size:1.5rem;margin-top:2px;">Ahmet Yılmaz</h2>
+          <div style="display:flex;align-items:center;gap:12px;margin-top:8px;">
+            <div style="display:flex;gap:4px;">
+              <span class="form-badge win">G</span>
+              <span class="form-badge win">G</span>
+              <span class="form-badge loss">M</span>
+              <span class="form-badge win">G</span>
+              <span class="form-badge loss">M</span>
+            </div>
+            <span style="font-size:0.8125rem;color:var(--text-secondary);">Son 5 maç formu</span>
+          </div>
+        </div>
+        <div style="margin-left:auto;text-align:right;">
+          <div style="font-size:2rem;font-weight:800;color:var(--accent-light);">#2</div>
+          <div style="font-size:0.75rem;color:var(--text-muted);">Sıralaman</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Kişisel İstatistikler -->
+    <div class="section">
+      <div class="section-header">
+        <h3 class="section-title">📊 Kişisel İstatistiklerim</h3>
+      </div>
+      <div class="grid-4">
+        <div class="stat-card accent">
+          <div class="stat-icon" style="background:rgba(99,102,241,0.15);">🎯</div>
+          <div class="stat-value" style="color:var(--accent-light);">28</div>
+          <div class="stat-label">Toplam Maç</div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-icon" style="background:rgba(16,185,129,0.15);">✅</div>
+          <div class="stat-value" style="color:var(--green);">19</div>
+          <div class="stat-label">Galibiyet</div>
+          <div class="stat-change up">↑ %67.8 kazanma</div>
+        </div>
+        <div class="stat-card red">
+          <div class="stat-icon" style="background:rgba(244,63,94,0.15);">❌</div>
+          <div class="stat-value" style="color:var(--red-light);">9</div>
+          <div class="stat-label">Mağlubiyet</div>
+        </div>
+        <div class="stat-card orange">
+          <div class="stat-icon" style="background:rgba(249,115,22,0.15);">🔥</div>
+          <div class="stat-value" style="color:var(--orange);">4</div>
+          <div class="stat-label">Galibiyet Serisi</div>
+          <div class="stat-change up">↑ Devam ediyor!</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Two column layout -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;" class="dash-grid">
+
+      <!-- Son Maçlar -->
+      <div>
+        <div class="section-header">
+          <h3 class="section-title">🏓 Son Maçlar</h3>
+          <a class="section-link" onclick="showPage('matches')">Tümünü gör →</a>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          ${recentMatchCard('Mehmet K.', 'AY', '3', '1', 'G', '1v1', '2sa önce')}
+          ${recentMatchCard('Özgür T.', 'AY', '3', '2', 'G', '1v1', 'Dün')}
+          ${recentMatchCard('Can A.', 'AY', '1', '3', 'M', '1v1', '2 gün önce')}
+          ${recentMatchCard('Selin B.', 'AY', '3', '0', 'G', '2v2', '3 gün önce')}
+          ${recentMatchCard('Emre Y.', 'AY', '2', '3', 'M', '1v1', '4 gün önce')}
+        </div>
+      </div>
+
+      <!-- Sağ Kolon -->
+      <div>
+        <!-- Yaklaşan Maçlar -->
+        <div class="section-header">
+          <h3 class="section-title">📅 Yaklaşan Maçlar</h3>
+          <a class="section-link" onclick="showPage('match-new')">Planla +</a>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:24px;">
+          ${upcomingMatchCard('Mehmet K.', 'Bugün 14:00', '1v1')}
+          ${upcomingMatchCard('Özgür T.', 'Yarın 11:30', '1v1')}
+        </div>
+
+        <!-- Top 5 Liderlik -->
+        <div class="section-header">
+          <h3 class="section-title">🏆 Liderlik Tablosu</h3>
+          <a class="section-link" onclick="showPage('leaderboard')">Tümü →</a>
+        </div>
+        <div class="card" style="padding:0;overflow:hidden;">
+          ${leaderboardMiniRow(1, 'Mehmet K.', 'MK', '#f97316', 22, '73.3%', true, false)}
+          ${leaderboardMiniRow(2, 'Ahmet Y.', 'AY', '#6366f1', 19, '67.8%', false, true)}
+          ${leaderboardMiniRow(3, 'Özgür T.', 'ÖT', '#10b981', 15, '65.2%', false, false)}
+          ${leaderboardMiniRow(4, 'Can A.', 'CA', '#ec4899', 12, '57.1%', false, false)}
+          ${leaderboardMiniRow(5, 'Selin B.', 'SB', '#eab308', 10, '55.5%', false, false)}
+        </div>
+      </div>
+    </div>
+
+    <!-- Aktif Turnuva -->
+    <div class="section" style="margin-top:24px;">
+      <div class="section-header">
+        <h3 class="section-title">🏅 Aktif Turnuva</h3>
+        <a class="section-link" onclick="showPage('tournament-detail')">Detay →</a>
+      </div>
+      <div class="card" style="background:linear-gradient(135deg,rgba(234,179,8,0.08),rgba(249,115,22,0.08));border-color:rgba(234,179,8,0.2);">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+          <div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+              <span class="badge" style="background:rgba(234,179,8,0.15);color:#fde047;border:1px solid rgba(234,179,8,0.3);">DEVAM EDİYOR</span>
+              <span class="badge badge-1v1">1v1</span>
+              <span class="badge" style="background:rgba(99,102,241,0.15);color:var(--accent-light);border:1px solid rgba(99,102,241,0.25);">Tek Eleme</span>
+            </div>
+            <h3>Yaz Şampiyonası 2025</h3>
+            <p style="color:var(--text-secondary);font-size:0.875rem;margin-top:4px;">Çeyrek Final aşamasında · 4/8 maç tamamlandı</p>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:0.75rem;color:var(--text-muted);">Sonraki maçın</div>
+            <div style="font-weight:700;color:var(--yellow);">Bugün 15:30</div>
+            <div style="font-size:0.8125rem;color:var(--text-secondary);">vs Mehmet K.</div>
+          </div>
+        </div>
+        <div class="progress" style="margin-top:16px;">
+          <div class="progress-bar" style="width:50%;background:linear-gradient(90deg,var(--yellow),var(--orange));"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--text-muted);margin-top:6px;"><span>4 maç tamamlandı</span><span>8 maç toplam</span></div>
+      </div>
+    </div>
+
+    <!-- Hızlı Aksiyonlar -->
+    <div class="section">
+      <h3 class="section-title" style="margin-bottom:12px;">⚡ Hızlı Aksiyonlar</h3>
+      <div class="grid-3">
+        <button class="btn btn-primary" onclick="showPage('match-new')" style="height:56px;border-radius:var(--radius-md);">
+          🏓 Anlık Maç Gir
+        </button>
+        <button class="btn btn-secondary" onclick="showPage('match-new')" style="height:56px;">
+          📅 Maç Planla
+        </button>
+        <button class="btn btn-secondary" onclick="showPage('players')" style="height:56px;">
+          ⚔️ Meydan Oku
+        </button>
+      </div>
+    </div>
+  </div>
+  <style>
+  @media(max-width:900px){.dash-grid{grid-template-columns:1fr!important;}}
+  </style>`;
+}
+
+function recentMatchCard(opp, me, mySets, oppSets, result, format, time) {
+  const win = result === 'G';
+  return `<div class="match-card" onclick="showPage('match-detail')">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div class="avatar avatar-sm" style="background:${win?'rgba(16,185,129,0.2)':'rgba(244,63,94,0.15)'};">${opp.split(' ').map(w=>w[0]).join('')}</div>
+      <div style="flex:1;">
+        <div style="font-size:0.875rem;font-weight:600;">${opp}</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);">${time} · <span class="${format==='1v1'?'text-accent':''}" style="font-size:0.7rem;">${format}</span></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="font-size:1.25rem;font-weight:800;color:${win?'var(--green)':'var(--red-light)'};">${mySets}</div>
+        <div style="color:var(--text-muted);font-size:0.875rem;">-</div>
+        <div style="font-size:1.25rem;font-weight:800;color:${win?'var(--red-light)':'var(--green)'};">${oppSets}</div>
+        <span class="badge ${win?'badge-win':'badge-loss'}">${result}</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+function upcomingMatchCard(opp, time, format) {
+  return `<div class="card card-sm" style="display:flex;align-items:center;gap:12px;cursor:pointer;" onclick="showPage('match-detail')">
+    <div style="width:40px;height:40px;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.2);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;">📅</div>
+    <div style="flex:1;">
+      <div style="font-size:0.875rem;font-weight:600;">${opp}</div>
+      <div style="font-size:0.75rem;color:var(--text-muted);">${time}</div>
+    </div>
+    <span class="badge badge-planned">${format}</span>
+  </div>`;
+}
+
+function leaderboardMiniRow(rank, name, initials, color, wins, pct, isFirst, isMe) {
+  const rankDisplay = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`;
+  return `<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;${isMe?'background:rgba(99,102,241,0.08);':''}border-bottom:1px solid var(--border);${rank===5?'border-bottom:none':''}" onclick="showPage('profile')" style="cursor:pointer;">
+    <div style="width:24px;text-align:center;font-size:${rank<=3?'1rem':'0.875rem'};font-weight:700;color:var(--text-muted);">${rankDisplay}</div>
+    <div class="avatar avatar-xs" style="background:${color};">${initials}</div>
+    <div style="flex:1;font-size:0.875rem;font-weight:${isMe?700:500};">${name}${isMe?' <span style="font-size:0.7rem;color:var(--accent-light);">(Sen)</span>':''}</div>
+    <div style="font-weight:700;font-size:0.875rem;color:var(--green);">${wins}G</div>
+    <div style="font-size:0.8125rem;color:var(--text-muted);">${pct}</div>
+  </div>`;
+}
+
+/* ============================================
+   PAGE: MATCHES
+   ============================================ */
+function renderMatches() {
+  return `
+  <div class="topbar">
+    <div class="topbar-title">Maçlar</div>
+    <div class="topbar-actions">
+      <button class="btn btn-secondary btn-sm">
+        <svg viewBox="0 0 24 24" width="16" height="16"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+        Filtrele
+      </button>
+      <button class="btn btn-primary btn-sm" onclick="showPage('match-new')">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Maç Ekle
+      </button>
+    </div>
+  </div>
+  <div class="page-content animate-fade">
+    <!-- Filters -->
+    <div class="pill-nav">
+      <button class="pill-btn active">Tümü</button>
+      <button class="pill-btn">Tamamlandı</button>
+      <button class="pill-btn">Planlandı</button>
+      <button class="pill-btn">1v1</button>
+      <button class="pill-btn">2v2</button>
+      <button class="pill-btn">Bu Hafta</button>
+    </div>
+
+    <!-- Match Groups -->
+    <div class="section">
+      <div class="card-title">Bugün</div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        ${bigMatchCard('Ahmet Y.', 'AY', 'Mehmet K.', 'MK', '3', '1', 'G', '1v1', '11:45', 'completed', ['11-7','11-9','9-11','11-8'])}
+        ${bigMatchCard('Özgür T.', 'ÖT', 'Can A.', 'CA', '3', '2', 'G', '1v1', '10:20', 'completed', ['11-8','9-11','11-7','8-11','11-9'])}
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="card-title">Yarın — Planlanan</div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        ${bigMatchCardPlanned('Ahmet Y.', 'AY', 'Emre Y.', 'EY', '1v1', '14:00')}
+        ${bigMatchCardPlanned('Selin B.', 'SB', 'Burak D.', 'BD', '2v2', '15:30')}
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="card-title">25 Temmuz 2025</div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        ${bigMatchCard('Ahmet Y.', 'AY', 'Özgür T.', 'ÖT', '3', '2', 'G', '1v1', '11:30', 'completed', ['11-9','8-11','11-7','10-12','11-8'])}
+        ${bigMatchCard('Mehmet K.', 'MK', 'Selin B.', 'SB', '3', '0', 'G', '2v2', '14:20', 'completed', ['11-5','11-7','11-3'])}
+        ${bigMatchCard('Can A.', 'CA', 'Ahmet Y.', 'AY', '3', '1', 'G', '1v1', '16:00', 'completed', ['11-8','9-11','11-6','11-4'])}
+      </div>
+    </div>
+  </div>`;
+}
+
+function bigMatchCard(p1, i1, p2, i2, s1, s2, result, format, time, status, sets) {
+  const win = s1 > s2;
+  const colors = ['#6366f1','#f97316','#10b981','#ec4899','#eab308','#a855f7'];
+  const c1 = colors[0], c2 = colors[1];
+  return `<div class="match-card" onclick="showPage('match-detail')">
+    <div style="display:flex;align-items:center;gap:0;padding:4px 0;">
+      <div style="flex:1;display:flex;align-items:center;gap:10px;">
+        <div class="avatar avatar-md" style="background:${c1};">${i1}</div>
+        <div>
+          <div style="font-weight:700;">${p1}</div>
+          <div style="font-size:0.75rem;color:var(--text-muted);">Takım 1</div>
+        </div>
+      </div>
+      <div style="text-align:center;padding:0 20px;">
+        <div style="display:flex;align-items:center;gap:8px;justify-content:center;">
+          <span style="font-size:2rem;font-weight:900;color:${win?'var(--green)':'var(--red-light)'};">${s1}</span>
+          <span style="color:var(--text-muted);font-size:1.25rem;font-weight:300;">–</span>
+          <span style="font-size:2rem;font-weight:900;color:${win?'var(--red-light)':'var(--green)'};">${s2}</span>
+        </div>
+        <div style="font-size:0.7rem;color:var(--text-muted);">${sets.join('  ')}</div>
+      </div>
+      <div style="flex:1;display:flex;align-items:center;gap:10px;justify-content:flex-end;text-align:right;">
+        <div>
+          <div style="font-weight:700;">${p2}</div>
+          <div style="font-size:0.75rem;color:var(--text-muted);">Takım 2</div>
+        </div>
+        <div class="avatar avatar-md" style="background:${c2};">${i2}</div>
+      </div>
+    </div>
+    <div class="divider" style="margin:12px 0 10px;"></div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span class="badge badge-1v1">${format}</span>
+      <span style="font-size:0.75rem;color:var(--text-muted);">${time}</span>
+      <span class="badge badge-win" style="margin-left:auto;">${result === 'G' ? 'Tamamlandı' : 'Tamamlandı'}</span>
+    </div>
+  </div>`;
+}
+
+function bigMatchCardPlanned(p1, i1, p2, i2, format, time) {
+  return `<div class="match-card" onclick="showPage('match-detail')">
+    <div style="display:flex;align-items:center;gap:0;padding:4px 0;">
+      <div style="flex:1;display:flex;align-items:center;gap:10px;">
+        <div class="avatar avatar-md" style="background:#6366f1;">${i1}</div>
+        <div>
+          <div style="font-weight:700;">${p1}</div>
+          <div style="font-size:0.75rem;color:var(--text-muted);">Takım 1</div>
+        </div>
+      </div>
+      <div style="text-align:center;padding:0 20px;">
+        <div style="font-size:1.5rem;font-weight:800;color:var(--text-muted);">VS</div>
+        <div style="font-size:0.7rem;color:var(--accent-light);margin-top:2px;">${time}</div>
+      </div>
+      <div style="flex:1;display:flex;align-items:center;gap:10px;justify-content:flex-end;text-align:right;">
+        <div>
+          <div style="font-weight:700;">${p2}</div>
+          <div style="font-size:0.75rem;color:var(--text-muted);">Takım 2</div>
+        </div>
+        <div class="avatar avatar-md" style="background:#f97316;">${i2}</div>
+      </div>
+    </div>
+    <div class="divider" style="margin:12px 0 10px;"></div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span class="badge ${format==='1v1'?'badge-1v1':'badge-2v2'}">${format}</span>
+      <span class="badge badge-planned" style="margin-left:auto;">Planlandı</span>
+      <button class="btn btn-sm btn-primary" style="margin-left:8px;" onclick="event.stopPropagation();showPage('match-new')">Sonuç Gir</button>
+    </div>
+  </div>`;
+}
+
+/* ============================================
+   PAGE: MATCH DETAIL
+   ============================================ */
+function renderMatchDetail() {
+  return `
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <button class="back-btn" onclick="showPage('matches')">
+        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div class="topbar-title">Maç Detayı</div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn btn-secondary btn-sm">
+        <svg viewBox="0 0 24 24" width="16" height="16"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        Düzenle
+      </button>
+    </div>
+  </div>
+  <div class="page-content animate-fade" style="max-width:720px;margin:0 auto;">
+    <!-- Hero Score -->
+    <div style="background:linear-gradient(135deg,rgba(16,185,129,0.12),rgba(99,102,241,0.08));border:1px solid rgba(16,185,129,0.2);border-radius:var(--radius-xl);padding:32px;text-align:center;margin-bottom:24px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+        <div style="flex:1;text-align:center;">
+          <div class="avatar avatar-xl" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);margin:0 auto 12px;">AY</div>
+          <div style="font-size:1.125rem;font-weight:700;">Ahmet Yılmaz</div>
+          <span class="badge badge-win" style="margin-top:6px;">GALİP 🏆</span>
+        </div>
+        <div style="padding:0 24px;text-align:center;">
+          <div style="font-size:4rem;font-weight:900;letter-spacing:-0.06em;line-height:1;">
+            <span style="color:var(--green);">3</span><span style="color:var(--text-muted);font-size:2rem;font-weight:400;margin:0 8px;">–</span><span style="color:var(--red-light);">1</span>
+          </div>
+          <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">SET SKORU</div>
+        </div>
+        <div style="flex:1;text-align:center;">
+          <div class="avatar avatar-xl" style="background:linear-gradient(135deg,#f97316,#ef4444);margin:0 auto 12px;">MK</div>
+          <div style="font-size:1.125rem;font-weight:700;">Mehmet Kaya</div>
+          <span class="badge badge-loss" style="margin-top:6px;">Mağlup</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;justify-content:center;">
+        <span class="badge badge-1v1">1v1</span>
+        <span class="badge" style="background:rgba(16,185,129,0.12);color:var(--green);border:1px solid rgba(16,185,129,0.2);">Tamamlandı</span>
+        <span style="font-size:0.8125rem;color:var(--text-muted);">28 Temmuz 2025, 11:45</span>
+      </div>
+    </div>
+
+    <!-- Set Detayları -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-title">Set Detayları</div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Set</th>
+            <th>Ahmet Y.</th>
+            <th>Mehmet K.</th>
+            <th>Kazanan</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${setRow('Set 1','11','7','Ahmet')}
+          ${setRow('Set 2','11','9','Ahmet')}
+          ${setRow('Set 3','9','11','Mehmet')}
+          ${setRow('Set 4','11','8','Ahmet')}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Match Info -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-title">Maç Bilgileri</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div>
+          <div style="font-size:0.75rem;color:var(--text-muted);">Format</div>
+          <div style="font-weight:600;margin-top:2px;">1v1 (Tekler)</div>
+        </div>
+        <div>
+          <div style="font-size:0.75rem;color:var(--text-muted);">Tarih</div>
+          <div style="font-weight:600;margin-top:2px;">28 Temmuz 2025</div>
+        </div>
+        <div>
+          <div style="font-size:0.75rem;color:var(--text-muted);">Girildi</div>
+          <div style="font-weight:600;margin-top:2px;">Ahmet Yılmaz</div>
+        </div>
+        <div>
+          <div style="font-size:0.75rem;color:var(--text-muted);">Durum</div>
+          <div><span class="badge badge-win">Tamamlandı</span></div>
+        </div>
+      </div>
+      <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+        <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;">Son düzenleme</div>
+        <div style="font-size:0.875rem;color:var(--text-secondary);">Ahmet Yılmaz tarafından 28 Temmuz 2025, 11:47'de düzenlendi</div>
+      </div>
+    </div>
+
+    <!-- Head to Head -->
+    <div class="card">
+      <div class="card-title">Karşılaşma Geçmişi — Ahmet vs Mehmet</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <div style="text-align:center;">
+          <div style="font-size:2rem;font-weight:800;color:var(--green);">8</div>
+          <div style="font-size:0.75rem;color:var(--text-muted);">Ahmet kazandı</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:2rem;font-weight:800;color:var(--text-secondary);">3</div>
+          <div style="font-size:0.75rem;color:var(--text-muted);">Toplam maç</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:2rem;font-weight:800;color:var(--red-light);">3</div>
+          <div style="font-size:0.75rem;color:var(--text-muted);">Mehmet kazandı</div>
+        </div>
+      </div>
+      <div class="h2h-bar">
+        <span class="h2h-label" style="color:var(--green);text-align:right;">8</span>
+        <div class="h2h-track" style="position:relative;height:10px;background:rgba(244,63,94,0.2);border-radius:100px;overflow:hidden;">
+          <div style="position:absolute;left:0;top:0;bottom:0;width:72.7%;background:var(--green);border-radius:100px;"></div>
+        </div>
+        <span class="h2h-label" style="color:var(--red-light);text-align:left;">3</span>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div style="display:flex;gap:10px;margin-top:20px;">
+      <button class="btn btn-secondary" style="flex:1;" onclick="showPage('matches')">← Geri</button>
+      <button class="btn btn-danger btn-sm" onclick="if(confirm('Bu maçı silmek istediğine emin misin?')) showPage('matches')">
+        <svg viewBox="0 0 24 24" width="16" height="16"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+        Sil
+      </button>
+    </div>
+  </div>`;
+}
+
+function setRow(set, s1, s2, winner) {
+  const w1 = parseInt(s1) > parseInt(s2);
+  return `<tr>
+    <td style="color:var(--text-muted);font-size:0.8125rem;">${set}</td>
+    <td style="font-weight:${w1?700:400};color:${w1?'var(--green)':'var(--text-secondary)'};">${s1}</td>
+    <td style="font-weight:${!w1?700:400};color:${!w1?'var(--green)':'var(--text-secondary)'};">${s2}</td>
+    <td><span class="badge badge-win" style="font-size:0.7rem;">${winner}</span></td>
+  </tr>`;
+}
+
+/* ============================================
+   PAGE: MATCH NEW
+   ============================================ */
+function renderMatchNew() {
+  return `
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <button class="back-btn" onclick="showPage('matches')">
+        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div class="topbar-title">Maç Ekle</div>
+    </div>
+  </div>
+  <div class="page-content animate-fade" style="max-width:680px;margin:0 auto;">
+
+    <!-- Type selector -->
+    <div class="card" style="margin-bottom:16px;background:linear-gradient(135deg,rgba(99,102,241,0.08),rgba(168,85,247,0.05));border-color:rgba(99,102,241,0.15);">
+      <div class="card-title">Maç Türü</div>
+      <div class="toggle-group">
+        <div class="toggle-btn active" id="type-instant">⚡ Anlık Maç (Hemen Oynandı)</div>
+        <div class="toggle-btn" id="type-planned">📅 Maç Planla (İleri Tarih)</div>
+      </div>
+    </div>
+
+    <!-- Format -->
+    <div class="form-section">
+      <div class="form-section-title">Format</div>
+      <div class="toggle-group">
+        <div class="toggle-btn active" id="fmt-1v1">1v1 — Tekler</div>
+        <div class="toggle-btn" id="fmt-2v2">2v2 — Çiftler</div>
+      </div>
+    </div>
+
+    <!-- Players -->
+    <div class="form-section">
+      <div class="form-section-title">Katılımcılar</div>
+      <div style="display:grid;grid-template-columns:1fr 40px 1fr;gap:8px;align-items:start;">
+        <!-- Team 1 -->
+        <div>
+          <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--accent-light);margin-bottom:8px;">Takım 1</div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <div style="display:flex;align-items:center;gap:8px;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.2);border-radius:var(--radius-md);padding:10px 12px;">
+              <div class="avatar avatar-xs" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);">AY</div>
+              <span style="font-size:0.875rem;font-weight:600;flex:1;">Ahmet Yılmaz <span style="font-size:0.7rem;color:var(--accent-light);">(Sen)</span></span>
+              <svg viewBox="0 0 24 24" width="14" height="14" style="color:var(--text-muted);"><path d="M9 18l6-6-6-6"/></svg>
+            </div>
+            <select class="form-input form-select" style="height:46px;">
+              <option value="">+ Oyuncu seç</option>
+              <option>Mehmet Kaya</option>
+              <option>Özgür Tunç</option>
+              <option>Can Arslan</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- VS -->
+        <div style="display:flex;align-items:center;justify-content:center;margin-top:36px;">
+          <div style="width:36px;height:36px;background:rgba(255,255,255,0.07);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:800;color:var(--text-muted);">VS</div>
+        </div>
+
+        <!-- Team 2 -->
+        <div>
+          <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--orange-light,#fb923c);margin-bottom:8px;">Takım 2</div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <select class="form-input form-select" style="height:46px;">
+              <option value="">+ Oyuncu seç</option>
+              <option>Mehmet Kaya</option>
+              <option selected>Özgür Tunç</option>
+              <option>Can Arslan</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Score Input -->
+    <div class="form-section">
+      <div class="form-section-title" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>Set Skorları</span>
+        <span style="font-size:0.8125rem;color:var(--text-muted);text-transform:none;letter-spacing:0;">Her set: 11 sayı, min. 2 fark</span>
+      </div>
+
+      <!-- Live score summary -->
+      <div class="score-summary" style="margin-bottom:16px;">
+        <div style="font-size:0.75rem;color:var(--accent-light);margin-bottom:4px;">ANLÍK SKOR</div>
+        <div class="score-summary-big"><span style="color:var(--green);">2</span> <span style="color:var(--text-muted);font-size:1.25rem;font-weight:400;">–</span> <span style="color:var(--red-light);">1</span></div>
+        <div style="font-size:0.8125rem;color:var(--text-secondary);margin-top:4px;">Ahmet Yılmaz önde · 3 set daha kazanılabilir</div>
+      </div>
+
+      <!-- Sets -->
+      ${scoreInputRow(1,'11','7',true)}
+      ${scoreInputRow(2,'11','9',true)}
+      ${scoreInputRow(3,'9','11',false)}
+      ${scoreInputRow(4,'','',false, true)}
+
+      <button class="btn btn-ghost btn-sm" style="margin-top:4px;color:var(--accent-light);">
+        <svg viewBox="0 0 24 24" width="15" height="15"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        5. Set Ekle
+      </button>
+    </div>
+
+    <!-- Date (hidden for instant, shown for planned) -->
+    <div class="form-section" style="display:none;" id="planned-date-section">
+      <div class="form-section-title">Tarih ve Saat</div>
+      <input class="form-input" type="datetime-local" />
+    </div>
+
+    <!-- Submit -->
+    <div style="display:flex;gap:10px;padding-top:8px;">
+      <button class="btn btn-secondary" onclick="showPage('matches')" style="width:120px;">İptal</button>
+      <button class="btn btn-primary" style="flex:1;height:52px;" onclick="showPage('matches')">
+        <svg viewBox="0 0 24 24" width="18" height="18"><polyline points="20 6 9 17 4 12"/></svg>
+        Maçı Kaydet
+      </button>
+    </div>
+    <p style="font-size:0.8125rem;color:var(--text-muted);text-align:center;margin-top:12px;">Maç kaydedildiğinde tüm organizasyon üyeleri bildirim alır.</p>
+  </div>`;
+}
+
+function scoreInputRow(setNum, s1, s2, hasData, isEmpty) {
+  const w1 = hasData && parseInt(s1) > parseInt(s2);
+  const w2 = hasData && parseInt(s2) > parseInt(s1);
+  return `<div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:var(--radius-md);padding:12px 14px;margin-bottom:8px;">
+    <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);margin-bottom:8px;">Set ${setNum}</div>
+    <div class="score-input-row">
+      <input class="form-input score-input" type="number" value="${s1}" placeholder="0" style="${w1?'color:var(--green);border-color:rgba(16,185,129,0.3);background:rgba(16,185,129,0.06);':''}" />
+      <div class="score-divider">–</div>
+      <input class="form-input score-input" type="number" value="${s2}" placeholder="0" style="${w2?'color:var(--green);border-color:rgba(16,185,129,0.3);background:rgba(16,185,129,0.06);':''}" />
+    </div>
+    ${!isEmpty && hasData ? `<div style="font-size:0.75rem;color:${w1?'var(--green)':'var(--orange)'};text-align:center;margin-top:4px;">${w1?'Ahmet kazandı ✓':'Özgür kazandı ✓'}</div>` : ''}
+  </div>`;
+}
+
+/* ============================================
+   PAGE: PLAYERS
+   ============================================ */
+function renderPlayers() {
+  const players = [
+    {name:'Mehmet Kaya',initials:'MK',color:'#f97316',matches:30,wins:22,pct:'73.3%',rank:1},
+    {name:'Ahmet Yılmaz',initials:'AY',color:'#6366f1',matches:28,wins:19,pct:'67.8%',rank:2},
+    {name:'Özgür Tunç',initials:'ÖT',color:'#10b981',matches:23,wins:15,pct:'65.2%',rank:3},
+    {name:'Can Arslan',initials:'CA',color:'#ec4899',matches:21,wins:12,pct:'57.1%',rank:4},
+    {name:'Selin Baş',initials:'SB',color:'#eab308',matches:18,wins:10,pct:'55.5%',rank:5},
+    {name:'Emre Yurt',initials:'EY',color:'#a855f7',matches:14,wins:7,pct:'50.0%',rank:6},
+    {name:'Burak Demir',initials:'BD',color:'#06b6d4',matches:11,wins:5,pct:'45.4%',rank:7},
+    {name:'Zeynep Ak',initials:'ZA',color:'#f43f5e',matches:8,wins:3,pct:'37.5%',rank:8},
+  ];
+  return `
+  <div class="topbar">
+    <div class="topbar-title">Oyuncular</div>
+    <div class="topbar-actions">
+      <button class="btn btn-secondary btn-sm">
+        <svg viewBox="0 0 24 24" width="16" height="16"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        Ara
+      </button>
+      <button class="btn btn-primary btn-sm" onclick="alert('Oyuncu ekle formu açılır')">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Oyuncu Ekle
+      </button>
+    </div>
+  </div>
+  <div class="page-content animate-fade">
+    <!-- Search -->
+    <div style="position:relative;margin-bottom:16px;">
+      <svg viewBox="0 0 24 24" width="18" height="18" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-muted);"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input class="form-input" placeholder="Oyuncu ara..." style="padding-left:44px;" />
+    </div>
+
+    <!-- Grid -->
+    <div class="grid-4" style="gap:12px;">
+      ${players.map(p => playerCard(p)).join('')}
+    </div>
+  </div>`;
+}
+
+function playerCard(p) {
+  const medals = {1:'🥇',2:'🥈',3:'🥉'};
+  const medal = medals[p.rank] || `#${p.rank}`;
+  return `<div class="player-card" onclick="showPage('profile')">
+    <div class="player-card-rank">${medal}</div>
+    <div class="avatar avatar-lg" style="background:${p.color};margin:0 auto 12px;">${p.initials}</div>
+    <div style="font-weight:700;font-size:0.9375rem;">${p.name}</div>
+    <div style="color:var(--text-muted);font-size:0.75rem;margin-top:2px;">${p.rank}. Sıra</div>
+    <div class="player-card-stats">
+      <div class="player-stat">
+        <div class="player-stat-value" style="color:var(--green);">${p.wins}</div>
+        <div class="player-stat-label">Galibiyet</div>
+      </div>
+      <div class="player-stat">
+        <div class="player-stat-value">${p.matches}</div>
+        <div class="player-stat-label">Maç</div>
+      </div>
+      <div class="player-stat">
+        <div class="player-stat-value" style="color:var(--accent-light);">${p.pct}</div>
+        <div class="player-stat-label">Kazanma %</div>
+      </div>
+      <div class="player-stat">
+        <div class="player-stat-value" style="color:var(--orange);">🔥${p.rank===1?5:p.rank===2?4:2}</div>
+        <div class="player-stat-label">Seri</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:4px;justify-content:center;margin-top:12px;">
+      <button class="btn btn-primary btn-sm" style="flex:1;" onclick="event.stopPropagation();">⚔️ Meydan Oku</button>
+    </div>
+  </div>`;
+}
+
+/* ============================================
+   PAGE: PROFILE
+   ============================================ */
+function renderProfile() {
+  return `
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <button class="back-btn" onclick="showPage('players')">
+        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div class="topbar-title">Oyuncu Profili</div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn btn-secondary btn-sm">
+        <svg viewBox="0 0 24 24" width="16" height="16"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        Profili Düzenle
+      </button>
+    </div>
+  </div>
+  <div class="page-content animate-fade">
+    <div style="display:grid;grid-template-columns:340px 1fr;gap:20px;align-items:start;" class="profile-grid">
+      <!-- Left: Profile Card -->
+      <div>
+        <div class="card" style="text-align:center;padding:32px 24px;background:linear-gradient(160deg,rgba(99,102,241,0.1),rgba(168,85,247,0.08));border-color:rgba(99,102,241,0.2);">
+          <div style="position:relative;display:inline-block;margin-bottom:16px;">
+            <div class="avatar avatar-2xl" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);margin:0 auto;box-shadow:0 8px 32px rgba(99,102,241,0.4);">AY</div>
+            <div style="position:absolute;bottom:0;right:0;width:24px;height:24px;background:var(--green);border-radius:50%;border:2px solid var(--bg-700);display:flex;align-items:center;justify-content:center;font-size:0.625rem;">✓</div>
+          </div>
+          <h2 style="font-size:1.375rem;">Ahmet Yılmaz</h2>
+          <div style="color:var(--text-muted);font-size:0.875rem;margin-top:4px;">ahmet@sirket.com</div>
+          <div style="display:flex;align-items:center;gap:6px;justify-content:center;margin-top:8px;">
+            <span class="badge" style="background:rgba(234,179,8,0.12);color:#fde047;border:1px solid rgba(234,179,8,0.2);">👑 Kurucu</span>
+            <span class="badge badge-planned">Teknoloji A.Ş.</span>
+          </div>
+          <div style="margin-top:20px;padding:16px;background:rgba(99,102,241,0.1);border-radius:var(--radius-md);">
+            <div style="font-size:2.5rem;font-weight:900;color:var(--accent-light);">#2</div>
+            <div style="font-size:0.8125rem;color:var(--text-secondary);">Genel Sıralama</div>
+          </div>
+          <div style="display:flex;gap:6px;margin-top:12px;">
+            <span class="form-badge win">G</span>
+            <span class="form-badge win">G</span>
+            <span class="form-badge loss">M</span>
+            <span class="form-badge win">G</span>
+            <span class="form-badge loss">M</span>
+          </div>
+          <div style="font-size:0.75rem;color:var(--text-muted);margin-top:6px;">Son 5 maç formu</div>
+          <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+            <div style="font-size:0.75rem;color:var(--text-muted);">Katılım Tarihi</div>
+            <div style="font-size:0.875rem;font-weight:600;margin-top:2px;">Ocak 2025</div>
+          </div>
+          <button class="btn btn-primary btn-full" style="margin-top:16px;" onclick="showPage('match-new')">⚔️ Meydan Oku</button>
+        </div>
+
+        <!-- Head to Head -->
+        <div class="card" style="margin-top:16px;">
+          <div class="card-title">En Çok Karşılaştığı Rakipler</div>
+          ${h2hRow('Mehmet K.','MK','#f97316',7,3)}
+          ${h2hRow('Özgür T.','ÖT','#10b981',5,4)}
+          ${h2hRow('Can A.','CA','#ec4899',4,2)}
+        </div>
+      </div>
+
+      <!-- Right: Stats & History -->
+      <div>
+        <!-- Stat Overview -->
+        <div class="grid-2" style="gap:12px;margin-bottom:16px;">
+          ${profileStatCard('Toplam Maç','28','🏓','')}
+          ${profileStatCard('Galibiyet','19','✅','var(--green)')}
+          ${profileStatCard('Mağlubiyet','9','❌','var(--red-light)')}
+          ${profileStatCard('Kazanma %','67.8%','📊','var(--accent-light)')}
+        </div>
+
+        <!-- 1v1 / 2v2 Split -->
+        <div class="grid-2" style="gap:12px;margin-bottom:16px;">
+          <div class="card">
+            <div class="card-title">1v1 — Tekler</div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;">
+              <div><div style="font-size:1.375rem;font-weight:800;">20</div><div style="font-size:0.7rem;color:var(--text-muted);">Maç</div></div>
+              <div><div style="font-size:1.375rem;font-weight:800;color:var(--green);">14</div><div style="font-size:0.7rem;color:var(--text-muted);">Galibiyet</div></div>
+              <div><div style="font-size:1.375rem;font-weight:800;color:var(--accent-light);">70%</div><div style="font-size:0.7rem;color:var(--text-muted);">Kazanma</div></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">2v2 — Çiftler</div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;">
+              <div><div style="font-size:1.375rem;font-weight:800;">8</div><div style="font-size:0.7rem;color:var(--text-muted);">Maç</div></div>
+              <div><div style="font-size:1.375rem;font-weight:800;color:var(--green);">5</div><div style="font-size:0.7rem;color:var(--text-muted);">Galibiyet</div></div>
+              <div><div style="font-size:1.375rem;font-weight:800;color:var(--accent-light);">62.5%</div><div style="font-size:0.7rem;color:var(--text-muted);">Kazanma</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Set & Score Stats -->
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-title">Set & Sayı İstatistikleri</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;text-align:center;">
+            <div>
+              <div style="font-size:1.5rem;font-weight:800;color:var(--green);">72</div>
+              <div style="font-size:0.75rem;color:var(--text-muted);">Kazanılan Set</div>
+            </div>
+            <div>
+              <div style="font-size:1.5rem;font-weight:800;color:var(--red-light);">48</div>
+              <div style="font-size:0.75rem;color:var(--text-muted);">Kaybedilen Set</div>
+            </div>
+            <div>
+              <div style="font-size:1.5rem;font-weight:800;color:var(--accent-light);">+24</div>
+              <div style="font-size:0.75rem;color:var(--text-muted);">Set Averajı</div>
+            </div>
+          </div>
+          <div class="divider"></div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;text-align:center;">
+            <div>
+              <div style="font-size:1.5rem;font-weight:800;color:var(--green);">824</div>
+              <div style="font-size:0.75rem;color:var(--text-muted);">Atılan Sayı</div>
+            </div>
+            <div>
+              <div style="font-size:1.5rem;font-weight:800;color:var(--red-light);">691</div>
+              <div style="font-size:0.75rem;color:var(--text-muted);">Yenilen Sayı</div>
+            </div>
+            <div>
+              <div style="font-size:1.5rem;font-weight:800;color:var(--accent-light);">+133</div>
+              <div style="font-size:0.75rem;color:var(--text-muted);">Sayı Averajı</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Match History -->
+        <div class="card">
+          <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;">
+            <span>Maç Geçmişi</span>
+            <div style="display:flex;gap:6px;">
+              <button class="btn btn-ghost btn-sm" style="font-size:0.75rem;">Tümü</button>
+              <button class="btn btn-ghost btn-sm" style="font-size:0.75rem;">1v1</button>
+              <button class="btn btn-ghost btn-sm" style="font-size:0.75rem;">2v2</button>
+            </div>
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Tarih</th>
+                <th>Format</th>
+                <th>Rakip</th>
+                <th>Skor</th>
+                <th>Sonuç</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${historyRow('28 Tem','1v1','Mehmet K.','3-1','G')}
+              ${historyRow('27 Tem','1v1','Özgür T.','3-2','G')}
+              ${historyRow('25 Tem','1v1','Can A.','1-3','M')}
+              ${historyRow('24 Tem','2v2','Selin B.','3-0','G')}
+              ${historyRow('22 Tem','1v1','Emre Y.','2-3','M')}
+              ${historyRow('20 Tem','1v1','Burak D.','3-1','G')}
+              ${historyRow('19 Tem','2v2','Zeynep A.','3-2','G')}
+            </tbody>
+          </table>
+          <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:12px;color:var(--accent-light);">Daha fazla yükle (21 maç daha)</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <style>@media(max-width:900px){.profile-grid{grid-template-columns:1fr!important;}}</style>`;
+}
+
+function profileStatCard(label, value, icon, color) {
+  return `<div class="card" style="text-align:center;">
+    <div style="font-size:1.5rem;margin-bottom:6px;">${icon}</div>
+    <div style="font-size:1.75rem;font-weight:800;${color?'color:'+color:''}">${value}</div>
+    <div style="font-size:0.8125rem;color:var(--text-secondary);">${label}</div>
+  </div>`;
+}
+
+function h2hRow(name, init, color, wins, losses) {
+  const total = wins + losses;
+  const pct = Math.round((wins/total)*100);
+  return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">
+    <div class="avatar avatar-xs" style="background:${color};">${init}</div>
+    <div style="flex:1;">
+      <div style="font-size:0.8125rem;font-weight:600;">${name}</div>
+      <div style="font-size:0.7rem;color:var(--text-muted);">${wins}G – ${losses}M</div>
+    </div>
+    <div style="font-size:0.875rem;font-weight:700;color:${wins>losses?'var(--green)':'var(--red-light)'};">${pct}%</div>
+  </div>`;
+}
+
+function historyRow(date, format, opp, score, result) {
+  return `<tr onclick="showPage('match-detail')" style="cursor:pointer;">
+    <td style="color:var(--text-muted);font-size:0.8125rem;">${date}</td>
+    <td><span class="badge ${format==='1v1'?'badge-1v1':'badge-2v2'}" style="font-size:0.65rem;">${format}</span></td>
+    <td style="font-size:0.875rem;">${opp}</td>
+    <td style="font-weight:700;font-family:monospace;">${score}</td>
+    <td><span class="badge ${result==='G'?'badge-win':'badge-loss'}">${result}</span></td>
+  </tr>`;
+}
+
+/* ============================================
+   PAGE: LEADERBOARD
+   ============================================ */
+function renderLeaderboard() {
+  const players = [
+    {rank:1,name:'Mehmet Kaya',init:'MK',color:'#f97316',played:30,wins:22,losses:8,pct:'73.3',savg:'+18',syavg:'+145'},
+    {rank:2,name:'Ahmet Yılmaz',init:'AY',color:'#6366f1',played:28,wins:19,losses:9,pct:'67.8',savg:'+24',syavg:'+133',me:true},
+    {rank:3,name:'Özgür Tunç',init:'ÖT',color:'#10b981',played:23,wins:15,losses:8,pct:'65.2',savg:'+11',syavg:'+87'},
+    {rank:4,name:'Can Arslan',init:'CA',color:'#ec4899',played:21,wins:12,losses:9,pct:'57.1',savg:'+6',syavg:'+45'},
+    {rank:5,name:'Selin Baş',init:'SB',color:'#eab308',played:18,wins:10,losses:8,pct:'55.5',savg:'+3',syavg:'+21'},
+    {rank:6,name:'Emre Yurt',init:'EY',color:'#a855f7',played:14,wins:7,losses:7,pct:'50.0',savg:'-2',syavg:'-12'},
+    {rank:7,name:'Burak Demir',init:'BD',color:'#06b6d4',played:11,wins:5,losses:6,pct:'45.4',savg:'-7',syavg:'-43'},
+  ];
+  const unranked = [
+    {name:'Zeynep Ak',init:'ZA',color:'#f43f5e',played:2},
+    {name:'Tuba Şen',init:'TŞ',color:'#8b5cf6',played:1},
+  ];
+  return `
+  <div class="topbar">
+    <div class="topbar-title">Liderlik Tablosu</div>
+  </div>
+  <div class="page-content animate-fade">
+    <!-- Tabs -->
+    <div class="tabs" style="margin-bottom:20px;">
+      <button class="tab-btn active">Genel</button>
+      <button class="tab-btn">1v1</button>
+      <button class="tab-btn">2v2</button>
+    </div>
+
+    <!-- Top 3 Podium -->
+    <div style="display:flex;align-items:flex-end;justify-content:center;gap:12px;margin-bottom:28px;padding:20px 0;">
+      <!-- 2nd -->
+      <div style="text-align:center;flex:1;max-width:140px;">
+        <div class="avatar avatar-lg" style="background:#6366f1;margin:0 auto 8px;box-shadow:0 4px 16px rgba(99,102,241,0.4);">AY</div>
+        <div style="font-weight:700;font-size:0.9rem;">Ahmet Y.</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);">19 galibiyet</div>
+        <div style="background:linear-gradient(180deg,#94a3b8,#64748b);border-radius:var(--radius-md) var(--radius-md) 0 0;padding:12px 0 8px;margin-top:10px;font-size:2rem;">🥈</div>
+      </div>
+      <!-- 1st -->
+      <div style="text-align:center;flex:1;max-width:160px;margin-bottom:-8px;">
+        <div style="font-size:1.5rem;margin-bottom:4px;">👑</div>
+        <div class="avatar avatar-xl" style="background:#f97316;margin:0 auto 8px;box-shadow:0 6px 24px rgba(249,115,22,0.5);">MK</div>
+        <div style="font-weight:800;font-size:1rem;">Mehmet K.</div>
+        <div style="font-size:0.8125rem;color:var(--green);">22 galibiyet</div>
+        <div style="background:linear-gradient(180deg,#ffd700,#f59e0b);border-radius:var(--radius-md) var(--radius-md) 0 0;padding:16px 0 8px;margin-top:10px;font-size:2rem;">🥇</div>
+      </div>
+      <!-- 3rd -->
+      <div style="text-align:center;flex:1;max-width:140px;">
+        <div class="avatar avatar-lg" style="background:#10b981;margin:0 auto 8px;box-shadow:0 4px 16px rgba(16,185,129,0.4);">ÖT</div>
+        <div style="font-weight:700;font-size:0.9rem;">Özgür T.</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);">15 galibiyet</div>
+        <div style="background:linear-gradient(180deg,#cd7f32,#a16207);border-radius:var(--radius-md) var(--radius-md) 0 0;padding:8px 0 8px;margin-top:10px;font-size:2rem;">🥉</div>
+      </div>
+    </div>
+
+    <!-- Full Table -->
+    <div class="card" style="padding:0;overflow:hidden;overflow-x:auto;">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th style="width:48px;">#</th>
+            <th>Oyuncu</th>
+            <th style="text-align:center;">O</th>
+            <th style="text-align:center;">G</th>
+            <th style="text-align:center;">M</th>
+            <th style="text-align:center;">%</th>
+            <th style="text-align:center;">SAV</th>
+            <th style="text-align:center;">SYAV</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${players.map(p => leaderboardRow(p)).join('')}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Unranked -->
+    <div style="margin-top:24px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+        <div style="flex:1;height:1px;background:var(--border);"></div>
+        <span style="font-size:0.8125rem;color:var(--text-muted);white-space:nowrap;padding:0 8px;">Henüz Sıralanmadı (min. 3 maç gerekli)</span>
+        <div style="flex:1;height:1px;background:var(--border);"></div>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden;">
+        ${unranked.map(p => `<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);opacity:0.6;" onclick="showPage('profile')">
+          <div style="width:36px;text-align:center;color:var(--text-muted);">–</div>
+          <div class="avatar avatar-sm" style="background:${p.color};">${p.init}</div>
+          <div style="flex:1;">${p.name}</div>
+          <div style="font-size:0.8125rem;color:var(--text-muted);">${p.played} maç oynandı</div>
+        </div>`).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
+function leaderboardRow(p) {
+  const medals = {1:'🥇',2:'🥈',3:'🥉'};
+  const medal = medals[p.rank] || p.rank;
+  const isPositive = v => v.startsWith('+');
+  return `<tr class="${p.me?'highlighted':''}" onclick="showPage('profile')" style="cursor:pointer;">
+    <td style="text-align:center;font-size:${p.rank<=3?'1.125rem':'0.875rem'};font-weight:700;">${medal}</td>
+    <td>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="avatar avatar-sm" style="background:${p.color};">${p.init}</div>
+        <span style="font-weight:${p.me?700:500};">${p.name}${p.me?' <span style="font-size:0.7rem;color:var(--accent-light);">(Sen)</span>':''}</span>
+      </div>
+    </td>
+    <td style="text-align:center;color:var(--text-secondary);">${p.played}</td>
+    <td style="text-align:center;color:var(--green);font-weight:700;">${p.wins}</td>
+    <td style="text-align:center;color:var(--red-light);">${p.losses}</td>
+    <td style="text-align:center;font-weight:600;color:var(--accent-light);">${p.pct}%</td>
+    <td style="text-align:center;font-weight:600;color:${isPositive(p.savg)?'var(--green)':'var(--red-light)'};">${p.savg}</td>
+    <td style="text-align:center;font-weight:600;color:${isPositive(p.syavg)?'var(--green)':'var(--red-light)'};">${p.syavg}</td>
+  </tr>`;
+}
+
+/* ============================================
+   PAGE: TOURNAMENTS
+   ============================================ */
+function renderTournaments() {
+  return `
+  <div class="topbar">
+    <div class="topbar-title">Turnuvalar</div>
+    <div class="topbar-actions">
+      <button class="btn btn-primary btn-sm" onclick="alert('Turnuva oluşturma formu')">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Turnuva Oluştur
+      </button>
+    </div>
+  </div>
+  <div class="page-content animate-fade">
+    <!-- Active -->
+    <div class="section">
+      <div class="section-header">
+        <h3 class="section-title">🔥 Aktif Turnuvalar</h3>
+      </div>
+      <div class="grid-2">
+        ${tournamentCard('Yaz Şampiyonası 2025','Tek Eleme','1v1',8,'DEVAM_EDIYOR','Çeyrek Final','rgba(234,179,8,0.08)','rgba(234,179,8,0.2)','#fde047')}
+        ${tournamentCard('Çiftler Kupası','Lig','2v2',6,'DEVAM_EDIYOR','3. Tur','rgba(99,102,241,0.08)','rgba(99,102,241,0.2)','var(--accent-light)')}
+      </div>
+    </div>
+
+    <!-- Past -->
+    <div class="section">
+      <div class="section-header">
+        <h3 class="section-title">🏆 Tamamlanan Turnuvalar</h3>
+      </div>
+      <div class="grid-2">
+        ${tournamentCard('Bahar Turnuvası 2025','Tek Eleme','1v1',8,'TAMAMLANDI','Şampiyon: Mehmet K.','rgba(16,185,129,0.06)','rgba(16,185,129,0.15)','var(--green)')}
+        ${tournamentCard('Yılbaşı Kupası','Lig','1v1',6,'TAMAMLANDI','Şampiyon: Özgür T.','rgba(16,185,129,0.06)','rgba(16,185,129,0.15)','var(--green)')}
+      </div>
+    </div>
+  </div>`;
+}
+
+function tournamentCard(name, type, format, players, status, subtitle, bg, border, color) {
+  const statusMap = {'DEVAM_EDIYOR':'Devam Ediyor','TAMAMLANDI':'Tamamlandı','TASLAK':'Taslak'};
+  const statusColor = {'DEVAM_EDIYOR':'rgba(234,179,8,0.15)','TAMAMLANDI':'rgba(16,185,129,0.12)','TASLAK':'rgba(99,102,241,0.12)'};
+  const statusText = {'DEVAM_EDIYOR':'#fde047','TAMAMLANDI':'var(--green)','TASLAK':'var(--accent-light)'};
+  return `<div class="card" style="background:${bg};border-color:${border};cursor:pointer;" onclick="showPage('tournament-detail')">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;">
+      <div>
+        <h3 style="font-size:1.0625rem;">${name}</h3>
+        <div style="font-size:0.8125rem;color:var(--text-muted);margin-top:2px;">${subtitle}</div>
+      </div>
+      <span style="background:${statusColor[status]};color:${statusText[status]};border:1px solid ${border};border-radius:100px;padding:3px 10px;font-size:0.7rem;font-weight:700;white-space:nowrap;">${statusMap[status]}</span>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+      <span class="badge ${format==='1v1'?'badge-1v1':'badge-2v2'}">${format}</span>
+      <span class="badge badge-planned">${type}</span>
+      <span class="badge" style="background:rgba(255,255,255,0.07);color:var(--text-secondary);border:none;">👤 ${players} oyuncu</span>
+    </div>
+    ${status==='DEVAM_EDIYOR'?`<div class="progress"><div class="progress-bar" style="width:50%;background:linear-gradient(90deg,${color},transparent);"></div></div><div style="display:flex;justify-content:space-between;font-size:0.7rem;color:var(--text-muted);margin-top:4px;"><span>4/8 maç</span><span>50%</span></div>`:''}
+  </div>`;
+}
+
+/* ============================================
+   PAGE: TOURNAMENT DETAIL
+   ============================================ */
+function renderTournamentDetail() {
+  return `
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <button class="back-btn" onclick="showPage('tournaments')">
+        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div class="topbar-title">Turnuva Detayı</div>
+    </div>
+  </div>
+  <div class="page-content animate-fade">
+    <!-- Header -->
+    <div class="card" style="background:linear-gradient(135deg,rgba(234,179,8,0.1),rgba(249,115,22,0.08));border-color:rgba(234,179,8,0.25);margin-bottom:20px;">
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+        <div style="font-size:3rem;">🏆</div>
+        <div style="flex:1;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+            <span style="background:rgba(234,179,8,0.15);color:#fde047;border:1px solid rgba(234,179,8,0.3);border-radius:100px;padding:3px 10px;font-size:0.7rem;font-weight:700;">DEVAM EDİYOR</span>
+            <span class="badge badge-1v1">1v1</span>
+            <span class="badge badge-planned">Tek Eleme</span>
+          </div>
+          <h2>Yaz Şampiyonası 2025</h2>
+          <p style="color:var(--text-secondary);font-size:0.875rem;margin-top:4px;">8 oyuncu · Çeyrek Final aşaması</p>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:0.75rem;color:var(--text-muted);">Senin sıradaki maçın</div>
+          <div style="font-weight:700;color:var(--yellow);">Bugün 15:30</div>
+          <div style="font-size:0.8125rem;">vs <strong>Özgür T.</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs" style="margin-bottom:20px;">
+      <button class="tab-btn active">Bracket</button>
+      <button class="tab-btn">Katılımcılar</button>
+      <button class="tab-btn">Maçlar</button>
+    </div>
+
+    <!-- Bracket -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px;overflow-x:auto;" class="bracket-grid">
+      <!-- Quarter Finals -->
+      <div>
+        <div class="bracket-round-title">Çeyrek Final</div>
+        ${bracketMatch('Mehmet K.','MK','#f97316','3','1','Selin B.','SB','#eab308','1','3',true)}
+        ${bracketMatch('Ahmet Y.','AY','#6366f1','3','0','Emre Y.','EY','#a855f7','0','3',true)}
+        ${bracketMatch('Özgür T.','ÖT','#10b981','','','Burak D.','BD','#06b6d4','','',false)}
+        ${bracketMatch('Can A.','CA','#ec4899','','','Zeynep A.','ZA','#f43f5e','','',false)}
+      </div>
+      <!-- Semi Finals -->
+      <div>
+        <div class="bracket-round-title">Yarı Final</div>
+        <div style="margin-top:48px;">
+          ${bracketMatch('Mehmet K.','MK','#f97316','','','Ahmet Y.','AY','#6366f1','','',false)}
+          <div style="height:24px;"></div>
+          ${bracketMatch('TBD','?','#475569','','','TBD','?','#475569','','',false)}
+        </div>
+      </div>
+      <!-- Final -->
+      <div>
+        <div class="bracket-round-title">Final</div>
+        <div style="margin-top:120px;">
+          ${bracketMatch('TBD','?','#475569','','','TBD','?','#475569','','',false)}
+        </div>
+      </div>
+    </div>
+  </div>
+  <style>@media(max-width:768px){.bracket-grid{grid-template-columns:repeat(3,220px)!important;}}</style>`;
+}
+
+function bracketMatch(p1, i1, c1, s1, oppS1, p2, i2, c2, s2, oppS2, isDone) {
+  const w1 = isDone && parseInt(s1) > parseInt(s2);
+  const w2 = isDone && parseInt(s2) > parseInt(s1);
+  return `<div class="bracket-match" style="margin-bottom:12px;">
+    <div class="bracket-player ${w1?'winner':''}">
+      <div class="bracket-player-info">
+        <div class="avatar avatar-xs" style="background:${c1};">${i1}</div>
+        <span style="font-size:0.8125rem;font-weight:${w1?700:500};">${p1}</span>
+      </div>
+      <span class="bracket-player-score" style="color:${w1?'var(--green)':isDone?'var(--red-light)':'var(--text-muted)'};">${s1||'–'}</span>
+    </div>
+    <div class="bracket-player ${w2?'winner':''}">
+      <div class="bracket-player-info">
+        <div class="avatar avatar-xs" style="background:${c2};">${i2}</div>
+        <span style="font-size:0.8125rem;font-weight:${w2?700:500};">${p2}</span>
+      </div>
+      <span class="bracket-player-score" style="color:${w2?'var(--green)':isDone?'var(--red-light)':'var(--text-muted)'};">${s2||'–'}</span>
+    </div>
+  </div>`;
+}
+
+/* ============================================
+   PAGE: NOTIFICATIONS
+   ============================================ */
+function renderNotifications() {
+  return `
+  <div class="topbar">
+    <div class="topbar-title">Bildirimler <span style="font-size:0.8rem;font-weight:400;color:var(--text-muted);">(3 okunmamış)</span></div>
+    <div class="topbar-actions">
+      <button class="btn btn-ghost btn-sm" style="color:var(--accent-light);">Tümünü Okundu İşaretle</button>
+    </div>
+  </div>
+  <div class="page-content animate-fade" style="max-width:720px;margin:0 auto;">
+    <div class="card" style="padding:0;overflow:hidden;">
+      ${notifItem('🏓','Maç Sonucu Girildi','Mehmet Kaya, senin de oynadığın maçın sonucunu girdi: Ahmet Y. 3-1 Mehmet K.','2 dakika önce',true,'match-detail')}
+      ${notifItem('⚔️','Meydan Okuma!','Özgür Tunç sana maç teklifi gönderdi. "Yarın öğleden sonra oynayalım mı?"','1 saat önce',true,'players')}
+      ${notifItem('🏆','Turnuva Güncellemesi','Yaz Şampiyonası 2025\'te sıradaki maçın hazır: Çeyrek Final vs. Özgür T.','3 saat önce',true,'tournament-detail')}
+      ${notifItem('👋','Yeni Üye Katıldı','Zeynep Ak organizasyona katıldı!','5 saat önce',false,'players')}
+      ${notifItem('📅','Maç Planlandı','Ahmet Yılmaz yarın 14:00\'de Emre Yurt ile 1v1 planladı.','Dün','false','matches')}
+      ${notifItem('✅','Maç Tamamlandı','Dün oynadığın turnuva maçı kayıt altına alındı.','Dün',false,'match-detail')}
+      ${notifItem('🏆','Turnuva Başladı','Yaz Şampiyonası 2025 başladı! Eşleşmelere bakabilirsin.','2 gün önce',false,'tournament-detail')}
+      ${notifItem('👋','Yeni Üye Katıldı','Burak Demir organizasyona katıldı!','3 gün önce',false,'players')}
+    </div>
+  </div>`;
+}
+
+function notifItem(icon, title, body, time, unread, page) {
+  return `<div class="notif-item ${unread===true?'unread':''}" onclick="showPage('${page}')">
+    <div class="notif-icon" style="background:rgba(99,102,241,0.12);">${icon}</div>
+    <div class="notif-content">
+      <div class="notif-title">${title}</div>
+      <div class="notif-body">${body}</div>
+      <div class="notif-time">${time}</div>
+    </div>
+    ${unread===true?'<div class="notif-dot"></div>':''}
+  </div>`;
+}
+
+/* ============================================
+   PAGE: SETTINGS
+   ============================================ */
+function renderSettings() {
+  return `
+  <div class="topbar">
+    <div class="topbar-title">Ayarlar</div>
+  </div>
+  <div class="page-content animate-fade" style="max-width:720px;margin:0 auto;">
+    <!-- Profile Section -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-title">Profil Bilgileri</div>
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;">
+        <div style="position:relative;">
+          <div class="avatar avatar-xl" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);">AY</div>
+          <button style="position:absolute;bottom:-4px;right:-4px;width:28px;height:28px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid var(--bg-700);">
+            <svg viewBox="0 0 24 24" width="12" height="12" stroke="white"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+        </div>
+        <div>
+          <div style="font-weight:700;font-size:1.0625rem;">Ahmet Yılmaz</div>
+          <div style="font-size:0.875rem;color:var(--text-muted);">ahmet@sirket.com</div>
+          <span class="badge" style="background:rgba(234,179,8,0.12);color:#fde047;border:1px solid rgba(234,179,8,0.2);margin-top:6px;">👑 Kurucu</span>
+        </div>
+      </div>
+      <div class="grid-2" style="gap:12px;">
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Ad</label>
+          <input class="form-input" value="Ahmet" />
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Soyad</label>
+          <input class="form-input" value="Yılmaz" />
+        </div>
+      </div>
+      <button class="btn btn-primary btn-sm" style="margin-top:14px;">Profili Güncelle</button>
+    </div>
+
+    <!-- Password -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-title">Şifre Değiştir</div>
+      <div class="form-group">
+        <label class="form-label">Mevcut Şifre</label>
+        <input class="form-input" type="password" placeholder="••••••••" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Yeni Şifre</label>
+        <input class="form-input" type="password" placeholder="En az 8 karakter" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Yeni Şifre Tekrar</label>
+        <input class="form-input" type="password" placeholder="Şifreyi tekrar gir" />
+      </div>
+      <button class="btn btn-secondary btn-sm">Şifreyi Güncelle</button>
+    </div>
+
+    <!-- Organization Settings (Owner Only) -->
+    <div class="card" style="margin-bottom:16px;border-color:rgba(234,179,8,0.2);">
+      <div class="card-title" style="display:flex;align-items:center;gap:6px;">
+        Organizasyon Ayarları
+        <span class="badge" style="background:rgba(234,179,8,0.12);color:#fde047;border:1px solid rgba(234,179,8,0.2);">Sadece Kurucu</span>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Organizasyon Adı</label>
+        <input class="form-input" value="Teknoloji A.Ş." />
+      </div>
+
+      <!-- Invite Code -->
+      <div style="margin-top:4px;">
+        <label class="form-label">Davet Linki</label>
+        <div class="invite-code" style="margin-bottom:8px;">https://pingof.app/join/AbC123xY</div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-secondary btn-sm" style="flex:1;">
+            <svg viewBox="0 0 24 24" width="14" height="14"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+            Kopyala
+          </button>
+          <button class="btn btn-danger btn-sm" style="flex:1;" onclick="if(confirm('Davet linkini sıfırlamak istediğine emin misin? Eski link geçersiz olacak.')) alert('Link sıfırlandı!')">
+            <svg viewBox="0 0 24 24" width="14" height="14"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+            Linki Sıfırla
+          </button>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-sm" style="margin-top:14px;">Organizasyonu Güncelle</button>
+    </div>
+
+    <!-- Members -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>Üyeler (8)</span>
+        <button class="btn btn-primary btn-sm" onclick="alert('Üye ekle')">+ Üye Ekle</button>
+      </div>
+      ${memberRow('Ahmet Yılmaz','AY','#6366f1','ahmet@sirket.com','Kurucu',true,false)}
+      ${memberRow('Mehmet Kaya','MK','#f97316','mehmet@sirket.com','Üye',false,true)}
+      ${memberRow('Özgür Tunç','ÖT','#10b981','ozgur@sirket.com','Üye',false,true)}
+      ${memberRow('Can Arslan','CA','#ec4899','can@sirket.com','Üye',false,true)}
+      ${memberRow('Selin Baş','SB','#eab308','selin@sirket.com','Üye',false,true)}
+    </div>
+
+    <!-- Danger Zone -->
+    <div class="card" style="border-color:rgba(244,63,94,0.25);background:rgba(244,63,94,0.04);">
+      <div class="card-title" style="color:var(--red-light);">⚠️ Tehlikeli Bölge</div>
+      <div class="settings-item">
+        <div class="settings-item-info">
+          <div class="settings-item-title">Organizasyonu Sil</div>
+          <div class="settings-item-desc">Tüm maç geçmişi ve istatistikler kalıcı olarak silinir.</div>
+        </div>
+        <button class="btn btn-danger btn-sm" onclick="if(confirm('Bu işlem geri alınamaz! Tüm veriler silinecek. Emin misin?')) alert('Organizasyon silindi')">Sil</button>
+      </div>
+    </div>
+
+    <!-- Logout -->
+    <button class="btn btn-secondary btn-full" style="margin-top:16px;height:52px;" onclick="showPage('login')">
+      <svg viewBox="0 0 24 24" width="18" height="18"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Çıkış Yap
+    </button>
+  </div>`;
+}
+
+function memberRow(name, init, color, email, role, isMe, canRemove) {
+  return `<div class="settings-item">
+    <div style="display:flex;align-items:center;gap:12px;flex:1;">
+      <div class="avatar avatar-sm" style="background:${color};">${init}</div>
+      <div>
+        <div class="settings-item-title">${name}${isMe?' <span style="font-size:0.75rem;color:var(--accent-light);">(Sen)</span>':''}</div>
+        <div class="settings-item-desc">${email}</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span class="badge ${role==='Kurucu'?'':'badge-planned'}" style="${role==='Kurucu'?'background:rgba(234,179,8,0.12);color:#fde047;border:1px solid rgba(234,179,8,0.2);':''}">
+        ${role==='Kurucu'?'👑 ':''} ${role}
+      </span>
+      ${canRemove?`<button class="btn btn-ghost btn-sm" onclick="if(confirm('${name} organizasyondan çıkarılsın mı?')) alert('Üye çıkarıldı')" style="color:var(--red-light);">
+        <svg viewBox="0 0 24 24" width="14" height="14"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="22" y1="9" x2="16" y2="15"/><line x1="16" y1="9" x2="22" y2="15"/></svg>
+      </button>`:''}
+    </div>
+  </div>`;
+}
+
+/* ============================================
+   INIT
+   ============================================ */
+showPage('login');
+</script>
+
+
+</body></html>

@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Match" ADD COLUMN IF NOT EXISTS "stakeSettled" BOOLEAN NOT NULL DEFAULT false;

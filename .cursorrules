@@ -1,0 +1,124 @@
+# Cursor Kuralları — Ofis Masa Tenisi Uygulaması
+
+Bu dosya, bu repoda çalışan AI ajanının (Cursor) uyması gereken kuralları tanımlar.
+Ne inşa edileceği için her zaman `PRD.md` dosyasına bakılmalıdır — bu dosya SADECE
+nasıl kodlanacağını, hangi standartlara uyulacağını ve hangi tuzaklardan kaçınılacağını tanımlar.
+
+**PRD.md ile bu dosya çelişirse PRD.md önceliklidir.**
+
+---
+
+## 0. Genel Çalışma Prensibi
+
+- Herhangi bir özellik üzerinde çalışmaya başlamadan önce `PRD.md` içinde ilgili US (User Story) ve KK (Kabul Kriterleri) maddelerini bul ve oku. Kod, KK maddelerinin **tamamını** karşılamalıdır; kısmi implementasyon "bitti" sayılmaz.
+- `PRD.md` Bölüm 11 "Kapsam Dışı (v1)" listesindeki hiçbir özellik için kod, altyapı, buton, sayfa veya "ileride kolay olsun diye" placeholder üretme. Sorulmadıkça bu maddeleri hatırlatma bile.
+- `PRD.md` Bölüm 13'teki görev sırasını takip et; büyük bir isteği tek dev commit'te bitirmeye çalışma, mantıklı küçük parçalara böl.
+- Belirsiz bir nokta varsa önce `PRD.md` → "Alınan Kararlar" (Bölüm 12) ve "Kapsam Dışı" (Bölüm 11) bölümlerine bak; hâlâ netlik yoksa varsayım yapmadan önce kullanıcıya sor.
+- Emin olmadığın konularda spekülatif/varsayımsal kod üretme; net olmayan iş kuralları (özellikle skor doğrulama, yetki kontrolü, sıralama mantığı) için PRD'yi tekrar oku.
+
+---
+
+## 1. Teknoloji Yığını (Sabit — Değiştirme)
+
+- **Framework:** Next.js (App Router) + React + TypeScript
+- **Stil:** Tailwind CSS
+- **Veritabanı:** PostgreSQL + Prisma ORM
+- **Kimlik doğrulama:** Auth.js (NextAuth) credentials provider
+- **Form yönetimi:** react-hook-form + zod
+- **Deploy:** Vercel + Neon/Supabase Postgres
+- **Kod kalitesi:** ESLint + Prettier, TypeScript `strict: true`
+
+Başka bir kütüphane/framework önerme veya sessizce ekleme (örn. Redux, Zustand, Chakra UI, Firebase). Ekip tercihi değişmediği sürece yukarıdaki yığına sadık kal.
+
+---
+
+## 2. Dil ve Yerelleştirme
+
+- **Tüm kullanıcıya görünen metinler Türkçedir** (buton, hata mesajı, boş durum metni, bildirim metni, sayfa başlığı vb.). PRD'deki Türkçe terimleri (Galibiyet, Mağlubiyet, Set Averajı vb.) birebir kullan.
+- Kod (değişken adı, fonksiyon adı, commit mesajı, yorum) **İngilizce** olabilir/olmalıdır — sadece kullanıcı arayüzü Türkçedir.
+- Tarih/saat gösterimi kullanıcının yerel saat dilimine göre yapılır (`Intl.DateTimeFormat` veya `date-fns-tz` gibi araçlar kullan, sabit UTC gösterme).
+
+---
+
+## 3. Güvenlik — Asla Ödün Verilmeyecek Kurallar
+
+1. **Organizasyon izolasyonu:** Her Prisma sorgusu (`findMany`, `findFirst`, `findUnique`, `update`, `delete`, `count` ...) `where` içine `organizationId` filtresini eklemek zorundadır. Bunu unutmak kritik bir güvenlik açığıdır. Mümkünse bunu tekrar tekrar yazmak yerine bir repository/service katmanında merkezi hale getir (örn. `getMatchesForOrg(orgId, ...)` gibi yardımcı fonksiyonlar).
+2. **Yetki kontrolü sunucu tarafında da yapılır.** Client'ta bir butonu gizlemek yeterli değildir; ilgili API route/server action içinde de rol/sahiplik kontrolü yapılmalıdır (örn. sadece maçı oluşturan kişi veya OWNER silebilir → API içinde bu kontrol tekrar yapılır, 403 döner).
+3. Bir kullanıcı, içinde yer almadığı bir maçın sonucunu giremez — bu kural **sunucu tarafında** da doğrulanmalıdır, sadece formda kendi adının sabitlenmesi yeterli değildir.
+4. Şifreler asla düz metin saklanmaz; bcrypt veya argon2 kullan.
+5. Giriş yapmamış kullanıcı korumalı route'lara erişmeye çalışırsa `/login`'e yönlendirilir; middleware ile merkezi olarak yönetilebilir.
+6. Yetkisiz istekler her zaman **401** (kimlik doğrulanmamış) veya **403** (yetkisiz) döner — 200 dönüp client'ta veriyi gizlemek kabul edilmez.
+7. `.env` dosyasını asla commit etme; her zaman güncel bir `.env.example` tut.
+8. Kullanıcı girdisi her zaman sunucu tarafında da (zod şeması ile) doğrulanır — client-side validation tek başına yeterli değildir.
+
+---
+
+## 4. Kritik İş Mantığı — Saf Fonksiyon Olarak Yaz
+
+Aşağıdaki mantıklar UI'dan tamamen bağımsız, test edilebilir saf fonksiyonlar (`lib/` veya `domain/` gibi bir klasörde) olarak yazılmalıdır. Bunları React component içine veya API route handler içine gömme.
+
+- **Set skoru doğrulama** (`validateSetScore`): 11 sayı kuralı, en az 2 fark, deuce durumları (13-11, 15-13 vb.), negatif/boş sayı reddi.
+- **Maç kazananı belirleme** (`determineMatchWinner`): set skorlarından 3-0/3-1/3-2 sonucunu ve kazanan takımı hesaplama. Kullanıcı kazananı manuel seçmez.
+- **Sıralama/leaderboard hesaplama** (`calculateLeaderboard`): galibiyet → kazanma % → set averajı → sayı averajı → alfabetik sıralama zinciri, 3 maç barajı (`MIN_MATCHES_FOR_RANKING` sabiti olarak tanımla, hard-code saçma).
+- **Turnuva bracket ilerletme** (`advanceTournamentBracket`): tek eleme eşleşmesi, BAY ataması, kazananın bir sonraki tura ilerlemesi.
+
+Bu dört fonksiyon grubu için **birim testleri zorunludur** (Jest/Vitest — proje kurulumuna göre karar ver ve tutarlı kal). Edge case'leri (deuce, BAY, eşitlik durumları, 3 maç barajı sınırı) test et.
+
+---
+
+## 5. Veri Modeli Disiplini
+
+- `PRD.md` Bölüm 5'teki Prisma modelini birebir uygula; alan adlarını değiştirme, zorunlu alanları çıkarma.
+- Yeni alan eklemen gerekirse (örn. UI için yardımcı bir alan), mevcut alanları bozmadan ekle ve PRD ile çelişmediğinden emin ol.
+- `Match.createdById` ve `Match.resultEnteredById` ayrımına dikkat et — bunlar farklı yetki kontrollerinde kullanılır (düzenleme/silme yetkisi `createdById`'de, "maçın tarafı olma" zorunluluğu ise katılımcı listesinde).
+- Enum değerlerini (`SINGLES | DOUBLES`, `PLANNED | PENDING | COMPLETED | CANCELLED`, `OWNER | MEMBER`, `KNOCKOUT | ROUND_ROBIN`, `PENDING | ACCEPTED | DECLINED | EXPIRED`) Prisma enum olarak tanımla, serbest string kullanma.
+
+---
+
+## 6. Kod Stili ve Yapı
+
+- TypeScript `strict: true` ile uyumlu, `any` kullanımından kaçın (gerekirse `unknown` + type guard).
+- Next.js App Router konvansiyonlarına uy: server component'ler varsayılan, sadece interaktivite gerektiğinde `"use client"`.
+- Form doğrulama şemaları (zod) `lib/validations/` gibi paylaşılan bir klasörde tutulmalı ki hem client hem server aynı şemayı kullansın (PRD Bölüm 8'deki gereksinim).
+- API route'ları veya server action'lar ince (thin) tutulmalı; iş mantığı service/lib katmanına taşınmalı.
+- Anlamlı commit mesajları yaz (Conventional Commits: `feat:`, `fix:`, `chore:`, `test:` ...).
+- Her yeni özellik için ilgili `PRD.md` KK maddelerine referans veren kısa bir PR açıklaması yaz (örn. "Implements US-7 / KK-7, KK-7b").
+
+---
+
+## 7. UI/UX Kuralları
+
+- Mobile-first tasarım: 375px genişlikten itibaren test et.
+- Dokunma hedefleri en az 44×44px.
+- Her formda: yükleniyor durumu, hata mesajı, başarı geri bildirimi olmalı.
+- Yıkıcı işlemler (maç silme, üye çıkarma) her zaman onay diyaloğu ister.
+- Boş durumlar (henüz maç/turnuva yok) anlamlı mesaj + aksiyon butonu içerir — asla boş beyaz ekran bırakma.
+- Liste sayfalarında sayfalama veya sonsuz kaydırma kullan; tek seferde 100+ kayıt çekme.
+
+---
+
+## 8. Test Beklentisi
+
+- Kritik iş mantığı (Bölüm 4) için birim testi olmadan bir PR "tamamlandı" sayılmaz.
+- Yetki/izolasyon kontrolleri (organizationId filtreleme, sahiplik kontrolü) için en azından temel entegrasyon testi yazılması teşvik edilir.
+- Lint ve build hatasız geçmelidir; bunu göz ardı eden kod önerme.
+
+---
+
+## 9. Yapma Listesi (Sık Yapılan Hatalar)
+
+- ❌ Kazananı kullanıcıya manuel seçtirme — kazanan her zaman set skorundan hesaplanır.
+- ❌ `organizationId` filtresini unutmak.
+- ❌ Client-side'da butonu gizleyip sunucu tarafında yetki kontrolü yapmamak.
+- ❌ Elo/rating sistemi, sezon sıfırlama, onay-itiraz mekanizması gibi kapsam dışı özellikleri "faydalı olur" diye eklemek.
+- ❌ Sabit/kayıtlı 2v2 takımı kavramı oluşturmak (takımlar her maç yeniden kurulur).
+- ❌ İngilizce UI metni bırakmak.
+- ❌ `.env` dosyasını commit etmek veya API anahtarlarını koda gömmek.
+- ❌ Tek set maçlara izin vermek (v1'de tüm maçlar 5 sette 3'tür).
+- ❌ 2v2 meydan okumaya izin vermek (v1'de sadece 1v1).
+
+---
+
+## 10. Referans
+
+Tüm US/KK numaraları, veri modeli, ekran listesi ve faz planı için bkz. **`PRD.md`**. Bu dosya onun tamamlayıcısıdır, yerine geçmez.

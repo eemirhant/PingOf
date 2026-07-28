@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0a0b0f" />
+    <title>Bağlantı yok — PingOf</title>
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100dvh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        font-family:
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          sans-serif;
+        background: #0a0b0f;
+        color: #f1f5f9;
+      }
+      main {
+        max-width: 360px;
+        text-align: center;
+      }
+      .mark {
+        width: 72px;
+        height: 72px;
+        margin: 0 auto 20px;
+        border-radius: 18px;
+        background: linear-gradient(135deg, #6366f1, #a855f7);
+        display: grid;
+        place-items: center;
+        font-weight: 800;
+        font-size: 1.5rem;
+        letter-spacing: -0.03em;
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: 1.35rem;
+        font-weight: 800;
+      }
+      p {
+        margin: 0 0 24px;
+        color: #94a3b8;
+        line-height: 1.5;
+        font-size: 0.95rem;
+      }
+      button {
+        min-height: 44px;
+        min-width: 44px;
+        padding: 0 20px;
+        border: 0;
+        border-radius: 10px;
+        background: #6366f1;
+        color: #fff;
+        font-size: 0.95rem;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      button:active {
+        background: #4f46e5;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="mark" aria-hidden="true">P</div>
+      <h1>Bağlantı yok</h1>
+      <p>
+        İnternet bağlantısı bulunamadı. Bağlantı geldiğinde tekrar deneyebilirsin.
+        PingOf çevrimdışı maç kaydı desteklemez.
+      </p>
+      <button type="button" onclick="location.reload()">Tekrar dene</button>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,21 @@
+/**
+ * Notification types (PRD US-13 / KK-13).
+ * Tournament types wired by US-12.
+ */
+
+export const NotificationType = {
+  MATCH_CREATED: "MATCH_CREATED",
+  MATCH_CANCELLED: "MATCH_CANCELLED",
+  MATCH_RESULT: "MATCH_RESULT",
+  CHALLENGE_RECEIVED: "CHALLENGE_RECEIVED",
+  CHALLENGE_ACCEPTED: "CHALLENGE_ACCEPTED",
+  CHALLENGE_DECLINED: "CHALLENGE_DECLINED",
+  MEMBER_JOINED: "MEMBER_JOINED",
+  /** Wired — US-12 */
+  TOURNAMENT_STARTED: "TOURNAMENT_STARTED",
+  TOURNAMENT_MATCH_READY: "TOURNAMENT_MATCH_READY",
+  TOURNAMENT_COMPLETED: "TOURNAMENT_COMPLETED",
+} as const;
+
+export type NotificationTypeValue =
+  (typeof NotificationType)[keyof typeof NotificationType];
