@@ -36,6 +36,17 @@ cp .env.example .env
 | `DATABASE_URL` | PostgreSQL bağlantı dizesi |
 | `AUTH_SECRET` | Auth.js oturum şifreleme anahtarı |
 | `AUTH_URL` | Uygulama URL’i (geliştirmede `http://localhost:3000`) |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Web Push public VAPID anahtarı |
+| `VAPID_PRIVATE_KEY` | Web Push private VAPID anahtarı (sunucu) |
+| `VAPID_SUBJECT` | VAPID subject (`mailto:` veya site URL) |
+
+Web Push anahtarları:
+
+```bash
+npm run push:vapid
+```
+
+Çıktıyı `.env` (ve staging’de Vercel env) içine ekleyin. Ardından Ayarlar → **Bildirimleri aç**. Geliştirmede SW için `?sw=1` veya `npm run build && npm run start` kullanın.
 
 3. Prisma client + migration:
 
@@ -62,16 +73,17 @@ npm run dev
 | `npm run typecheck` | TypeScript `tsc --noEmit` |
 | `npm run test` | Vitest |
 | `npm run pwa:icons` | PWA ikonlarını yeniden üret |
+| `npm run push:vapid` | Web Push VAPID anahtar çifti üret |
 | `npm run db:generate` | Prisma client |
 | `npm run db:migrate` | Migration (dev) |
 
 ## Staging deploy (Vercel + Neon)
 
-Ayrıntılı adımlar: [STAGING.md](STAGING.md). Özet: Neon `DATABASE_URL` + Vercel env (`AUTH_SECRET`, `AUTH_URL`) + `npm run vercel-build`.
+Ayrıntılı adımlar: [STAGING.md](STAGING.md). Özet: Neon `DATABASE_URL` + Vercel env (`AUTH_SECRET`, `AUTH_URL`, VAPID üçlüsü) + `npm run vercel-build`.
 
 **Not:** `public/uploads` dosya sistemi Vercel’de kalıcı değildir.
 
-## v1 durum (PRD §13)
+## v1 / Faz 4 durum (PRD §13)
 
 - [x] Auth, org davet/join, profil, oyuncu ekleme
 - [x] Anlık / planlı maç, meydan okuma, bildirimler
@@ -79,6 +91,7 @@ Ayrıntılı adımlar: [STAGING.md](STAGING.md). Özet: Neon `DATABASE_URL` + Ve
 - [x] Turnuvalar (tek eleme + lig)
 - [x] PWA (manifest, SW, offline)
 - [x] İddia notu (US-16)
+- [x] Web Push (VAPID + Ayarlar aboneliği)
 - DoD kalite kapısı: [DOD.md](DOD.md)
 
 ## Referans

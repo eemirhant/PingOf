@@ -6,7 +6,7 @@ Tarih: 2026-07-28
 
 | Komut | Sonuç |
 |---|---|
-| `npm test` | PASS — 70 test |
+| `npm test` | PASS — 75 test |
 | `npm run lint` | PASS |
 | `npm run typecheck` (`tsc --noEmit`) | PASS |
 | `npm run build` | PASS — Next.js 15.5 production build |
@@ -35,6 +35,7 @@ Aşağıdakiler staging veya yerel oturumla doğrulanmalı (tarayıcı DevTools 
 - [ ] Turnuva oluştur → başlat → sonuç → tamamlandı
 - [ ] BAY (3 kişilik tek eleme)
 - [ ] PWA: Ana ekrana ekle (prod); offline sayfa
+- [ ] Web Push: Ayarlar → Bildirimleri aç → sekme kapalıyken meydan okuma/maç sonucu OS bildirimi
 
 ## Staging
 
@@ -54,5 +55,7 @@ Adım adım: [STAGING.md](STAGING.md)
 ## Bilinen sınırlamalar
 
 - `public/uploads` Vercel’de ephemeral (avatar/logo kalıcılığı için ileride object storage)
-- Web Push, Elo, grafik bracket — v2 / kapsam dışı
+- Elo, grafik bracket, 2v2 meydan okuma — PRD §11 kapsam dışı
+- Web Push için VAPID env (`NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`) zorunlu; yoksa Ayarlar’da yapılandırma uyarısı gösterilir
+- Geliştirmede SW varsayılan kapalı (`?sw=1` veya production `npm run start`)
 - E2E Playwright yok; manuel checklist kullanılıyor

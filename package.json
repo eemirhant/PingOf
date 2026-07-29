@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "node --max-http-header-size=262144 ./node_modules/next/dist/bin/next start",
     "pwa:icons": "node scripts/generate-pwa-icons.js",
+    "push:vapid": "node scripts/generate-vapid-keys.js",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
     "format": "prettier --write .",
@@ -32,6 +33,7 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-hook-form": "^7.57.0",
+    "web-push": "^3.6.7",
     "zod": "^3.25.51"
   },
   "devDependencies": {
@@ -41,6 +43,7 @@
     "@types/node": "^22.15.29",
     "@types/react": "^19.1.6",
     "@types/react-dom": "^19.1.5",
+    "@types/web-push": "^3.6.4",
     "eslint": "^9.28.0",
     "eslint-config-next": "^15.3.3",
     "eslint-config-prettier": "^10.1.5",

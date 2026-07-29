@@ -1,4 +1,5 @@
 import NextAuth from "next-auth";
+import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
@@ -76,6 +77,32 @@ function hasChunkedSessionCookie(req: NextRequest): boolean {
     );
 }
 
+function hasSessionTokenCookie(req: NextRequest): boolean {
+  return req.cookies.getAll().some(
+    (c) =>
+      c.name === "authjs.session-token" ||
+      c.name === "__Secure-authjs.session-token" ||
+      c.name === "next-auth.session-token" ||
+      c.name === "__Secure-next-auth.session-token" ||
+      /^authjs\.session-token\.\d+$/.test(c.name) ||
+      /^__Secure-authjs\.session-token\.\d+$/.test(c.name) ||
+      /^next-auth\.session-token\.\d+$/.test(c.name) ||
+      /^__Secure-next-auth\.session-token\.\d+$/.test(c.name),
+  );
+}
+
+function isPublicAuthPath(pathname: string): boolean {
+  return (
+    pathname === "/login" ||
+    pathname === "/register" ||
+    pathname === "/forgot-password" ||
+    pathname === "/join" ||
+    pathname === "/clear-session" ||
+    pathname.startsWith("/join/") ||
+    pathname.startsWith("/reset-password/")
+  );
+}
+
 function cookieHeaderLooksOversized(req: NextRequest): boolean {
   const cookieHeader = req.headers.get("cookie") ?? "";
   if (cookieHeader.length > 6_000) return true;
@@ -103,6 +130,28 @@ export default async function middleware(req: NextRequest) {
   // Oversized / chunked JWTs from base64 avatars → clear before Auth.js parses them
   if (cookieHeaderLooksOversized(req) || hasChunkedSessionCookie(req)) {
     return redirectToLoginClearingCookies(req, "oversized");
+  }
+
+  // Stale cookie after AUTH_SECRET rotation → "no matching decryption secret"
+  // Auth.js often logs JWTSessionError without throwing; clear cookies ourselves.
+  if (hasSessionTokenCookie(req) && process.env.AUTH_SECRET) {
+    try {
+      const token = await getToken({
+        req,
+        secret: process.env.AUTH_SECRET,
+        secureCookie: req.nextUrl.protocol === "https:",
+      });
+      if (!token) {
+        if (isPublicAuthPath(req.nextUrl.pathname)) {
+          const response = NextResponse.next();
+          clearAuthCookies(response, req);
+          return response;
+        }
+        return redirectToLoginClearingCookies(req, "invalid");
+      }
+    } catch {
+      return redirectToLoginClearingCookies(req, "invalid");
+    }
   }
 
   try {

@@ -8,6 +8,7 @@ import { ChangePasswordForm } from "@/components/settings/change-password-form";
 import { CopyInviteButton } from "@/components/settings/copy-invite-button";
 import { OrganizationLogoForm } from "@/components/settings/organization-logo-form";
 import { ProfileForm } from "@/components/settings/profile-form";
+import { PushNotificationsCard } from "@/components/settings/push-notifications-card";
 import { RegenerateInviteButton } from "@/components/settings/regenerate-invite-button";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { getOrganizationSettings } from "@/lib/auth/join";
@@ -82,6 +83,8 @@ export default async function SettingsPage() {
       <div className="card mb-4">
         <ChangePasswordForm />
       </div>
+
+      <PushNotificationsCard />
 
       <div
         className="card mb-4"

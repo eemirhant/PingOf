@@ -42,6 +42,9 @@ Project Settings → Environment Variables (Preview + Production):
 | `DATABASE_URL` | Neon URL |
 | `AUTH_SECRET` | `openssl rand -base64 32` |
 | `AUTH_URL` | `https://<project>.vercel.app` |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | `npm run push:vapid` çıktısı (public) |
+| `VAPID_PRIVATE_KEY` | `npm run push:vapid` çıktısı (private) |
+| `VAPID_SUBJECT` | örn. `mailto:noreply@yourdomain.com` |
 
 Build Command: `npm run vercel-build` (`vercel.json` zaten ayarlı).
 
@@ -60,7 +63,8 @@ vercel --prod
 2. Anlık maç kaydet
 3. Turnuva oluştur + başlat
 4. `/manifest.webmanifest` → JSON
-5. Sonucu [DOD.md](DOD.md) içine URL + tarih yaz
+5. **Web Push:** Ayarlar → Bildirimleri aç → izin ver → sekme/uygulamayı kapat → başka kullanıcıdan meydan okuma veya maç sonucu tetikle → OS bildirimi gelmeli
+6. Sonucu [DOD.md](DOD.md) içine URL + tarih yaz
 
 ## Durum (2026-07-28)
 
