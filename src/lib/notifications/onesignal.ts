@@ -57,6 +57,49 @@ function getConfig() {
   };
 }
 
+/**
+ * Boolean presence of every env key related to OneSignal server config.
+ * Values themselves are never logged (secrets).
+ */
+function logOneSignalEnvPresence(reason: {
+  resolvedAppIdPresent: boolean;
+  resolvedApiKeyPresent: boolean;
+  hardcodedAppIdFallbackPresent: boolean;
+}) {
+  const missing: string[] = [];
+  if (!reason.resolvedAppIdPresent) {
+    missing.push(
+      "appId (ONESIGNAL_APP_ID | NEXT_PUBLIC_ONESIGNAL_APP_ID | hardcoded fallback)",
+    );
+  }
+  if (!reason.resolvedApiKeyPresent) {
+    missing.push("ONESIGNAL_REST_API_KEY");
+  }
+
+  console.log("[OneSignal Debug]", {
+    ONESIGNAL_APP_ID: !!process.env.ONESIGNAL_APP_ID,
+    ONESIGNAL_REST_API_KEY: !!process.env.ONESIGNAL_REST_API_KEY,
+    NEXT_PUBLIC_ONESIGNAL_APP_ID: !!process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID,
+    // Alternate names sometimes used in OneSignal docs / other projects
+    ONESIGNAL_API_KEY: !!process.env.ONESIGNAL_API_KEY,
+    ONESIGNAL_USER_AUTH_KEY: !!process.env.ONESIGNAL_USER_AUTH_KEY,
+    ONESIGNAL_ORGANIZATION_API_KEY: !!process.env.ONESIGNAL_ORGANIZATION_API_KEY,
+  });
+
+  console.log("[OneSignal Debug] resolved config presence", {
+    resolvedAppIdPresent: reason.resolvedAppIdPresent,
+    resolvedApiKeyPresent: reason.resolvedApiKeyPresent,
+    hardcodedAppIdFallbackPresent: reason.hardcodedAppIdFallbackPresent,
+    // getConfig() requires BOTH resolvedAppId AND resolvedApiKey
+    configuredDecision: reason.resolvedAppIdPresent && reason.resolvedApiKeyPresent,
+  });
+
+  console.log(
+    "[OneSignal Debug] push skipped because missing:",
+    missing.length > 0 ? missing.join(", ") : "(unknown)",
+  );
+}
+
 export function isOneSignalConfigured(): boolean {
   return getConfig().configured;
 }
@@ -131,12 +174,29 @@ export async function sendOneSignalPushToUsers(
   }
 
   const { appId, apiKey, configured } = getConfig();
+  // Decision: configured === Boolean(appId && apiKey)
+  // appId from: ONESIGNAL_APP_ID | NEXT_PUBLIC_ONESIGNAL_APP_ID | hardcoded ONESIGNAL_APP_ID
+  // apiKey from: ONESIGNAL_REST_API_KEY only (ONESIGNAL_API_KEY is NOT read)
   if (!configured || !appId || !apiKey) {
+    logOneSignalEnvPresence({
+      resolvedAppIdPresent: Boolean(appId),
+      resolvedApiKeyPresent: Boolean(apiKey),
+      hardcodedAppIdFallbackPresent: Boolean(ONESIGNAL_APP_ID),
+    });
+
     pushDebug("OneSignal API isteği gönderilmedi — yapılandırma eksik", {
       hasAppId: Boolean(appId),
       hasApiKey: Boolean(apiKey),
       targetUserIds: unique,
       targetExternalIds: unique,
+      missing: [
+        ...(!appId
+          ? [
+              "appId (ONESIGNAL_APP_ID | NEXT_PUBLIC_ONESIGNAL_APP_ID | fallback)",
+            ]
+          : []),
+        ...(!apiKey ? ["ONESIGNAL_REST_API_KEY"] : []),
+      ],
     });
     if (traceId) {
       appendDiagStep(traceId, {
