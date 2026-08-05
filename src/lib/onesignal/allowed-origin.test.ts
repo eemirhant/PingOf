@@ -7,21 +7,18 @@ import {
   isWrongSiteUrlError,
 } from "@/lib/onesignal/allowed-origin";
 
-describe("isAllowedOneSignalOrigin (development)", () => {
-  const prevEnv = process.env.NEXT_PUBLIC_ENVIRONMENT;
-
-  it("allows localhost origins", () => {
-    process.env.NEXT_PUBLIC_ENVIRONMENT = "development";
+describe("isAllowedOneSignalOrigin", () => {
+  it("allows localhost and Vercel preview hosts", () => {
     expect(isAllowedOneSignalOrigin("http://localhost:3000")).toBe(true);
     expect(isAllowedOneSignalOrigin("http://127.0.0.1:3000")).toBe(true);
-    expect(isAllowedOneSignalOrigin("https://random.example.com")).toBe(false);
-    process.env.NEXT_PUBLIC_ENVIRONMENT = prevEnv;
+    expect(
+      isAllowedOneSignalOrigin("https://ping-ljs8k2ehw-emirhan12.vercel.app"),
+    ).toBe(true);
+    expect(isAllowedOneSignalOrigin("https://random.example.com")).toBe(true);
   });
 
   it("describes allowed origins", () => {
-    process.env.NEXT_PUBLIC_ENVIRONMENT = "development";
-    expect(describeAllowedOneSignalOrigins()).toContain("localhost");
-    process.env.NEXT_PUBLIC_ENVIRONMENT = prevEnv;
+    expect(describeAllowedOneSignalOrigins()).toContain("vercel.app");
   });
 });
 

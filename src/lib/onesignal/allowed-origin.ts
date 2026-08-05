@@ -2,7 +2,8 @@
  * Which browser origins may run OneSignal client init for PingOf.
  *
  * Development: localhost / 127.0.0.1
- * Production / Preview: configured APP_URL / Vercel URL
+ * Deployed (Vercel Preview / Production): current host is allowed;
+ * configured APP_URL origins are also accepted.
  *
  * OneSignal's CDN SDK also enforces Dashboard Site URL (chrome_web_origin).
  */
@@ -19,6 +20,11 @@ export function isLocalDevHostname(hostname: string): boolean {
     host === "[::1]" ||
     host === "::1"
   );
+}
+
+export function isVercelHostname(hostname: string): boolean {
+  const host = hostname.toLowerCase();
+  return host.endsWith(".vercel.app") || host === "vercel.app";
 }
 
 export function isDevelopmentLikeRuntime(): boolean {
@@ -69,35 +75,30 @@ export function isAllowedOneSignalOrigin(origin: string): boolean {
 
   const hostname = parsed.hostname.toLowerCase();
 
-  if (isDevelopmentLikeRuntime()) {
-    if (isLocalDevHostname(hostname)) {
-      return parsed.protocol === "http:" || parsed.protocol === "https:";
-    }
-    // Vercel Preview / staging host while NODE_ENV=development is uncommon;
-    // allow explicitly configured origins too.
-    return configuredAppOrigins().includes(parsed.origin);
+  if (isLocalDevHostname(hostname)) {
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  }
+
+  // Preview + production deploys on Vercel always allowed (Site URL still gated by OneSignal).
+  if (isVercelHostname(hostname) && parsed.protocol === "https:") {
+    return true;
   }
 
   const allowed = configuredAppOrigins();
   if (allowed.length === 0) {
-    // Fail open on current origin in production when env is unset —
-    // OneSignal Dashboard Site URL remains the hard gate.
     return true;
   }
   return allowed.includes(parsed.origin);
 }
 
 export function describeAllowedOneSignalOrigins(): string {
-  if (isDevelopmentLikeRuntime()) {
-    const configured = configuredAppOrigins();
-    return [
-      "http://localhost:*",
-      "http://127.0.0.1:*",
-      ...configured,
-    ].join(", ");
-  }
-  const allowed = configuredAppOrigins();
-  return allowed.length > 0 ? allowed.join(", ") : "(current origin / Dashboard Site URL)";
+  const configured = configuredAppOrigins();
+  return [
+    "http://localhost:*",
+    "http://127.0.0.1:*",
+    "https://*.vercel.app",
+    ...configured,
+  ].join(", ");
 }
 
 export function isWrongSiteUrlError(error: unknown): boolean {

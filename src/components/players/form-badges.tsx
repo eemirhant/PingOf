@@ -6,7 +6,7 @@ type FormBadgesProps = {
 };
 
 export function FormBadges({ form, size = "md" }: FormBadgesProps) {
-  if (form.length === 0) {
+  if (!form || form.length === 0) {
     return <span className="text-text-muted text-xs">Henüz form yok</span>;
   }
 

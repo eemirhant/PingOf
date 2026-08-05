@@ -2,7 +2,8 @@ import { avatarColors } from "@/lib/design-tokens";
 
 const HEX_COLOR = /^#[0-9A-Fa-f]{6}$/;
 
-export function getInitials(fullName: string): string {
+export function getInitials(fullName: string | null | undefined): string {
+  if (!fullName?.trim()) return "?";
   return fullName
     .split(/\s+/)
     .filter(Boolean)

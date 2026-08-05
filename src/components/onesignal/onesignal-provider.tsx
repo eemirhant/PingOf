@@ -5,7 +5,6 @@ import OneSignal from "react-onesignal";
 
 import {
   ONESIGNAL_APP_ID,
-  ONESIGNAL_DEFAULT_NOTIFICATION_ICON,
   ONESIGNAL_SERVICE_WORKER_PATH,
   ONESIGNAL_SERVICE_WORKER_SCOPE,
   ONESIGNAL_SERVICE_WORKER_UPDATER_PATH,
@@ -72,13 +71,12 @@ function buildInitOptions(isLocalhost: boolean) {
     ),
     serviceWorkerParam: { scope: ONESIGNAL_SERVICE_WORKER_SCOPE },
     serviceWorkerOverrideForTypical: true,
-    // Avoid broken CDN /default-icon 404 — use PWA icon.
+    // Default notification icon (do NOT set init `path` — that is SW directory).
     notificationIcons: {
       chrome_web: icon,
       firefox: icon,
       safari: icon,
     },
-    path: ONESIGNAL_DEFAULT_NOTIFICATION_ICON,
   };
 }
 
@@ -206,13 +204,24 @@ export function ensureOneSignalInitialized(): Promise<void> {
         window.location.hostname === "127.0.0.1";
 
       if (!isAllowedOneSignalOrigin(origin)) {
-        throw new Error(
-          `OneSignal bu origin'de başlatılamaz: ${origin}. İzinli: ${describeAllowedOneSignalOrigins()}`,
+        console.warn(
+          `[onesignal] init skipped — origin not allowed: ${origin}. İzinli: ${describeAllowedOneSignalOrigins()}`,
         );
+        // Mark done so waiters don't hang; push simply won't be available.
+        setInitGlobal({ promise, done: true });
+        resolve();
+        return;
       }
 
       // 1) Service Worker Register → 2) Ready (ACTIVE) before init
-      await ensureOneSignalServiceWorkerReady();
+      try {
+        await ensureOneSignalServiceWorkerReady();
+      } catch (swError) {
+        console.warn("[onesignal] SW ready failed — continuing without push", swError);
+        setInitGlobal({ promise, done: true });
+        resolve();
+        return;
+      }
 
       if (getInitGlobal()?.done) {
         resolve();
