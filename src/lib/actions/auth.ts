@@ -51,25 +51,23 @@ export async function loginAction(
     return { fieldErrors: zodFieldErrors(parsed.error) };
   }
 
+  const redirectTo = toSafeInternalPath(formData.get("callbackUrl"), "/");
+
   try {
-    const result = await signIn("credentials", {
+    await signIn("credentials", {
       email: parsed.data.email,
       password: parsed.data.password,
-      redirect: false,
+      redirectTo,
     });
-
-    if (result?.error) {
-      return { error: "E-posta veya şifre hatalı" };
-    }
   } catch (error) {
     if (error instanceof AuthError) {
       return { error: "E-posta veya şifre hatalı" };
     }
-
-    return { error: "Giriş yapılırken bir hata oluştu. Lütfen tekrar deneyin." };
+    // NEXT_REDIRECT from successful signIn must propagate
+    throw error;
   }
 
-  redirect(toSafeInternalPath(formData.get("callbackUrl"), "/"));
+  return {};
 }
 
 export async function registerAction(
@@ -104,26 +102,23 @@ export async function registerAction(
   }
 
   try {
-    const result = await signIn("credentials", {
+    await signIn("credentials", {
       email: parsed.data.email,
       password: parsed.data.password,
-      redirect: false,
+      redirectTo: "/",
     });
-
-    if (result?.error) {
+  } catch (error) {
+    if (error instanceof AuthError) {
       return {
         error:
           "Hesap oluşturuldu ancak otomatik giriş yapılamadı. Lütfen giriş sayfasından deneyin.",
       };
     }
-  } catch {
-    return {
-      error:
-        "Hesap oluşturuldu ancak otomatik giriş yapılamadı. Lütfen giriş sayfasından deneyin.",
-    };
+    // NEXT_REDIRECT from successful signIn must propagate
+    throw error;
   }
 
-  redirect("/");
+  return {};
 }
 
 export async function forgotPasswordAction(

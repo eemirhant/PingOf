@@ -116,6 +116,20 @@ function cookieHeaderLooksOversized(req: NextRequest): boolean {
   return false;
 }
 
+/**
+ * Vercel terminates TLS at the edge — `req.nextUrl.protocol` is often `http:`
+ * even for HTTPS sites. Auth.js still sets `__Secure-authjs.session-token`.
+ * If getToken uses secureCookie:false, the session looks missing and login loops.
+ */
+function isHttpsRequest(req: NextRequest): boolean {
+  if (req.nextUrl.protocol === "https:") return true;
+  const forwarded = req.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
+  if (forwarded === "https") return true;
+  if (process.env.VERCEL === "1") return true;
+  if (process.env.NODE_ENV === "production") return true;
+  return false;
+}
+
 export default async function middleware(req: NextRequest) {
   // Force-clear endpoint (also linked from login when session is corrupt)
   if (req.nextUrl.pathname === "/clear-session") {
@@ -139,7 +153,7 @@ export default async function middleware(req: NextRequest) {
       const token = await getToken({
         req,
         secret: process.env.AUTH_SECRET,
-        secureCookie: req.nextUrl.protocol === "https:",
+        secureCookie: isHttpsRequest(req),
       });
       if (!token) {
         if (isPublicAuthPath(req.nextUrl.pathname)) {
