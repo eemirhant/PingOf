@@ -8,6 +8,7 @@ import { loginSchema } from "@/lib/validations/auth";
 
 export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
   ...authConfig,
+  secret: process.env.AUTH_SECRET,
   callbacks: {
     ...authConfig.callbacks,
     jwt({ token, user, trigger, session }) {
@@ -53,33 +54,42 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
         password: { label: "Şifre", type: "password" },
       },
       async authorize(credentials) {
-        const parsed = loginSchema.safeParse(credentials);
+        try {
+          const parsed = loginSchema.safeParse(credentials);
 
-        if (!parsed.success) {
+          if (!parsed.success) {
+            return null;
+          }
+
+          const user = await getUserByEmail(parsed.data.email);
+
+          if (!user) {
+            return null;
+          }
+
+          const isValid = await verifyPassword(
+            parsed.data.password,
+            user.passwordHash,
+          );
+
+          if (!isValid) {
+            return null;
+          }
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.fullName,
+            fullName: user.fullName,
+            organizationId: user.organizationId,
+            organizationName: user.organization.name,
+            role: user.role,
+          };
+        } catch (error) {
+          // Never let DB/runtime errors become an unhandled 500 on /api/auth/*
+          console.error("[auth] authorize failed", error);
           return null;
         }
-
-        const user = await getUserByEmail(parsed.data.email);
-
-        if (!user) {
-          return null;
-        }
-
-        const isValid = await verifyPassword(parsed.data.password, user.passwordHash);
-
-        if (!isValid) {
-          return null;
-        }
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.fullName,
-          fullName: user.fullName,
-          organizationId: user.organizationId,
-          organizationName: user.organization.name,
-          role: user.role,
-        };
       },
     }),
   ],

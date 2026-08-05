@@ -1,6 +1,7 @@
 "use server";
 
 import { AuthError } from "next-auth";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { redirect } from "next/navigation";
 
 import { signIn, signOut } from "@/auth";
@@ -51,23 +52,28 @@ export async function loginAction(
     return { fieldErrors: zodFieldErrors(parsed.error) };
   }
 
-  const redirectTo = toSafeInternalPath(formData.get("callbackUrl"), "/");
-
   try {
-    await signIn("credentials", {
+    const result = await signIn("credentials", {
       email: parsed.data.email,
       password: parsed.data.password,
-      redirectTo,
+      redirect: false,
     });
+
+    if (result?.error) {
+      return { error: "E-posta veya şifre hatalı" };
+    }
   } catch (error) {
+    if (isRedirectError(error)) throw error;
     if (error instanceof AuthError) {
       return { error: "E-posta veya şifre hatalı" };
     }
-    // NEXT_REDIRECT from successful signIn must propagate
-    throw error;
+    console.error("[auth] loginAction failed", error);
+    return {
+      error: "Giriş şu an yapılamıyor. Lütfen biraz sonra tekrar deneyin.",
+    };
   }
 
-  return {};
+  redirect(toSafeInternalPath(formData.get("callbackUrl"), "/"));
 }
 
 export async function registerAction(
@@ -102,23 +108,28 @@ export async function registerAction(
   }
 
   try {
-    await signIn("credentials", {
+    const result = await signIn("credentials", {
       email: parsed.data.email,
       password: parsed.data.password,
-      redirectTo: "/",
+      redirect: false,
     });
-  } catch (error) {
-    if (error instanceof AuthError) {
+
+    if (result?.error) {
       return {
         error:
           "Hesap oluşturuldu ancak otomatik giriş yapılamadı. Lütfen giriş sayfasından deneyin.",
       };
     }
-    // NEXT_REDIRECT from successful signIn must propagate
-    throw error;
+  } catch (error) {
+    if (isRedirectError(error)) throw error;
+    console.error("[auth] registerAction auto-login failed", error);
+    return {
+      error:
+        "Hesap oluşturuldu ancak otomatik giriş yapılamadı. Lütfen giriş sayfasından deneyin.",
+    };
   }
 
-  return {};
+  redirect("/");
 }
 
 export async function forgotPasswordAction(
