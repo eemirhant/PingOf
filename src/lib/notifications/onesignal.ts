@@ -13,6 +13,7 @@ import {
   startNotificationTrace,
   updateTrace,
 } from "@/lib/notifications/diagnostics/store";
+import { pushDebug, pushDebugError } from "@/lib/notifications/push-debug";
 
 export type OneSignalPushPayload = {
   title: string;
@@ -100,7 +101,20 @@ export async function sendOneSignalPushToUsers(
   payload: OneSignalPushPayload,
 ): Promise<SendOneSignalResult> {
   const unique = [...new Set(userIds.filter(Boolean))];
+
+  pushDebug("sendOneSignalPushToUsers çağrıldı", {
+    targetUserIds: unique,
+    targetExternalIds: unique,
+    title: payload.title,
+    body: payload.body,
+    url: payload.url ?? null,
+    tag: payload.tag ?? null,
+  });
+
   if (unique.length === 0) {
+    pushDebug("OneSignal API isteği gönderilmedi — boş alıcı listesi", {
+      skipped: true,
+    });
     return { sentBatches: 0, skipped: true };
   }
 
@@ -118,6 +132,12 @@ export async function sendOneSignalPushToUsers(
 
   const { appId, apiKey, configured } = getConfig();
   if (!configured || !appId || !apiKey) {
+    pushDebug("OneSignal API isteği gönderilmedi — yapılandırma eksik", {
+      hasAppId: Boolean(appId),
+      hasApiKey: Boolean(apiKey),
+      targetUserIds: unique,
+      targetExternalIds: unique,
+    });
     if (traceId) {
       appendDiagStep(traceId, {
         name: "onesignal_api_called",
@@ -193,6 +213,17 @@ export async function sendOneSignalPushToUsers(
       },
     };
 
+    // API key lives only in Authorization header — never log it.
+    pushDebug("OneSignal API isteği gönderildi", {
+      httpMethod: "POST",
+      url: "https://api.onesignal.com/notifications",
+      targetUserIds: batch,
+      targetExternalIds: batch,
+      requestBody,
+      authHeaderPresent: true,
+      authHeaderRedacted: "Key ***",
+    });
+
     if (traceId) {
       appendDiagStep(traceId, {
         name: "onesignal_api_called",
@@ -222,16 +253,31 @@ export async function sendOneSignalPushToUsers(
         json = null;
       }
 
+      const responseBody: unknown = json ?? text;
+
       lastApi = {
         statusCode: res.status,
         requestBody,
-        responseBody: json ?? text,
+        responseBody,
         errorMessage: res.ok
           ? null
           : formatOneSignalError(json, text, res.status),
         durationMs,
         notificationId: json?.id ?? null,
       };
+
+      pushDebug("OneSignal API yanıtı alındı", {
+        httpStatusCode: res.status,
+        ok: res.ok,
+        durationMs,
+        targetUserIds: batch,
+        targetExternalIds: batch,
+        requestBody,
+        responseBody,
+        notificationId: json?.id ?? null,
+        recipients: json?.recipients ?? null,
+        errorMessage: lastApi.errorMessage,
+      });
 
       if (traceId) {
         updateTrace(traceId, { onesignal: lastApi });
@@ -261,6 +307,11 @@ export async function sendOneSignalPushToUsers(
       }
 
       if (!json?.id) {
+        pushDebug("OneSignal notification id yok (abone yok olabilir)", {
+          httpStatusCode: res.status,
+          responseBody,
+          targetExternalIds: batch,
+        });
         console.warn(
           "[onesignal] no notification id (no subscribers?)",
           json?.errors,
@@ -276,6 +327,12 @@ export async function sendOneSignalPushToUsers(
         }
       } else {
         sentBatches += 1;
+        pushDebug("OneSignal push başarıyla gönderildi", {
+          httpStatusCode: res.status,
+          notificationId: json.id,
+          recipients: json.recipients ?? null,
+          targetExternalIds: batch,
+        });
         if (traceId) {
           appendDiagStep(traceId, {
             name: "push_sent",
@@ -288,6 +345,13 @@ export async function sendOneSignalPushToUsers(
       }
     } catch (error) {
       const durationMs = Date.now() - started;
+      pushDebugError("OneSignal network/runtime hatası", error, {
+        durationMs,
+        targetUserIds: batch,
+        targetExternalIds: batch,
+        requestBody,
+        httpStatusCode: 0,
+      });
       console.error("[onesignal] network error", error);
       lastApi = {
         statusCode: 0,

@@ -13,6 +13,7 @@ import {
 } from "@/lib/notifications/diagnostics/store";
 import { sendOneSignalPushToUsers } from "@/lib/notifications/onesignal";
 import { getResolvedNotificationSettingsForUsers } from "@/lib/notifications/preferences";
+import { pushDebug, pushDebugError } from "@/lib/notifications/push-debug";
 import { publishOrgEvent } from "@/lib/realtime/publish";
 
 export type CreateNotificationInput = {
@@ -38,17 +39,32 @@ export function canCreateMatchTimeReminder(
  * 1) Preference filter (in-app / push + DND)
  * 2) Persist in-app Notification rows
  * 3) Publish realtime NOTIFICATION event (badge / list refresh)
- * 4) Deliver push via OneSignal (best-effort)
+ * 4) Deliver push via OneSignal (awaited so Vercel logs capture API response)
  *
  * Diagnostic steps are recorded in development (or when a debug ALS context exists).
- * Delivery semantics are unchanged: push remains best-effort / non-blocking unless
- * a diagnostic test sets `awaitPush` on the ALS context.
  */
 export async function createNotificationsForUsers(
   input: CreateNotificationInput,
 ): Promise<number> {
   const uniqueIds = [...new Set(input.userIds.filter(Boolean))];
-  if (uniqueIds.length === 0) return 0;
+
+  pushDebug("Event tetiklendi", {
+    type: input.type,
+    title: input.title,
+    body: input.body,
+    linkUrl: input.linkUrl ?? null,
+    requestedUserIds: input.userIds,
+    uniqueTargetUserIds: uniqueIds,
+    // OneSignal external_id === PingOf user.id
+    targetExternalIds: uniqueIds,
+  });
+
+  if (uniqueIds.length === 0) {
+    pushDebug("Bildirim oluşturulmadı — hedef kullanıcı yok", {
+      type: input.type,
+    });
+    return 0;
+  }
 
   const existingAls = getAlsContext();
   const shouldDiag = Boolean(existingAls?.traceId) || isNotificationDiagVerbose();
@@ -98,11 +114,31 @@ export async function createNotificationsForUsers(
       return allowsPush(settings.preferences, input.type);
     });
 
+    const skippedInApp = uniqueIds.filter(
+      (id) => !inAppRecipients.includes(id),
+    );
+    const skippedPush = uniqueIds.filter((id) => !pushRecipients.includes(id));
+
+    pushDebug("Tercih filtresi uygulandı", {
+      type: input.type,
+      targetUserIds: uniqueIds,
+      targetExternalIds: uniqueIds,
+      inAppRecipients,
+      pushRecipients,
+      skippedInApp,
+      skippedPush,
+      perUser: uniqueIds.map((userId) => {
+        const settings = settingsByUser.get(userId);
+        return {
+          userId,
+          externalId: userId,
+          inApp: !settings || allowsInApp(settings.preferences, input.type),
+          push: !settings || allowsPush(settings.preferences, input.type),
+        };
+      }),
+    });
+
     if (traceId) {
-      const skippedInApp = uniqueIds.filter(
-        (id) => !inAppRecipients.includes(id),
-      );
-      const skippedPush = uniqueIds.filter((id) => !pushRecipients.includes(id));
       updateTrace(traceId, { inAppRecipients, pushRecipients });
       appendDiagStep(traceId, {
         name: "preferences_checked",
@@ -146,6 +182,16 @@ export async function createNotificationsForUsers(
       });
       count = result.count;
 
+      pushDebug("Bildirim oluşturuldu (DB)", {
+        type: input.type,
+        createdCount: count,
+        targetUserIds: inAppRecipients,
+        targetExternalIds: inAppRecipients,
+        title: input.title,
+        body: input.body,
+        linkUrl: input.linkUrl ?? null,
+      });
+
       if (traceId) {
         appendDiagStep(traceId, {
           name: "db_saved",
@@ -171,22 +217,64 @@ export async function createNotificationsForUsers(
           },
         );
       }
-    } else if (traceId) {
-      appendDiagStep(traceId, {
-        name: "db_saved",
-        status: "skip",
-        message: "In-app alıcı yok — DB yazılmadı",
-        reasonCode: "Kullanıcının bildirimi kapalı",
+    } else {
+      pushDebug("Bildirim oluşturulmadı (DB) — in-app alıcı yok", {
+        type: input.type,
+        skippedInApp,
       });
+      if (traceId) {
+        appendDiagStep(traceId, {
+          name: "db_saved",
+          status: "skip",
+          message: "In-app alıcı yok — DB yazılmadı",
+          reasonCode: "Kullanıcının bildirimi kapalı",
+        });
+      }
     }
 
     if (pushRecipients.length > 0) {
-      const pushPromise = sendOneSignalPushToUsers(pushRecipients, {
+      pushDebug("OneSignal API isteği gönderilecek", {
+        type: input.type,
+        targetUserIds: pushRecipients,
+        targetExternalIds: pushRecipients,
         title: input.title,
         body: input.body,
         url: input.linkUrl ?? "/notifications",
         tag: `pingof-${input.type}`,
-      }).catch((error) => {
+      });
+
+      try {
+        const pushResult = await sendOneSignalPushToUsers(pushRecipients, {
+          title: input.title,
+          body: input.body,
+          url: input.linkUrl ?? "/notifications",
+          tag: `pingof-${input.type}`,
+        });
+
+        pushDebug("OneSignal gönderim tamamlandı", {
+          type: input.type,
+          targetUserIds: pushRecipients,
+          targetExternalIds: pushRecipients,
+          sentBatches: pushResult.sentBatches,
+          skipped: pushResult.skipped,
+          lastApiStatusCode: pushResult.lastApi?.statusCode ?? null,
+          lastApiNotificationId: pushResult.lastApi?.notificationId ?? null,
+          lastApiErrorMessage: pushResult.lastApi?.errorMessage ?? null,
+        });
+
+        if (traceId) {
+          updateTrace(traceId, {
+            pushSent: pushResult.sentBatches > 0 && !pushResult.skipped,
+            success:
+              count > 0 || (pushResult.sentBatches > 0 && !pushResult.skipped),
+          });
+        }
+      } catch (error) {
+        pushDebugError("OneSignal gönderim hatası", error, {
+          type: input.type,
+          targetUserIds: pushRecipients,
+          targetExternalIds: pushRecipients,
+        });
         console.error("[onesignal] batch send error", error);
         if (traceId) {
           appendDiagStep(traceId, {
@@ -196,42 +284,29 @@ export async function createNotificationsForUsers(
             reasonCode: "OneSignal API hatası",
             detail: {
               error: error instanceof Error ? error.message : String(error),
+              stack: error instanceof Error ? error.stack : null,
             },
           });
         }
-        return { sentBatches: 0, skipped: true as const };
+      }
+    } else {
+      pushDebug("OneSignal API isteği gönderilmedi — push alıcı yok", {
+        type: input.type,
+        skippedPush,
+        reason: "preference_or_empty",
       });
-
-      const awaitPush = getAlsContext()?.awaitPush === true;
-      if (awaitPush) {
-        const pushResult = await pushPromise;
-        if (traceId) {
-          updateTrace(traceId, {
-            pushSent: pushResult.sentBatches > 0 && !pushResult.skipped,
-            success: count > 0 || (pushResult.sentBatches > 0 && !pushResult.skipped),
-          });
-        }
-      } else {
-        void pushPromise.then((pushResult) => {
-          if (!traceId) return;
-          updateTrace(traceId, {
-            pushSent: pushResult.sentBatches > 0 && !pushResult.skipped,
-            success:
-              count > 0 || (pushResult.sentBatches > 0 && !pushResult.skipped),
-          });
+      if (traceId) {
+        appendDiagStep(traceId, {
+          name: "push_sent",
+          status: "skip",
+          message: "Push alıcı yok — OneSignal çağrılmadı",
+          reasonCode: "Kullanıcının bildirimi kapalı",
+        });
+        updateTrace(traceId, {
+          pushSent: false,
+          success: count > 0,
         });
       }
-    } else if (traceId) {
-      appendDiagStep(traceId, {
-        name: "push_sent",
-        status: "skip",
-        message: "Push alıcı yok — OneSignal çağrılmadı",
-        reasonCode: "Kullanıcının bildirimi kapalı",
-      });
-      updateTrace(traceId, {
-        pushSent: false,
-        success: count > 0,
-      });
     }
 
     if (traceId) {

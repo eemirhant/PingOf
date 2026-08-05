@@ -23,6 +23,7 @@ import {
   notifyLeaderboardAfterMatch,
   snapshotPlayerRanks,
 } from "@/lib/notifications/leaderboard-notify";
+import { pushDebug } from "@/lib/notifications/push-debug";
 import { withOrgScope } from "@/lib/org-scope";
 import { publishOrgEvent } from "@/lib/realtime/publish";
 import type {
@@ -510,6 +511,14 @@ export async function enterPlannedMatchResult(
     .filter((id) => id !== actorUserId);
 
   const formatValue = match.format === MatchFormat.SINGLES ? "SINGLES" : "DOUBLES";
+
+  pushDebug("Maç sonucu girildi — bildirim akışı başlıyor", {
+    event: "MATCH_RESULT",
+    matchId,
+    actorUserId,
+    targetUserIds: others,
+    targetExternalIds: others,
+  });
 
   await createNotificationsForUsers({
     userIds: others,

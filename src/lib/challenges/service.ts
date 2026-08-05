@@ -10,6 +10,7 @@ import { NotificationType } from "@/domain/notification";
 import { RealtimeEventType } from "@/domain/realtime";
 import { prisma } from "@/lib/db";
 import { createNotificationsForUsers } from "@/lib/notifications/create";
+import { pushDebug } from "@/lib/notifications/push-debug";
 import { withOrgScope } from "@/lib/org-scope";
 import { publishOrgEvent } from "@/lib/realtime/publish";
 import type { CreateChallengeInput } from "@/lib/validations/challenges";
@@ -94,6 +95,14 @@ export async function createChallenge(
     select: { id: true },
   });
 
+  pushDebug("Meydan okuma oluşturuldu — bildirim akışı başlıyor", {
+    event: "CHALLENGE_RECEIVED",
+    challengeId: challenge.id,
+    fromUserId,
+    targetUserIds: [input.toUserId],
+    targetExternalIds: [input.toUserId],
+  });
+
   await createNotificationsForUsers({
     userIds: [input.toUserId],
     type: NotificationType.CHALLENGE_RECEIVED,
@@ -173,8 +182,20 @@ export async function acceptChallenge(
     select: { id: true },
   });
 
+  const orgMemberIds = orgMembers.map((m) => m.id);
+  pushDebug("Meydan okuma kabul edildi — bildirim akışı başlıyor", {
+    event: "CHALLENGE_ACCEPTED",
+    challengeId,
+    matchId: match.id,
+    actorUserId,
+    matchCreatedTargetUserIds: orgMemberIds,
+    matchCreatedTargetExternalIds: orgMemberIds,
+    acceptedTargetUserIds: [challenge.fromUserId],
+    acceptedTargetExternalIds: [challenge.fromUserId],
+  });
+
   await createNotificationsForUsers({
-    userIds: orgMembers.map((m) => m.id),
+    userIds: orgMemberIds,
     type: "MATCH_CREATED",
     title: "Yeni maç planlandı",
     body: `${challenge.fromUser.fullName} vs ${challenge.toUser.fullName} maçı kabul edildi.`,
@@ -235,6 +256,14 @@ export async function declineChallenge(
   await prisma.challenge.update({
     where: { id: challengeId },
     data: { status: ChallengeStatus.DECLINED },
+  });
+
+  pushDebug("Meydan okuma reddedildi — bildirim akışı başlıyor", {
+    event: "CHALLENGE_DECLINED",
+    challengeId,
+    actorUserId,
+    targetUserIds: [challenge.fromUserId],
+    targetExternalIds: [challenge.fromUserId],
   });
 
   await createNotificationsForUsers({
