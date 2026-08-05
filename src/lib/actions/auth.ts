@@ -1,7 +1,6 @@
 "use server";
 
 import { AuthError } from "next-auth";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { signIn, signOut } from "@/auth";
@@ -12,6 +11,8 @@ import {
   resetPasswordWithToken,
 } from "@/lib/auth/password-reset";
 import { RegisterError, registerOrganization } from "@/lib/auth/register";
+import { getRequestOrigin } from "@/lib/dev/public-url";
+import { toSafeInternalPath } from "@/lib/url/safe-path";
 import {
   forgotPasswordSchema,
   loginSchema,
@@ -33,19 +34,6 @@ export type AuthActionState = {
 
 function zodFieldErrors(error: { flatten: () => { fieldErrors: ActionFieldErrors } }) {
   return error.flatten().fieldErrors;
-}
-
-async function getAppBaseUrl(): Promise<string> {
-  const fromEnv = process.env.AUTH_URL ?? process.env.NEXTAUTH_URL;
-  if (fromEnv) return fromEnv.replace(/\/$/, "");
-
-  const headerList = await headers();
-  const host = headerList.get("x-forwarded-host") ?? headerList.get("host");
-  const proto = headerList.get("x-forwarded-proto") ?? "http";
-
-  if (host) return `${proto}://${host}`;
-
-  return "http://localhost:3000";
 }
 
 export async function loginAction(
@@ -81,7 +69,7 @@ export async function loginAction(
     return { error: "Giriş yapılırken bir hata oluştu. Lütfen tekrar deneyin." };
   }
 
-  redirect(String(formData.get("callbackUrl") ?? "/"));
+  redirect(toSafeInternalPath(formData.get("callbackUrl"), "/"));
 }
 
 export async function registerAction(
@@ -159,7 +147,7 @@ export async function forgotPasswordAction(
     const result = await createPasswordResetToken(parsed.data.email);
 
     if (result) {
-      const baseUrl = await getAppBaseUrl();
+      const baseUrl = await getRequestOrigin();
       const resetUrl = `${baseUrl}/reset-password/${result.rawToken}`;
       await sendPasswordResetEmail({ to: result.email, resetUrl });
     }

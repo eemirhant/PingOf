@@ -1,5 +1,7 @@
 import { auth } from "@/auth";
 import { AppHeader, MobileBottomNav } from "@/components/layout/app-header";
+import { OneSignalProvider } from "@/components/onesignal/onesignal-provider";
+import { RealtimeProvider } from "@/components/realtime/realtime-provider";
 import { countPendingIncoming } from "@/lib/challenges/service";
 import { countUnreadNotifications } from "@/lib/notifications/service";
 import { getOrganizationBrand, getUserProfile } from "@/lib/profile/update-profile";
@@ -31,18 +33,21 @@ export default async function ProtectedLayout({
     : null;
 
   return (
-    <div className="min-h-screen bg-bg-900">
-      <AppHeader
-        user={user}
-        brand={brand ? { name: brand.name, logoUrl: brand.logoUrl } : null}
-        pendingCount={pendingCount}
-        unreadNotifications={unreadNotifications}
-      />
-      <main className="pb-20 sm:pb-6">{children}</main>
-      <MobileBottomNav
-        pendingCount={pendingCount}
-        unreadNotifications={unreadNotifications}
-      />
-    </div>
+    <RealtimeProvider
+      initialPendingChallenges={pendingCount}
+      initialUnreadNotifications={unreadNotifications}
+    >
+      <OneSignalProvider userId={session?.user?.id ?? null} />
+      <div className="min-h-screen bg-bg-900">
+        <AppHeader
+          user={user}
+          brand={brand ? { name: brand.name, logoUrl: brand.logoUrl } : null}
+          pendingCount={pendingCount}
+          unreadNotifications={unreadNotifications}
+        />
+        <main className="pb-20 sm:pb-6">{children}</main>
+        <MobileBottomNav />
+      </div>
+    </RealtimeProvider>
   );
 }

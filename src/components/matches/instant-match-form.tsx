@@ -6,11 +6,14 @@ import { useActionState, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DarkSelect } from "@/components/ui/dark-select";
 import {
-  canAddAnotherSet,
-  determineMatchWinner,
-  validateSetScore,
-  type SetScoreInput,
-} from "@/domain/match-scoring";
+  EMPTY_SET,
+  sanitizeScoreInput,
+  setsToDraft,
+  syncSetRows,
+  toSetInputs,
+  type SetDraft,
+} from "@/components/matches/set-score-draft";
+import { determineMatchWinner, validateSetScore } from "@/domain/match-scoring";
 import {
   createInstantMatchAction,
   updateInstantMatchAction,
@@ -22,9 +25,6 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 const initialState: MatchActionState = {};
 
 type Format = "SINGLES" | "DOUBLES";
-type SetDraft = { team1Score: string; team2Score: string };
-
-const EMPTY_SET: SetDraft = { team1Score: "", team2Score: "" };
 
 export type InstantMatchInitialValues = {
   format: Format;
@@ -32,6 +32,8 @@ export type InstantMatchInitialValues = {
   team2PlayerIds: string[];
   sets: Array<{ team1Score: number; team2Score: number }>;
   stakeNote?: string | null;
+  team1Name?: string | null;
+  team2Name?: string | null;
 };
 
 type InstantMatchFormProps = {
@@ -43,66 +45,6 @@ type InstantMatchFormProps = {
   matchId?: string;
   initialValues?: InstantMatchInitialValues;
 };
-
-function toSetInputs(sets: SetDraft[]): SetScoreInput[] {
-  return sets
-    .filter((set) => set.team1Score !== "" && set.team2Score !== "")
-    .map((set) => ({
-      team1Score: Number(set.team1Score),
-      team2Score: Number(set.team2Score),
-    }));
-}
-
-function setsToDraft(
-  sets: Array<{ team1Score: number; team2Score: number }>,
-): SetDraft[] {
-  if (sets.length === 0) return [{ ...EMPTY_SET }];
-  return sets.map((set) => ({
-    team1Score: String(set.team1Score),
-    team2Score: String(set.team2Score),
-  }));
-}
-
-/**
- * Keeps set rows in sync with match progress:
- * - valid completed sets only when match is over
- * - otherwise always one open empty row after the last valid set
- */
-function syncSetRows(sets: SetDraft[]): SetDraft[] {
-  const validPrefix: SetDraft[] = [];
-
-  for (const set of sets) {
-    if (set.team1Score === "" || set.team2Score === "") {
-      break;
-    }
-
-    const result = validateSetScore(Number(set.team1Score), Number(set.team2Score));
-    if (!result.ok) {
-      return [...validPrefix, set];
-    }
-
-    validPrefix.push(set);
-  }
-
-  const progress = determineMatchWinner(toSetInputs(validPrefix));
-
-  if (progress.ok && progress.complete) {
-    return validPrefix.length > 0 ? validPrefix : [{ ...EMPTY_SET }];
-  }
-
-  if (
-    progress.ok &&
-    canAddAnotherSet(progress.team1SetsWon, progress.team2SetsWon, validPrefix.length)
-  ) {
-    const trailing = sets[validPrefix.length];
-    if (trailing && (trailing.team1Score !== "" || trailing.team2Score !== "")) {
-      return [...validPrefix, trailing];
-    }
-    return [...validPrefix, { ...EMPTY_SET }];
-  }
-
-  return validPrefix.length > 0 ? validPrefix : [{ ...EMPTY_SET }];
-}
 
 export function InstantMatchForm({
   currentUserId,
@@ -136,6 +78,8 @@ export function InstantMatchForm({
     initialValues ? setsToDraft(initialValues.sets) : [{ ...EMPTY_SET }],
   );
   const [stakeNote, setStakeNote] = useState(initialValues?.stakeNote ?? "");
+  const [team1Name, setTeam1Name] = useState(initialValues?.team1Name ?? "");
+  const [team2Name, setTeam2Name] = useState(initialValues?.team2Name ?? "");
 
   const team1PlayerIds =
     format === "SINGLES"
@@ -168,14 +112,21 @@ export function InstantMatchForm({
   }
 
   function updateSet(index: number, side: "team1Score" | "team2Score", value: string) {
+    const sanitized = sanitizeScoreInput(value);
     setSets((prev) => {
-      const next = prev.map((set, i) => (i === index ? { ...set, [side]: value } : set));
+      const next = prev.map((set, i) =>
+        i === index ? { ...set, [side]: sanitized } : set,
+      );
       return syncSetRows(next);
     });
   }
 
   function onFormatChange(next: Format) {
     setFormat(next);
+    if (next === "SINGLES") {
+      setTeam1Name("");
+      setTeam2Name("");
+    }
     if (!isEdit) {
       setTeam1Player1Id(currentUserId);
       setTeam1PartnerId("");
@@ -199,8 +150,13 @@ export function InstantMatchForm({
       ? currentUserName
       : (players.find((p) => p.id === id)?.fullName ?? "Oyuncu");
 
-  const team1Label = team1PlayerIds.map(playerName).join(" / ") || "Takım 1";
-  const team2Label = team2PlayerIds.map(playerName).filter(Boolean).join(" / ");
+  const team1Label =
+    (format === "DOUBLES" ? team1Name.trim() : "") ||
+    team1PlayerIds.map(playerName).join(" & ") ||
+    "Takım 1";
+  const team2Label =
+    (format === "DOUBLES" ? team2Name.trim() : "") ||
+    team2PlayerIds.map(playerName).filter(Boolean).join(" & ");
 
   const cancelHref = isEdit && matchId ? `/matches/${matchId}` : "/matches";
 
@@ -212,6 +168,8 @@ export function InstantMatchForm({
       <input type="hidden" name="team2PlayerIds" value={JSON.stringify(team2PlayerIds)} />
       <input type="hidden" name="sets" value={JSON.stringify(toSetInputs(sets))} />
       <input type="hidden" name="stakeNote" value={stakeNote} />
+      <input type="hidden" name="team1Name" value={format === "DOUBLES" ? team1Name : ""} />
+      <input type="hidden" name="team2Name" value={format === "DOUBLES" ? team2Name : ""} />
 
       <div className="form-section">
         <div className="form-section-title">Format</div>
@@ -336,6 +294,43 @@ export function InstantMatchForm({
             linki paylaş.
           </p>
         ) : null}
+
+        {format === "DOUBLES" ? (
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <div>
+              <label htmlFor="team1Name" className="form-label">
+                Takım 1 Adı{" "}
+                <span className="text-text-muted font-normal">(opsiyonel)</span>
+              </label>
+              <input
+                id="team1Name"
+                className="form-input"
+                value={team1Name}
+                onChange={(e) => setTeam1Name(e.target.value)}
+                maxLength={50}
+                placeholder="Örn. Kırmızı Şimşekler"
+                autoComplete="off"
+                spellCheck={false}
+              />
+            </div>
+            <div>
+              <label htmlFor="team2Name" className="form-label">
+                Takım 2 Adı{" "}
+                <span className="text-text-muted font-normal">(opsiyonel)</span>
+              </label>
+              <input
+                id="team2Name"
+                className="form-input"
+                value={team2Name}
+                onChange={(e) => setTeam2Name(e.target.value)}
+                maxLength={50}
+                placeholder="Örn. Mavi Kaplanlar"
+                autoComplete="off"
+                spellCheck={false}
+              />
+            </div>
+          </div>
+        ) : null}
       </div>
 
       <div className="form-section">
@@ -369,8 +364,8 @@ export function InstantMatchForm({
             team1Score={set.team1Score}
             team2Score={set.team2Score}
             onChange={(side, value) => updateSet(index, side, value)}
-            team1Label={playerName(team1PlayerIds[0] ?? "")}
-            team2Label={playerName(team2PlayerIds[0] ?? "")}
+            team1Label={team1Label}
+            team2Label={team2Label || "Takım 2"}
           />
         ))}
 
@@ -490,9 +485,10 @@ function SetScoreRow({
       <div className="score-input-row">
         <input
           className="form-input score-input"
-          type="number"
-          min={0}
+          type="text"
           inputMode="numeric"
+          pattern="[0-9]*"
+          autoComplete="off"
           placeholder="0"
           value={team1Score}
           onChange={(e) => onChange("team1Score", e.target.value)}
@@ -509,9 +505,10 @@ function SetScoreRow({
         <div className="score-divider">–</div>
         <input
           className="form-input score-input"
-          type="number"
-          min={0}
+          type="text"
           inputMode="numeric"
+          pattern="[0-9]*"
+          autoComplete="off"
           placeholder="0"
           value={team2Score}
           onChange={(e) => onChange("team2Score", e.target.value)}

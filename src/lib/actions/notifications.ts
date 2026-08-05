@@ -6,9 +6,13 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import {
   NotificationError,
+  clearAllNotifications,
+  deleteNotification,
+  deleteReadNotifications,
   markAllNotificationsRead,
   markNotificationRead,
 } from "@/lib/notifications/service";
+import { toSafeInternalPath } from "@/lib/url/safe-path";
 
 export type NotificationActionState = {
   error?: string;
@@ -38,7 +42,9 @@ export async function markNotificationReadAction(
     const notification = await markNotificationRead(session.user.id, notificationId);
     revalidateNotificationPaths();
     if (notification.linkUrl) {
-      redirect(notification.linkUrl);
+      redirect(
+        toSafeInternalPath(notification.linkUrl, "/notifications"),
+      );
     }
     return { success: "Okundu işaretlendi." };
   } catch (error) {
@@ -78,16 +84,90 @@ export async function openNotificationAction(formData: FormData): Promise<void> 
   }
 
   const notificationId = String(formData.get("notificationId") ?? "").trim();
-  const fallback = String(formData.get("linkUrl") ?? "").trim() || "/notifications";
+  const fallback = toSafeInternalPath(
+    formData.get("linkUrl"),
+    "/notifications",
+  );
 
   try {
     const notification = await markNotificationRead(session.user.id, notificationId);
     revalidateNotificationPaths();
-    redirect(notification.linkUrl || fallback);
+    redirect(toSafeInternalPath(notification.linkUrl, fallback));
   } catch (error) {
     if (error instanceof NotificationError) {
       redirect("/notifications");
     }
     throw error;
+  }
+}
+
+export async function deleteNotificationAction(
+  _prev: NotificationActionState,
+  formData: FormData,
+): Promise<NotificationActionState> {
+  const session = await auth();
+  if (!session?.user) {
+    return { error: "Oturum bulunamadı" };
+  }
+
+  const notificationId = String(formData.get("notificationId") ?? "").trim();
+  if (!notificationId) {
+    return { error: "Bildirim bulunamadı" };
+  }
+
+  try {
+    await deleteNotification(session.user.id, notificationId);
+    revalidateNotificationPaths();
+    return { success: "Bildirim silindi." };
+  } catch (error) {
+    if (error instanceof NotificationError) {
+      return { error: error.message };
+    }
+    return { error: "Bildirim silinirken bir hata oluştu." };
+  }
+}
+
+export async function deleteReadNotificationsAction(
+  _prev: NotificationActionState,
+  _formData: FormData,
+): Promise<NotificationActionState> {
+  void _prev;
+  void _formData;
+  const session = await auth();
+  if (!session?.user) {
+    return { error: "Oturum bulunamadı" };
+  }
+
+  try {
+    const result = await deleteReadNotifications(session.user.id);
+    revalidateNotificationPaths();
+    return {
+      success:
+        result.count > 0
+          ? `${result.count} okunmuş bildirim temizlendi.`
+          : "Temizlenecek okunmuş bildirim yok.",
+    };
+  } catch {
+    return { error: "Bildirimler temizlenirken bir hata oluştu." };
+  }
+}
+
+export async function clearAllNotificationsAction(
+  _prev: NotificationActionState,
+  _formData: FormData,
+): Promise<NotificationActionState> {
+  void _prev;
+  void _formData;
+  const session = await auth();
+  if (!session?.user) {
+    return { error: "Oturum bulunamadı" };
+  }
+
+  try {
+    await clearAllNotifications(session.user.id);
+    revalidateNotificationPaths();
+    return { success: "Tüm bildirimler temizlendi." };
+  } catch {
+    return { error: "Bildirimler temizlenirken bir hata oluştu." };
   }
 }

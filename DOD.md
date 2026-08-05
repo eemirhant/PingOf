@@ -56,6 +56,6 @@ Adım adım: [STAGING.md](STAGING.md)
 
 - `public/uploads` Vercel’de ephemeral (avatar/logo kalıcılığı için ileride object storage)
 - Elo, grafik bracket, 2v2 meydan okuma — PRD §11 kapsam dışı
-- Web Push için VAPID env (`NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`) zorunlu; yoksa Ayarlar’da yapılandırma uyarısı gösterilir
+- Web Push için OneSignal env (`NEXT_PUBLIC_ONESIGNAL_APP_ID`, `ONESIGNAL_REST_API_KEY`) zorunlu; yoksa Ayarlar’da yapılandırma uyarısı gösterilir
 - Geliştirmede SW varsayılan kapalı (`?sw=1` veya production `npm run start`)
 - E2E Playwright yok; manuel checklist kullanılıyor

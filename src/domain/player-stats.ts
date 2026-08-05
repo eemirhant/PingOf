@@ -29,6 +29,9 @@ export type StatsMatch = {
   sets: StatsSet[];
   /** Present when the match belongs to a tournament (PRD KK-12). */
   tournamentId?: string | null;
+  /** Optional 2v2 display names (visual only). */
+  team1Name?: string | null;
+  team2Name?: string | null;
 };
 
 export type RecordStats = {
@@ -58,6 +61,10 @@ export type MatchHistoryRow = {
   format: StatsFormat;
   opponents: Array<{ userId: string; fullName: string }>;
   partners: Array<{ userId: string; fullName: string }>;
+  /** Opponent side label: custom team name or joined player names. */
+  opponentLabel: string;
+  /** Own side custom team name when set (2v2). */
+  ownTeamLabel: string | null;
   team1SetsWon: number;
   team2SetsWon: number;
   playerSetsWon: number;
@@ -245,6 +252,11 @@ export function computePlayerStats(
     const playerSetsWon = team === 1 ? match.team1SetsWon : match.team2SetsWon;
     const playerSetsLost = team === 1 ? match.team2SetsWon : match.team1SetsWon;
 
+    const ownTeamName =
+      team === 1 ? match.team1Name?.trim() : match.team2Name?.trim();
+    const opponentTeamName =
+      team === 1 ? match.team2Name?.trim() : match.team1Name?.trim();
+
     matchHistory.push({
       matchId: match.id,
       playedAt: match.playedAt,
@@ -257,6 +269,11 @@ export function computePlayerStats(
         userId: o.userId,
         fullName: o.fullName,
       })),
+      opponentLabel:
+        opponentTeamName ||
+        opponentsList.map((o) => o.fullName).join(" & ") ||
+        "—",
+      ownTeamLabel: ownTeamName || null,
       team1SetsWon: match.team1SetsWon,
       team2SetsWon: match.team2SetsWon,
       playerSetsWon,

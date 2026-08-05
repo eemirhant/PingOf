@@ -35,10 +35,12 @@ export default async function EnterMatchResultPage({
   const team1Label = formatTeamLabel(
     match.participants.map((p) => ({ team: p.team, user: p.user })),
     1,
+    match.team1Name,
   );
   const team2Label = formatTeamLabel(
     match.participants.map((p) => ({ team: p.team, user: p.user })),
     2,
+    match.team2Name,
   );
 
   return (

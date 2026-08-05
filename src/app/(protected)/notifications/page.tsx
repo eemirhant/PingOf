@@ -2,9 +2,13 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
+import { DeleteNotificationButton } from "@/components/notifications/delete-notification-button";
 import { MarkAllReadButton } from "@/components/notifications/mark-all-read-button";
-import { openNotificationAction } from "@/lib/actions/notifications";
+import { NotificationBulkActions } from "@/components/notifications/notification-bulk-actions";
+import { NotificationOpenButton } from "@/components/notifications/notification-open-button";
+import { notificationTypeIcon } from "@/domain/notification";
 import { listNotificationsForUser } from "@/lib/notifications/service";
+import { formatRelativeTimeTr } from "@/lib/utils/relative-time";
 
 export default async function NotificationsPage({
   searchParams,
@@ -38,7 +42,10 @@ export default async function NotificationsPage({
             {unreadCount > 0 ? ` · ${unreadCount} okunmamış` : ""}
           </p>
         </div>
-        <MarkAllReadButton disabled={unreadCount === 0} />
+        <div className="flex flex-col items-end gap-2">
+          <MarkAllReadButton disabled={unreadCount === 0} />
+          <NotificationBulkActions hasItems={notifications.length > 0} />
+        </div>
       </div>
 
       {notifications.length === 0 ? (
@@ -54,34 +61,49 @@ export default async function NotificationsPage({
       ) : (
         <ul className="mt-6 space-y-2">
           {notifications.map((n) => {
-            const timeLabel = new Intl.DateTimeFormat("tr-TR", {
+            const relative = formatRelativeTimeTr(n.createdAt);
+            const absolute = new Intl.DateTimeFormat("tr-TR", {
               dateStyle: "medium",
               timeStyle: "short",
             }).format(n.createdAt);
 
             return (
-              <li key={n.id}>
-                <form action={openNotificationAction}>
-                  <input type="hidden" name="notificationId" value={n.id} />
-                  <input type="hidden" name="linkUrl" value={n.linkUrl ?? "/notifications"} />
-                  <button
-                    type="submit"
+              <li key={n.id} className="flex items-stretch gap-2">
+                <div className="min-w-0 flex-1">
+                  <NotificationOpenButton
+                    notificationId={n.id}
+                    linkUrl={n.linkUrl ?? "/notifications"}
+                    isRead={n.isRead}
                     className={`notification-item w-full text-left ${n.isRead ? "" : "notification-item--unread"}`}
                   >
                     <div className="flex flex-wrap items-start justify-between gap-2">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          {!n.isRead ? (
-                            <span className="badge badge-win">Yeni</span>
-                          ) : null}
-                          <span className="font-semibold text-text-primary">{n.title}</span>
+                      <div className="flex min-w-0 flex-1 gap-3">
+                        <span className="text-xl leading-none" aria-hidden>
+                          {notificationTypeIcon(n.type)}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            {!n.isRead ? (
+                              <span className="badge badge-win">Yeni</span>
+                            ) : null}
+                            <span className="font-semibold text-text-primary">
+                              {n.title}
+                            </span>
+                          </div>
+                          <p className="text-text-secondary mt-1 text-sm">{n.body}</p>
                         </div>
-                        <p className="text-text-secondary mt-1 text-sm">{n.body}</p>
                       </div>
-                      <time className="text-text-muted shrink-0 text-xs">{timeLabel}</time>
+                      <time
+                        className="text-text-muted shrink-0 text-xs"
+                        dateTime={n.createdAt.toISOString()}
+                        title={absolute}
+                      >
+                        {relative}
+                      </time>
                     </div>
-                  </button>
-                </form>
+                  </NotificationOpenButton>
+                </div>
+                <DeleteNotificationButton notificationId={n.id} />
               </li>
             );
           })}

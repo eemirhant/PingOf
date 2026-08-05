@@ -1,201 +1,82 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import OneSignal from "react-onesignal";
 
 import {
-  getPushPublicKeyAction,
-  getPushStatusAction,
-  subscribePushAction,
-  unsubscribePushAction,
-} from "@/lib/actions/push";
-
-function urlBase64ToUint8Array(base64String: string): Uint8Array {
-  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const raw = window.atob(base64);
-  const output = new Uint8Array(raw.length);
-  for (let i = 0; i < raw.length; i += 1) {
-    output[i] = raw.charCodeAt(i);
-  }
-  return output;
-}
-
-async function ensureServiceWorker(): Promise<ServiceWorkerRegistration | null> {
-  if (!("serviceWorker" in navigator)) return null;
-  const existing = await navigator.serviceWorker.getRegistration("/");
-  if (existing) return existing;
-  return navigator.serviceWorker.register("/sw.js", { scope: "/" });
-}
-
-function subscriptionPayload(subscription: PushSubscription) {
-  const json = subscription.toJSON();
-  return {
-    endpoint: json.endpoint,
-    keys: {
-      p256dh: json.keys?.p256dh,
-      auth: json.keys?.auth,
-    },
-  };
-}
+  getOneSignalPushStatus,
+  optInOneSignalPush,
+  optOutOneSignalPush,
+  waitForOneSignalReady,
+} from "@/components/onesignal/onesignal-provider";
+import { ONESIGNAL_APP_ID } from "@/lib/onesignal/config";
 
 export function PushNotificationsCard() {
-  const [supported, setSupported] = useState(false);
-  const [configured, setConfigured] = useState(false);
-  const [enabled, setEnabled] = useState(false);
-  const [permission, setPermission] = useState<NotificationPermission | "unsupported">(
-    "default",
+  const [configured] = useState(Boolean(ONESIGNAL_APP_ID));
+  const [optedIn, setOptedIn] = useState(false);
+  const [permission, setPermission] = useState<NotificationPermission | "unknown">(
+    "unknown",
   );
-  const [isDev, setIsDev] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
-    const pushOk =
-      typeof window !== "undefined" &&
-      "serviceWorker" in navigator &&
-      "PushManager" in window &&
-      "Notification" in window;
-
-    setSupported(pushOk);
-    setIsDev(process.env.NODE_ENV !== "production");
-
-    if (!pushOk) {
-      setPermission("unsupported");
-      return;
+    if (typeof window !== "undefined" && "Notification" in window) {
+      setPermission(Notification.permission);
     }
 
-    setPermission(Notification.permission);
-
-    startTransition(() => {
-      void (async () => {
-        const [keyInfo, status] = await Promise.all([
-          getPushPublicKeyAction(),
-          getPushStatusAction(),
-        ]);
-        const isConfigured = keyInfo.configured && Boolean(keyInfo.publicKey);
-        setConfigured(isConfigured);
-        setEnabled(status.hasSubscription);
-
-        try {
-          const reg = await navigator.serviceWorker.getRegistration("/");
-          const sub = await reg?.pushManager.getSubscription();
-          if (!sub) return;
-
-          // Browser has a subscription — keep UI in sync and re-save to DB if missing
-          setEnabled(true);
-          if (isConfigured && !status.hasSubscription) {
-            const result = await subscribePushAction(
-              subscriptionPayload(sub),
-              navigator.userAgent,
-            );
-            if (!result.error) {
-              setEnabled(true);
-            }
-          }
-        } catch {
-          // ignore resync failures on mount
+    void (async () => {
+      try {
+        // Provider owns init — only wait here.
+        const ready = await waitForOneSignalReady();
+        if (!ready) return;
+        const status = getOneSignalPushStatus();
+        setOptedIn(status.optedIn);
+        if (typeof Notification !== "undefined") {
+          setPermission(Notification.permission);
         }
-      })();
-    });
+        OneSignal.User.PushSubscription.addEventListener("change", () => {
+          setOptedIn(Boolean(OneSignal.User.PushSubscription.optedIn));
+        });
+      } catch {
+        // SDK may still be loading
+      }
+    })();
   }, []);
 
-  function clearFeedback() {
+  function enablePush() {
     setMessage(null);
     setError(null);
-  }
-
-  function enablePush() {
-    clearFeedback();
     startTransition(() => {
       void (async () => {
-        try {
-          if (!supported) {
-            setError("Bu tarayıcı Web Push desteklemiyor.");
-            return;
+        const result = await optInOneSignalPush();
+        if (!result.ok) {
+          setError(result.error ?? "Push açılamadı.");
+          if (typeof Notification !== "undefined") {
+            setPermission(Notification.permission);
           }
-
-          const { publicKey, configured: isConfigured } = await getPushPublicKeyAction();
-          if (!isConfigured || !publicKey) {
-            setError("Sunucuda VAPID anahtarları tanımlı değil.");
-            return;
-          }
-
-          const permissionResult = await Notification.requestPermission();
-          setPermission(permissionResult);
-          if (permissionResult !== "granted") {
-            setError(
-              permissionResult === "denied"
-                ? "Bildirim izni reddedildi. Tarayıcı ayarlarından açabilirsiniz."
-                : "Bildirim izni verilmedi.",
-            );
-            return;
-          }
-
-          const registration = await ensureServiceWorker();
-          if (!registration) {
-            setError("Service worker kaydı başarısız.");
-            return;
-          }
-
-          await navigator.serviceWorker.ready;
-
-          let subscription = await registration.pushManager.getSubscription();
-          if (!subscription) {
-            subscription = await registration.pushManager.subscribe({
-              userVisibleOnly: true,
-              applicationServerKey: urlBase64ToUint8Array(publicKey) as BufferSource,
-            });
-          }
-
-          const result = await subscribePushAction(
-            subscriptionPayload(subscription),
-            navigator.userAgent,
-          );
-
-          if (result.error) {
-            setError(result.error);
-            return;
-          }
-
-          setEnabled(true);
-          setMessage(result.success ?? "Tarayıcı bildirimleri açıldı.");
-        } catch (err) {
-          console.error(err);
-          setError("Bildirimler açılırken bir hata oluştu.");
+          return;
         }
+        setOptedIn(true);
+        setPermission("granted");
+        setMessage("Tarayıcı bildirimleri açıldı (OneSignal).");
       })();
     });
   }
 
   function disablePush() {
-    clearFeedback();
+    setMessage(null);
+    setError(null);
     startTransition(() => {
       void (async () => {
-        try {
-          const registration = await navigator.serviceWorker.getRegistration("/");
-          const subscription = await registration?.pushManager.getSubscription();
-          const endpoint = subscription?.endpoint;
-
-          if (subscription) {
-            await subscription.unsubscribe();
-          }
-
-          if (endpoint) {
-            const result = await unsubscribePushAction(endpoint);
-            if (result.error) {
-              setError(result.error);
-              return;
-            }
-            setMessage(result.success ?? "Tarayıcı bildirimleri kapatıldı.");
-          } else {
-            setMessage("Tarayıcı bildirimleri kapatıldı.");
-          }
-
-          setEnabled(false);
-        } catch {
-          setError("Bildirimler kapatılırken bir hata oluştu.");
+        const result = await optOutOneSignalPush();
+        if (!result.ok) {
+          setError(result.error ?? "Bildirimler kapatılırken bir hata oluştu.");
+          return;
         }
+        setOptedIn(false);
+        setMessage("Tarayıcı bildirimleri kapatıldı.");
       })();
     });
   }
@@ -204,31 +85,19 @@ export function PushNotificationsCard() {
     <div className="card mb-4">
       <div className="card-title">Tarayıcı Bildirimleri</div>
       <p className="text-text-secondary mb-3 text-sm">
-        Uygulama kapalıyken de meydan okuma, maç sonucu ve turnuva bildirimlerini almak
-        için tarayıcı bildirimlerini açın. (HTTPS veya localhost gerekir.)
+        Uygulama kapalıyken de bildirim almak için tarayıcı iznini açın. Push gönderimi
+        OneSignal üzerinden yapılır; uygulama içi bildirim merkezi ayrı çalışır. İzin,
+        OneSignal doğrulama diyalogundaki &quot;Got it&quot; ile istenir.
       </p>
-      {isDev ? (
-        <p className="text-text-muted mb-3 text-xs">
-          Geliştirmede service worker varsayılan kapalıdır. Push testi için adrese{" "}
-          <code className="text-xs">?sw=1</code> ekleyin veya{" "}
-          <code className="text-xs">npm run build && npm run start</code> kullanın.
-        </p>
-      ) : null}
 
-      {!supported ? (
+      {!configured ? (
         <p className="text-sm text-amber-300">
-          Bu cihaz veya tarayıcı Web Push desteklemiyor. iOS&apos;ta uygulamayı Ana Ekrana
-          ekledikten sonra deneyin (iOS 16.4+).
-        </p>
-      ) : !configured ? (
-        <p className="text-sm text-amber-300">
-          Web Push henüz sunucuda yapılandırılmamış. Yönetici{" "}
-          <code className="text-xs">NEXT_PUBLIC_VAPID_PUBLIC_KEY</code> ve{" "}
-          <code className="text-xs">VAPID_PRIVATE_KEY</code> değerlerini eklemeli.
+          OneSignal henüz yapılandırılmamış. Yönetici App ID ve{" "}
+          <code className="text-xs">ONESIGNAL_REST_API_KEY</code> değerlerini eklemeli.
         </p>
       ) : (
         <div className="flex flex-wrap items-center gap-2">
-          {enabled && permission === "granted" ? (
+          {optedIn && permission === "granted" ? (
             <button
               type="button"
               className="btn btn-secondary min-h-11 min-w-11"
@@ -251,7 +120,7 @@ export function PushNotificationsCard() {
             Durum:{" "}
             {permission === "denied"
               ? "İzin reddedildi"
-              : enabled
+              : optedIn
                 ? "Açık"
                 : "Kapalı"}
           </span>

@@ -1,8 +1,8 @@
-/* PingOf service worker — PRD §7.1 + Web Push (v2)
- * Strategy: cache offline shell; navigations network-first with offline fallback.
- * Push: show OS notification when app is closed/background.
+/* PingOf offline shell (root scope).
+ * Used only when OneSignal is not configured.
+ * With OneSignal, push uses /push/onesignal/OneSignalSDKWorker.js (scoped).
  */
-const CACHE_NAME = "pingof-shell-v2";
+const CACHE_NAME = "pingof-shell-v3";
 const OFFLINE_URL = "/offline.html";
 const PRECACHE = [OFFLINE_URL, "/icons/icon-192.png", "/icons/icon-512.png"];
 
@@ -37,8 +37,6 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
-  // Never intercept NextAuth / API / RSC mutation-ish paths aggressively —
-  // only provide offline fallback for document navigations.
   if (request.mode === "navigate") {
     event.respondWith(
       fetch(request)
@@ -58,71 +56,9 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Cache-first for precached static shell assets only
   if (PRECACHE.includes(url.pathname)) {
     event.respondWith(
       caches.match(request).then((cached) => cached || fetch(request)),
     );
   }
-});
-
-self.addEventListener("push", (event) => {
-  let data = {
-    title: "PingOf",
-    body: "Yeni bir bildiriminiz var.",
-    url: "/notifications",
-    tag: "pingof-notification",
-  };
-
-  try {
-    if (event.data) {
-      const parsed = event.data.json();
-      data = {
-        title: parsed.title || data.title,
-        body: parsed.body || data.body,
-        url: parsed.url || data.url,
-        tag: parsed.tag || data.tag,
-      };
-    }
-  } catch {
-    try {
-      const text = event.data && event.data.text();
-      if (text) data.body = text;
-    } catch {
-      // keep defaults
-    }
-  }
-
-  event.waitUntil(
-    self.registration.showNotification(data.title, {
-      body: data.body,
-      icon: "/icons/icon-192.png",
-      badge: "/icons/icon-192.png",
-      tag: data.tag,
-      data: { url: data.url },
-      renotify: true,
-    }),
-  );
-});
-
-self.addEventListener("notificationclick", (event) => {
-  event.notification.close();
-  const targetUrl =
-    (event.notification.data && event.notification.data.url) || "/notifications";
-  const absolute = new URL(targetUrl, self.location.origin).href;
-
-  event.waitUntil(
-    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
-      for (const client of clientList) {
-        if ("focus" in client) {
-          client.navigate(absolute);
-          return client.focus();
-        }
-      }
-      if (self.clients.openWindow) {
-        return self.clients.openWindow(absolute);
-      }
-      return undefined;
-    }),
-  );
 });

@@ -76,14 +76,15 @@ type EasyDateTimePickerProps = {
   emptyHint?: string;
 };
 
-function detectDayPreset(value: string, now: Date): DayPreset {
+function detectDayPreset(value: string, now: Date, draftDay: Date | null): DayPreset {
   const parsed = parseDatetimeLocal(value);
-  if (!parsed) return "none";
+  const day = parsed ?? draftDay;
+  if (!day) return "none";
   const today = startOfLocalDay(now);
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
-  if (isSameLocalDay(parsed, today)) return "today";
-  if (isSameLocalDay(parsed, tomorrow)) return "tomorrow";
+  if (isSameLocalDay(day, today)) return "today";
+  if (isSameLocalDay(day, tomorrow)) return "tomorrow";
   return "custom";
 }
 
@@ -95,14 +96,15 @@ export function EasyDateTimePicker({
   emptyHint,
 }: EasyDateTimePickerProps) {
   const now = useMemo(() => new Date(), []);
+  const [draftDay, setDraftDay] = useState<Date | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(
-    () => detectDayPreset(value, new Date()) === "custom",
+    () => detectDayPreset(value, new Date(), null) === "custom",
   );
   const [showManualTime, setShowManualTime] = useState(false);
   const [manualError, setManualError] = useState<string | null>(null);
 
   const parsed = parseDatetimeLocal(value);
-  const dayPreset = detectDayPreset(value, now);
+  const dayPreset = detectDayPreset(value, now, draftDay);
 
   const today = startOfLocalDay(now);
   const tomorrow = new Date(today);
@@ -115,10 +117,13 @@ export function EasyDateTimePicker({
         ? tomorrow
         : parsed
           ? startOfLocalDay(parsed)
-          : null;
+          : draftDay
+            ? startOfLocalDay(draftDay)
+            : null;
 
   const selectedHour = parsed?.getHours() ?? null;
   const selectedMinute = parsed?.getMinutes() ?? null;
+  const daySelectedWithoutTime = allowEmpty && Boolean(activeDay) && !parsed;
 
   const availableHours = useMemo(() => {
     if (!activeDay) return [];
@@ -139,8 +144,24 @@ export function EasyDateTimePicker({
     setShowManualTime(false);
     setManualError(null);
     const day = preset === "today" ? today : tomorrow;
-    const current = parseDatetimeLocal(value);
 
+    // Optional challenge schedule: day alone must not invent a clock time.
+    if (allowEmpty) {
+      const current = parseDatetimeLocal(value);
+      if (current) {
+        const keepTime = combineDayAndTime(day, current.getHours(), current.getMinutes());
+        if (keepTime.getTime() > now.getTime() + 60_000) {
+          setDraftDay(null);
+          onChange(toDatetimeLocalValue(keepTime));
+          return;
+        }
+      }
+      setDraftDay(day);
+      onChange("");
+      return;
+    }
+
+    const current = parseDatetimeLocal(value);
     let next: Date | null = null;
     if (current) {
       const keepTime = combineDayAndTime(day, current.getHours(), current.getMinutes());
@@ -152,6 +173,7 @@ export function EasyDateTimePicker({
     }
     if (!next) next = combineDayAndTime(tomorrow, 12, 0);
 
+    setDraftDay(null);
     onChange(toDatetimeLocalValue(next));
   }
 
@@ -169,6 +191,7 @@ export function EasyDateTimePicker({
     setShowAdvanced(false);
     setShowManualTime(false);
     setManualError(null);
+    setDraftDay(null);
     onChange(toDatetimeLocalValue(next));
   }
 
@@ -178,6 +201,7 @@ export function EasyDateTimePicker({
     if (next.getTime() <= now.getTime()) return;
     setShowManualTime(false);
     setManualError(null);
+    setDraftDay(null);
     onChange(toDatetimeLocalValue(next));
   }
 
@@ -185,7 +209,9 @@ export function EasyDateTimePicker({
     setShowAdvanced(true);
     setShowManualTime(false);
     setManualError(null);
-    if (!value) {
+    setDraftDay(null);
+    // Required planned matches need a concrete slot; optional challenges must not invent one.
+    if (!value && !allowEmpty) {
       const later = new Date(today);
       later.setDate(later.getDate() + 2);
       onChange(toDatetimeLocalValue(combineDayAndTime(later, 12, 0)));
@@ -195,7 +221,7 @@ export function EasyDateTimePicker({
   function openManualTime() {
     setShowManualTime(true);
     setManualError(null);
-    if (!value && activeDay) {
+    if (!value && activeDay && !allowEmpty) {
       const next = firstAvailableOnDay(activeDay, now);
       if (next) onChange(toDatetimeLocalValue(next));
     }
@@ -225,6 +251,7 @@ export function EasyDateTimePicker({
     }
 
     setManualError(null);
+    setDraftDay(null);
     onChange(toDatetimeLocalValue(next));
   }
 
@@ -232,6 +259,7 @@ export function EasyDateTimePicker({
     setShowAdvanced(false);
     setShowManualTime(false);
     setManualError(null);
+    setDraftDay(null);
     onChange("");
   }
 
@@ -245,7 +273,9 @@ export function EasyDateTimePicker({
       }).format(parsed)
     : null;
 
-  const quickDayActive = !showAdvanced && (dayPreset === "today" || dayPreset === "tomorrow");
+  const quickDayActive =
+    !showAdvanced &&
+    (dayPreset === "today" || dayPreset === "tomorrow" || daySelectedWithoutTime);
   const manualTimeValue =
     selectedHour !== null && selectedMinute !== null
       ? `${pad2(selectedHour)}:${pad2(selectedMinute)}`
@@ -282,7 +312,7 @@ export function EasyDateTimePicker({
           {allowEmpty ? (
             <button
               type="button"
-              className={`badge min-h-11 px-4 ${!value ? "badge-win" : "badge-planned"}`}
+              className={`badge min-h-11 px-4 ${!value && !draftDay ? "badge-win" : "badge-planned"}`}
               onClick={clearValue}
             >
               Belirtme
@@ -392,7 +422,10 @@ export function EasyDateTimePicker({
             className="form-input"
             value={value}
             min={toDatetimeLocalValue(now)}
-            onChange={(e) => onChange(e.target.value)}
+            onChange={(e) => {
+              setDraftDay(null);
+              onChange(e.target.value);
+            }}
             required={required && !allowEmpty}
           />
           <button
@@ -414,9 +447,13 @@ export function EasyDateTimePicker({
         <p className="text-text-secondary text-sm">
           Seçilen: <span className="font-semibold text-text-primary">{summary}</span>
         </p>
+      ) : daySelectedWithoutTime ? (
+        <p className="text-text-muted text-xs">
+          Gün seçildi. Saat seçmezsen meydan okuma saatsiz gönderilir.
+        </p>
       ) : allowEmpty ? (
         <p className="text-text-muted text-xs">
-          {emptyHint ?? "Tarih belirtmezsen kabulde yaklaşık 1 saat sonrası planlanır."}
+          {emptyHint ?? "Saat belirtmezsen kabulde varsayılan bir saat atanmaz."}
         </p>
       ) : null}
     </div>

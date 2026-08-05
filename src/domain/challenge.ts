@@ -52,3 +52,17 @@ export function challengeStatusLabel(status: ChallengeStatusValue): string {
       return status;
   }
 }
+
+/**
+ * Match schedule when a challenge is accepted.
+ * Only a still-future proposedAt becomes scheduledAt — never invent a default time.
+ */
+export function resolveChallengeMatchScheduledAt(
+  proposedAt: Date | null | undefined,
+  now: Date = new Date(),
+): Date | null {
+  if (!proposedAt) return null;
+  if (Number.isNaN(proposedAt.getTime())) return null;
+  if (proposedAt.getTime() <= now.getTime()) return null;
+  return proposedAt;
+}

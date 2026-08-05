@@ -5,6 +5,8 @@ import { hashPassword } from "@/lib/auth/password";
 import { prisma } from "@/lib/db";
 import { NotificationType } from "@/domain/notification";
 import { createNotificationsForUsers } from "@/lib/notifications/create";
+import { RealtimeEventType } from "@/domain/realtime";
+import { publishOrgEvent } from "@/lib/realtime/publish";
 import type { JoinInput } from "@/lib/validations/auth";
 
 export class JoinError extends Error {
@@ -86,6 +88,10 @@ export async function joinOrganizationWithInvite(input: JoinInput) {
     title: "Yeni oyuncu katıldı",
     body: `${user.fullName} organizasyona katıldı.`,
     linkUrl: `/players/${user.id}`,
+  });
+
+  await publishOrgEvent(organization.id, RealtimeEventType.MEMBER_JOINED, {
+    entityId: user.id,
   });
 
   return user;

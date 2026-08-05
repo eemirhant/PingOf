@@ -1,4 +1,4 @@
-import { MatchFormat, MatchStatus, UserRole, type Prisma } from "@prisma/client";
+import { MatchFormat, MatchStatus, TournamentStatus, UserRole, type Prisma } from "@prisma/client";
 
 import { determineMatchWinner } from "@/domain/match-scoring";
 import {
@@ -13,9 +13,18 @@ import {
   getMatchTimeRange,
   type MatchListTimeFilter,
 } from "@/domain/match-time-filter";
+import { NotificationType } from "@/domain/notification";
+import { RealtimeEventType } from "@/domain/realtime";
+import { stakeSettleDenialReason } from "@/domain/stake";
 import { prisma } from "@/lib/db";
+import { formatMatchDefeatNotificationBody } from "@/lib/matches/display";
 import { createNotificationsForUsers } from "@/lib/notifications/create";
+import {
+  notifyLeaderboardAfterMatch,
+  snapshotPlayerRanks,
+} from "@/lib/notifications/leaderboard-notify";
 import { withOrgScope } from "@/lib/org-scope";
+import { publishOrgEvent } from "@/lib/realtime/publish";
 import type {
   InstantMatchInput,
   PlannedMatchInput,
@@ -119,7 +128,7 @@ export async function syncPlannedMatchesToPending(organizationId: string) {
   await prisma.match.updateMany({
     where: withOrgScope(organizationId, {
       status: MatchStatus.PLANNED,
-      scheduledAt: { lte: now },
+      OR: [{ scheduledAt: { lte: now } }, { scheduledAt: null }],
     }),
     data: { status: MatchStatus.PENDING },
   });
@@ -144,6 +153,7 @@ export async function createInstantMatch(
 
   const format = input.format === "SINGLES" ? MatchFormat.SINGLES : MatchFormat.DOUBLES;
   const now = new Date();
+  const previousRanks = await snapshotPlayerRanks(organizationId, allPlayerIds);
 
   const match = await prisma.$transaction(async (tx) => {
     return tx.match.create({
@@ -155,6 +165,8 @@ export async function createInstantMatch(
         createdById: actorUserId,
         resultEnteredById: actorUserId,
         stakeNote: input.stakeNote ?? null,
+        team1Name: input.team1Name ?? null,
+        team2Name: input.team2Name ?? null,
         team1SetsWon: winnerResult.team1SetsWon,
         team2SetsWon: winnerResult.team2SetsWon,
         winnerTeam: winnerResult.winnerTeam,
@@ -178,15 +190,61 @@ export async function createInstantMatch(
 
   const orgMembers = await prisma.user.findMany({
     where: withOrgScope(organizationId),
-    select: { id: true },
+    select: { id: true, fullName: true },
   });
+
+  const nameById = new Map(orgMembers.map((m) => [m.id, m.fullName]));
+  const participantsForLabel = [
+    ...input.team1PlayerIds.map((userId) => ({
+      team: 1,
+      user: { fullName: nameById.get(userId) ?? "Oyuncu" },
+    })),
+    ...input.team2PlayerIds.map((userId) => ({
+      team: 2,
+      user: { fullName: nameById.get(userId) ?? "Oyuncu" },
+    })),
+  ];
 
   await createNotificationsForUsers({
     userIds: orgMembers.map((m) => m.id),
-    type: "MATCH_CREATED",
+    type: NotificationType.MATCH_CREATED,
     title: "Yeni maç kaydedildi",
-    body: "Organizasyonunda yeni bir maç sonucu girildi.",
+    body: formatMatchDefeatNotificationBody({
+      participants: participantsForLabel,
+      winnerTeam: winnerResult.winnerTeam,
+      team1SetsWon: winnerResult.team1SetsWon,
+      team2SetsWon: winnerResult.team2SetsWon,
+      teamNames: {
+        team1Name: input.team1Name,
+        team2Name: input.team2Name,
+      },
+      format: input.format,
+    }),
     linkUrl: `/matches/${match.id}`,
+  });
+
+  if (input.stakeNote?.trim()) {
+    await createNotificationsForUsers({
+      userIds: allPlayerIds,
+      type: NotificationType.STAKE_CREATED,
+      title: "İddia eklendi",
+      body: `Bu maça iddia eklendi: ${input.stakeNote.trim()}`,
+      linkUrl: `/matches/${match.id}`,
+    });
+  }
+
+  await notifyLeaderboardAfterMatch(organizationId, allPlayerIds, previousRanks);
+
+  await publishOrgEvent(organizationId, RealtimeEventType.MATCH_UPSERTED, {
+    entityId: match.id,
+    actorUserId: actorUserId,
+  });
+  await publishOrgEvent(organizationId, RealtimeEventType.MATCH_RESULT, {
+    entityId: match.id,
+    actorUserId: actorUserId,
+  });
+  await publishOrgEvent(organizationId, RealtimeEventType.LEADERBOARD_DIRTY, {
+    entityId: match.id,
   });
 
   return match;
@@ -210,6 +268,8 @@ export async function createPlannedMatch(
       scheduledAt: input.scheduledAt,
       createdById: actorUserId,
       stakeNote: input.stakeNote ?? null,
+      team1Name: input.team1Name ?? null,
+      team2Name: input.team2Name ?? null,
       participants: {
         create: [
           ...input.team1PlayerIds.map((userId) => ({ userId, team: 1 })),
@@ -227,10 +287,28 @@ export async function createPlannedMatch(
 
   await createNotificationsForUsers({
     userIds: orgMembers.map((m) => m.id),
-    type: "MATCH_CREATED",
+    type: NotificationType.MATCH_CREATED,
     title: "Yeni maç planlandı",
     body: "Organizasyonunda ileri tarihli bir maç planlandı.",
     linkUrl: `/matches/${match.id}`,
+  });
+
+  if (input.stakeNote?.trim()) {
+    const stakeRecipients = allPlayerIds.length
+      ? allPlayerIds
+      : [actorUserId];
+    await createNotificationsForUsers({
+      userIds: stakeRecipients,
+      type: NotificationType.STAKE_CREATED,
+      title: "İddia eklendi",
+      body: `Planlanan maça iddia eklendi: ${input.stakeNote.trim()}`,
+      linkUrl: `/matches/${match.id}`,
+    });
+  }
+
+  await publishOrgEvent(organizationId, RealtimeEventType.MATCH_UPSERTED, {
+    entityId: match.id,
+    actorUserId: actorUserId,
   });
 
   return match;
@@ -335,10 +413,15 @@ export async function cancelMatch(
 
   await createNotificationsForUsers({
     userIds: notifyIds,
-    type: "MATCH_CANCELLED",
+    type: NotificationType.MATCH_CANCELLED,
     title: "Maç iptal edildi",
     body: "Planlanan bir maç iptal edildi.",
     linkUrl: `/matches/${matchId}`,
+  });
+
+  await publishOrgEvent(organizationId, RealtimeEventType.MATCH_UPSERTED, {
+    entityId: matchId,
+    actorUserId: actor.id,
   });
 
   return { id: matchId };
@@ -355,7 +438,13 @@ export async function enterPlannedMatchResult(
   const match = await prisma.match.findFirst({
     where: withOrgScope(organizationId, { id: matchId }),
     include: {
-      participants: { select: { userId: true, team: true } },
+      participants: {
+        select: {
+          userId: true,
+          team: true,
+          user: { select: { fullName: true } },
+        },
+      },
     },
   });
 
@@ -390,6 +479,8 @@ export async function enterPlannedMatchResult(
   }
 
   const winnerResult = assertCompleteMatchResult(input);
+  const participantIds = match.participants.map((p) => p.userId);
+  const previousRanks = await snapshotPlayerRanks(organizationId, participantIds);
   const now = new Date();
 
   await prisma.$transaction(async (tx) => {
@@ -418,19 +509,54 @@ export async function enterPlannedMatchResult(
     .map((p) => p.userId)
     .filter((id) => id !== actorUserId);
 
+  const formatValue = match.format === MatchFormat.SINGLES ? "SINGLES" : "DOUBLES";
+
   await createNotificationsForUsers({
     userIds: others,
-    type: "MATCH_RESULT",
+    type: NotificationType.MATCH_RESULT,
     title: "Maç sonucu girildi",
-    body: "Oynadığın bir maçın sonucu kaydedildi.",
+    body: formatMatchDefeatNotificationBody({
+      participants: match.participants.map((p) => ({
+        team: p.team,
+        user: { fullName: p.user.fullName },
+      })),
+      winnerTeam: winnerResult.winnerTeam,
+      team1SetsWon: winnerResult.team1SetsWon,
+      team2SetsWon: winnerResult.team2SetsWon,
+      teamNames: {
+        team1Name: match.team1Name,
+        team2Name: match.team2Name,
+      },
+      format: formatValue,
+    }),
     linkUrl: `/matches/${matchId}`,
   });
+
+  await notifyLeaderboardAfterMatch(organizationId, participantIds, previousRanks);
 
   if (match.tournamentId) {
     const { processTournamentMatchResult } = await import(
       "@/lib/tournaments/service"
     );
     await processTournamentMatchResult(organizationId, matchId);
+  }
+
+  await publishOrgEvent(organizationId, RealtimeEventType.MATCH_RESULT, {
+    entityId: matchId,
+    actorUserId: actorUserId,
+  });
+  await publishOrgEvent(organizationId, RealtimeEventType.MATCH_UPSERTED, {
+    entityId: matchId,
+    actorUserId: actorUserId,
+  });
+  await publishOrgEvent(organizationId, RealtimeEventType.LEADERBOARD_DIRTY, {
+    entityId: matchId,
+  });
+  if (match.tournamentId) {
+    await publishOrgEvent(organizationId, RealtimeEventType.TOURNAMENT_UPDATED, {
+      entityId: match.tournamentId,
+      actorUserId: actorUserId,
+    });
   }
 
   return { id: matchId };
@@ -463,7 +589,7 @@ export async function updateInstantMatch(
 
   const format = input.format === "SINGLES" ? MatchFormat.SINGLES : MatchFormat.DOUBLES;
 
-  return prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx) => {
     await tx.matchParticipant.deleteMany({ where: { matchId } });
     await tx.matchSet.deleteMany({ where: { matchId } });
 
@@ -475,6 +601,8 @@ export async function updateInstantMatch(
         stakeNote: input.stakeNote ?? null,
         // Clearing or changing note resets settlement
         stakeSettled: false,
+        team1Name: input.team1Name ?? null,
+        team2Name: input.team2Name ?? null,
         team1SetsWon: winnerResult.team1SetsWon,
         team2SetsWon: winnerResult.team2SetsWon,
         winnerTeam: winnerResult.winnerTeam,
@@ -493,9 +621,17 @@ export async function updateInstantMatch(
         },
       },
     });
-
-    return { id: matchId };
   });
+
+  await publishOrgEvent(organizationId, RealtimeEventType.MATCH_RESULT, {
+    entityId: matchId,
+    actorUserId: actor.id,
+  });
+  await publishOrgEvent(organizationId, RealtimeEventType.LEADERBOARD_DIRTY, {
+    entityId: matchId,
+  });
+
+  return { id: matchId };
 }
 
 export async function deleteMatch(
@@ -516,6 +652,14 @@ export async function deleteMatch(
 
   await prisma.match.delete({
     where: { id: matchId },
+  });
+
+  await publishOrgEvent(organizationId, RealtimeEventType.MATCH_UPSERTED, {
+    entityId: matchId,
+    actorUserId: actor.id,
+  });
+  await publishOrgEvent(organizationId, RealtimeEventType.LEADERBOARD_DIRTY, {
+    entityId: matchId,
   });
 
   return { id: matchId };
@@ -608,6 +752,14 @@ export async function listMatchesForOrganization(
     pageSize?: number;
     status?: MatchListStatusFilter;
     time?: MatchListTimeFilter;
+    /** When set, only matches where this user is a participant. */
+    participantUserId?: string;
+    /**
+     * regular (default): non-tournament matches only.
+     * tournament: tournament matches only; optional tournamentId narrows to one event.
+     */
+    matchKind?: "regular" | "tournament";
+    tournamentId?: string;
   } = {},
 ) {
   await syncPlannedMatchesToPending(organizationId);
@@ -624,8 +776,20 @@ export async function listMatchesForOrganization(
 
   const timeFilter = buildTimeWhere(options.time, now);
 
+  const participantFilter = options.participantUserId
+    ? { participants: { some: { userId: options.participantUserId } } }
+    : {};
+
+  const matchKind = options.matchKind ?? "regular";
+  const tournamentFilter: Prisma.MatchWhereInput =
+    matchKind === "tournament"
+      ? options.tournamentId
+        ? { tournamentId: options.tournamentId }
+        : { tournamentId: { not: null } }
+      : { tournamentId: null };
+
   const where = withOrgScope(organizationId, {
-    AND: [statusFilter, timeFilter],
+    AND: [statusFilter, timeFilter, participantFilter, tournamentFilter],
   });
 
   const [total, matches] = await Promise.all([
@@ -640,6 +804,7 @@ export async function listMatchesForOrganization(
       skip,
       take: pageSize,
       include: {
+        tournament: { select: { id: true, name: true } },
         participants: {
           include: {
             user: {
@@ -661,6 +826,41 @@ export async function listMatchesForOrganization(
     pageSize,
     totalPages: Math.max(1, Math.ceil(total / pageSize)),
   };
+}
+
+/** Tournaments that have matches — active first, then others (for match-list chips). */
+export async function listTournamentsForMatchFilter(organizationId: string) {
+  const rows = await prisma.tournament.findMany({
+    where: withOrgScope(organizationId, {
+      matches: { some: {} },
+      status: { not: TournamentStatus.CANCELLED },
+    }),
+    select: {
+      id: true,
+      name: true,
+      status: true,
+      startsAt: true,
+    },
+  });
+
+  const statusRank: Record<string, number> = {
+    IN_PROGRESS: 0,
+    DRAFT: 1,
+    COMPLETED: 2,
+  };
+
+  return rows
+    .sort((a, b) => {
+      const ra = statusRank[a.status] ?? 9;
+      const rb = statusRank[b.status] ?? 9;
+      if (ra !== rb) return ra - rb;
+      return b.startsAt.getTime() - a.startsAt.getTime();
+    })
+    .map((t) => ({
+      id: t.id,
+      name: t.name,
+      status: t.status,
+    }));
 }
 
 export async function getMatchForOrganization(organizationId: string, matchId: string) {
@@ -691,9 +891,33 @@ export async function getMatchForOrganization(organizationId: string, matchId: s
 }
 
 export async function getRecentMatches(organizationId: string, limit = 5) {
+  const now = new Date();
+
   return prisma.match.findMany({
-    where: withOrgScope(organizationId, { status: MatchStatus.COMPLETED }),
-    orderBy: [{ playedAt: "desc" }, { updatedAt: "desc" }],
+    where: withOrgScope(organizationId, {
+      OR: [
+        { status: MatchStatus.COMPLETED },
+        {
+          status: MatchStatus.CANCELLED,
+          OR: [
+            { scheduledAt: { lt: now } },
+            { AND: [{ scheduledAt: null }, { playedAt: { lt: now } }] },
+            {
+              AND: [
+                { scheduledAt: null },
+                { playedAt: null },
+                { createdAt: { lt: now } },
+              ],
+            },
+          ],
+        },
+        {
+          status: { in: [MatchStatus.PLANNED, MatchStatus.PENDING] },
+          scheduledAt: { lte: now },
+        },
+      ],
+    }),
+    orderBy: [{ scheduledAt: "desc" }, { playedAt: "desc" }, { updatedAt: "desc" }],
     take: limit,
     include: {
       participants: {
@@ -707,16 +931,22 @@ export async function getRecentMatches(organizationId: string, limit = 5) {
   });
 }
 
+/**
+ * Upcoming = future scheduledAt, not completed/cancelled.
+ * Past-dated or unscheduled matches must never appear here.
+ */
 export async function listUpcomingForUser(
   organizationId: string,
   userId: string,
   limit = 5,
 ) {
   await syncPlannedMatchesToPending(organizationId);
+  const now = new Date();
 
   return prisma.match.findMany({
     where: withOrgScope(organizationId, {
       status: { in: [MatchStatus.PLANNED, MatchStatus.PENDING] },
+      scheduledAt: { gt: now },
       participants: { some: { userId } },
     }),
     orderBy: [{ scheduledAt: "asc" }],
@@ -734,7 +964,8 @@ export async function listUpcomingForUser(
 }
 
 /**
- * US-16: mark stake as paid/unpaid. Only match participants; completed matches with a note.
+ * US-16: mark stake as paid. Only winning-side participants; completed matches with a note.
+ * Unsettling is not allowed. Client `settled=false` is rejected.
  */
 export async function setMatchStakeSettled(
   organizationId: string,
@@ -742,10 +973,18 @@ export async function setMatchStakeSettled(
   matchId: string,
   settled: boolean,
 ) {
+  if (!settled) {
+    throw new MatchError(
+      "İddia yalnızca ödendi olarak işaretlenebilir",
+      "stakeSettled",
+      403,
+    );
+  }
+
   const match = await prisma.match.findFirst({
     where: withOrgScope(organizationId, { id: matchId }),
     include: {
-      participants: { select: { userId: true } },
+      participants: { select: { userId: true, team: true } },
     },
   });
 
@@ -753,31 +992,64 @@ export async function setMatchStakeSettled(
     throw new MatchError("Maç bulunamadı", "match", 404);
   }
 
-  if (!match.stakeNote) {
-    throw new MatchError("Bu maçta iddia yok", "stakeNote");
-  }
-
-  if (match.status !== MatchStatus.COMPLETED) {
-    throw new MatchError(
-      "İddia yalnızca tamamlanmış maçlarda işaretlenebilir",
-      "status",
-    );
-  }
-
-  if (!match.participants.some((p) => p.userId === actorUserId)) {
-    throw new MatchError(
-      "İddiayı yalnızca maçın tarafları işaretleyebilir",
-      "permission",
-      403,
-    );
-  }
-
-  await prisma.match.update({
-    where: { id: matchId },
-    data: { stakeSettled: settled },
+  const denial = stakeSettleDenialReason({
+    matchStatus: match.status as MatchStatusValue,
+    stakeNote: match.stakeNote,
+    stakeSettled: match.stakeSettled,
+    winnerTeam: match.winnerTeam,
+    actorUserId,
+    participants: match.participants,
   });
 
-  return { id: matchId, stakeSettled: settled };
+  if (denial) {
+    const status =
+      denial.includes("yalnızca") || denial.includes("tarafları") ? 403 : 400;
+    throw new MatchError(denial, "permission", status);
+  }
+
+  // Atomic guard against double-click / race
+  const updated = await prisma.match.updateMany({
+    where: withOrgScope(organizationId, {
+      id: matchId,
+      stakeSettled: false,
+      status: MatchStatus.COMPLETED,
+    }),
+    data: { stakeSettled: true },
+  });
+
+  if (updated.count === 0) {
+    throw new MatchError(
+      "İddia zaten ödendi olarak işaretlenmiş",
+      "stakeSettled",
+      409,
+    );
+  }
+
+  const actor = await prisma.user.findFirst({
+    where: withOrgScope(organizationId, { id: actorUserId }),
+    select: { id: true, fullName: true },
+  });
+
+  const otherParticipantIds = match.participants
+    .map((p) => p.userId)
+    .filter((id) => id !== actorUserId);
+
+  if (otherParticipantIds.length > 0 && actor) {
+    await createNotificationsForUsers({
+      userIds: otherParticipantIds,
+      type: NotificationType.STAKE_SETTLED,
+      title: "İddia ödendi",
+      body: `${actor.fullName}, bu maçın iddiasını "Ödendi" olarak işaretledi.`,
+      linkUrl: `/matches/${matchId}`,
+    });
+  }
+
+  await publishOrgEvent(organizationId, RealtimeEventType.MATCH_UPSERTED, {
+    entityId: matchId,
+    actorUserId,
+  });
+
+  return { id: matchId, stakeSettled: true };
 }
 
 /** Unpaid stakes involving the player (completed matches with stakeNote, not settled). */

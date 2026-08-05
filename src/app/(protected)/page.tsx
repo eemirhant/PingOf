@@ -1,9 +1,12 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
+import { DashboardLeaderboardSection } from "@/components/dashboard/dashboard-leaderboard-section";
 import { FormBadges } from "@/components/players/form-badges";
 import {
+  canEnterResult,
   matchStatusLabel,
   resolveMatchStatus,
   type MatchStatusValue,
@@ -12,6 +15,7 @@ import {
   countPendingIncoming,
   listIncomingChallenges,
 } from "@/lib/challenges/service";
+import { isMobilePhoneRequest } from "@/lib/device";
 import { formatTeamLabel, formatWinnerLabel } from "@/lib/matches/display";
 import { getRecentMatches, listUpcomingForUser } from "@/lib/matches/service";
 import { getDashboardStatsSnippet } from "@/lib/stats/service";
@@ -22,9 +26,26 @@ import {
   type TournamentTypeValue,
 } from "@/domain/tournament";
 
+function pastStatusBadgeClass(status: MatchStatusValue): string {
+  switch (status) {
+    case "COMPLETED":
+      return "badge-win";
+    case "PLANNED":
+      return "badge-planned";
+    case "PENDING":
+      return "badge-1v1";
+    case "CANCELLED":
+      return "";
+    default:
+      return "";
+  }
+}
 export default async function HomePage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
+
+  const headerList = await headers();
+  const ssrDesktop = !isMobilePhoneRequest(headerList);
 
   const [
     recentMatches,
@@ -35,7 +56,9 @@ export default async function HomePage() {
     activeTournaments,
   ] = await Promise.all([
     getRecentMatches(session.user.organizationId, 5),
-    getDashboardStatsSnippet(session.user.organizationId, session.user.id),
+    getDashboardStatsSnippet(session.user.organizationId, session.user.id, {
+      includeTop5: ssrDesktop,
+    }),
     listUpcomingForUser(session.user.organizationId, session.user.id, 5),
     countPendingIncoming(session.user.organizationId, session.user.id),
     listIncomingChallenges(session.user.organizationId, session.user.id),
@@ -194,7 +217,7 @@ export default async function HomePage() {
             Yaklaşan Maçlarım
           </h2>
           <Link
-            href="/matches?status=PLANNED"
+            href="/matches?time=UPCOMING"
             className="text-accent-light text-sm font-semibold"
           >
             Tümü →
@@ -216,8 +239,10 @@ export default async function HomePage() {
                 match.status as MatchStatusValue,
                 match.scheduledAt,
               );
-              const team1 = formatTeamLabel(match.participants, 1) || "Açık";
-              const team2 = formatTeamLabel(match.participants, 2) || "Açık";
+              const team1 =
+                formatTeamLabel(match.participants, 1, match.team1Name) || "Açık";
+              const team2 =
+                formatTeamLabel(match.participants, 2, match.team2Name) || "Açık";
               return (
                 <Link
                   key={match.id}
@@ -243,7 +268,7 @@ export default async function HomePage() {
                           dateStyle: "short",
                           timeStyle: "short",
                         }).format(match.scheduledAt)
-                      : null}
+                      : "Saat belirtilmedi"}
                   </div>
                 </Link>
               );
@@ -252,62 +277,17 @@ export default async function HomePage() {
         )}
       </div>
 
-      <div className="mb-8">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-text-secondary">
-            Liderlik — İlk 5
-          </h2>
-          <Link href="/leaderboard" className="text-accent-light text-sm font-semibold">
-            Tümü →
-          </Link>
-        </div>
-        {snippet.top5.length === 0 ? (
-          <div className="card text-center">
-            <p className="text-text-secondary text-sm">
-              Sıralamaya girmek için en az 3 maç gerekir.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {snippet.top5.map((entry) => {
-              const isSelf = entry.userId === session.user.id;
-              return (
-                <Link
-                  key={entry.userId}
-                  href={`/players/${entry.userId}`}
-                  className="flex min-h-11 items-center justify-between gap-3 rounded-md border border-border px-3 py-2 hover:bg-white/[0.03]"
-                  style={{
-                    background: isSelf ? "rgba(99,102,241,0.1)" : undefined,
-                  }}
-                >
-                  <span className="flex items-center gap-2 font-semibold">
-                    <span className="text-text-muted w-6 text-sm">#{entry.rank}</span>
-                    <UserAvatar
-                      userId={entry.userId}
-                      fullName={entry.fullName}
-                      avatarUrl={entry.avatarUrl}
-                      size="xs"
-                    />
-                    {entry.fullName}
-                    {isSelf ? (
-                      <span className="text-accent-light text-xs">(Sen)</span>
-                    ) : null}
-                  </span>
-                  <span className="text-text-muted text-sm">
-                    {entry.wins}G · %{entry.winRate}
-                  </span>
-                </Link>
-              );
-            })}
-          </div>
-        )}
-      </div>
+      <DashboardLeaderboardSection
+        currentUserId={session.user.id}
+        initialTop5={snippet.top5}
+        ssrDesktop={ssrDesktop}
+      />
 
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-sm font-bold uppercase tracking-wider text-text-secondary">
-          Son Maçlar
+          Geçmiş Maçlar
         </h2>
-        <Link href="/matches" className="text-accent-light text-sm font-semibold">
+        <Link href="/matches?time=PAST" className="text-accent-light text-sm font-semibold">
           Tümü →
         </Link>
       </div>
@@ -315,7 +295,7 @@ export default async function HomePage() {
       {recentMatches.length === 0 ? (
         <div className="card text-center">
           <p className="text-text-secondary text-sm">
-            Henüz maç yok. İlk maçını ekleyerek başla.
+            Henüz geçmiş maç yok. İlk maçını ekleyerek başla.
           </p>
           <Link href="/matches/new" className="btn btn-primary btn-sm mt-4">
             Maç Ekle
@@ -324,11 +304,27 @@ export default async function HomePage() {
       ) : (
         <div className="space-y-3">
           {recentMatches.map((match) => {
-            const team1 = formatTeamLabel(match.participants, 1);
-            const team2 = formatTeamLabel(match.participants, 2);
-            const winnerLabel = formatWinnerLabel(match.participants, match.winnerTeam);
+            const status = resolveMatchStatus(
+              match.status as MatchStatusValue,
+              match.scheduledAt,
+            );
+            const team1 = formatTeamLabel(match.participants, 1, match.team1Name);
+            const team2 = formatTeamLabel(match.participants, 2, match.team2Name);
+            const isCompleted = status === "COMPLETED";
+            const winnerLabel = isCompleted
+              ? formatWinnerLabel(match.participants, match.winnerTeam, {
+                  team1Name: match.team1Name,
+                  team2Name: match.team2Name,
+                })
+              : null;
             const team1Won = match.winnerTeam === 1;
             const team2Won = match.winnerTeam === 2;
+            const isParticipant = match.participants.some(
+              (p) => p.user.id === session.user.id,
+            );
+            const showEnter =
+              isParticipant &&
+              canEnterResult(status, match.format, match.participants.length);
 
             return (
               <Link key={match.id} href={`/matches/${match.id}`} className="match-card block">
@@ -340,21 +336,26 @@ export default async function HomePage() {
                       >
                         {match.format === "SINGLES" ? "1v1" : "2v2"}
                       </span>
-                      <span className="badge badge-win">👑 {winnerLabel}</span>
+                      <span className={`badge ${pastStatusBadgeClass(status)}`}>
+                        {matchStatusLabel(status)}
+                      </span>
+                      {winnerLabel ? (
+                        <span className="badge badge-win">👑 {winnerLabel}</span>
+                      ) : null}
                     </div>
                     <div className="truncate text-sm font-semibold">
-                      <span className={team1Won ? "text-yellow" : ""}>
-                        {team1Won ? "👑 " : ""}
+                      <span className={team1Won && isCompleted ? "text-yellow" : ""}>
+                        {team1Won && isCompleted ? "👑 " : ""}
                         {team1}
                       </span>{" "}
                       <span className="text-text-muted font-normal">vs</span>{" "}
-                      <span className={team2Won ? "text-yellow" : ""}>
-                        {team2Won ? "👑 " : ""}
+                      <span className={team2Won && isCompleted ? "text-yellow" : ""}>
+                        {team2Won && isCompleted ? "👑 " : ""}
                         {team2}
                       </span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex shrink-0 items-center gap-3">
                     <div className="flex -space-x-1">
                       {match.participants.slice(0, 4).map((p) => (
                         <UserAvatar
@@ -366,18 +367,30 @@ export default async function HomePage() {
                           className="border border-bg-900"
                           style={{
                             boxShadow:
-                              p.team === match.winnerTeam
+                              isCompleted && p.team === match.winnerTeam
                                 ? "0 0 0 1px rgba(234,179,8,0.8)"
                                 : undefined,
                           }}
                         />
                       ))}
                     </div>
-                    <div className="match-score text-lg">
-                      <span className={team1Won ? "text-green" : ""}>{match.team1SetsWon}</span>
-                      -
-                      <span className={team2Won ? "text-green" : ""}>{match.team2SetsWon}</span>
-                    </div>
+                    {isCompleted ? (
+                      <div className="match-score text-lg">
+                        <span className={team1Won ? "text-green" : ""}>
+                          {match.team1SetsWon}
+                        </span>
+                        -
+                        <span className={team2Won ? "text-green" : ""}>
+                          {match.team2SetsWon}
+                        </span>
+                      </div>
+                    ) : showEnter ? (
+                      <span className="btn btn-primary btn-sm pointer-events-none">
+                        Skor Gir
+                      </span>
+                    ) : (
+                      <span className="text-text-muted text-xs">Skor yok</span>
+                    )}
                   </div>
                 </div>
               </Link>

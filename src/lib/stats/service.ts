@@ -27,6 +27,8 @@ function toStatsMatch(match: {
   team1SetsWon: number | null;
   team2SetsWon: number | null;
   tournamentId?: string | null;
+  team1Name?: string | null;
+  team2Name?: string | null;
   participants: Array<{
     userId: string;
     team: number;
@@ -45,6 +47,8 @@ function toStatsMatch(match: {
     team1SetsWon: match.team1SetsWon,
     team2SetsWon: match.team2SetsWon,
     tournamentId: match.tournamentId ?? null,
+    team1Name: match.team1Name ?? null,
+    team2Name: match.team2Name ?? null,
     participants: match.participants.map((p) => ({
       userId: p.userId,
       team: p.team === 1 ? 1 : 2,
@@ -85,6 +89,8 @@ export async function loadCompletedMatchesForOrg(
         team1SetsWon: row.team1SetsWon,
         team2SetsWon: row.team2SetsWon,
         tournamentId: row.tournamentId,
+        team1Name: row.team1Name,
+        team2Name: row.team2Name,
         participants: row.participants,
         sets: row.sets,
       }),
@@ -245,7 +251,10 @@ export async function getLeaderboard(
 export async function getDashboardStatsSnippet(
   organizationId: string,
   userId: string,
+  options: { includeTop5?: boolean } = {},
 ) {
+  const includeTop5 = options.includeTop5 !== false;
+
   const [matches, players] = await Promise.all([
     loadCompletedMatchesForOrg(organizationId),
     loadOrgPlayers(organizationId),
@@ -254,6 +263,17 @@ export async function getDashboardStatsSnippet(
   const playerInputs = players.map((p) => ({ id: p.id, fullName: p.fullName }));
   const stats = computePlayerStats(userId, matches);
   const rank = findPlayerRank(userId, playerInputs, matches);
+
+  if (!includeTop5) {
+    return {
+      overall: stats.overall,
+      recentForm: stats.recentForm,
+      currentStreak: stats.currentStreak,
+      rank,
+      top5: null as null,
+    };
+  }
+
   const board = calculateLeaderboard(playerInputs, matches, "ALL");
   const avatarById = new Map(players.map((p) => [p.id, p.avatarUrl]));
 
@@ -267,6 +287,26 @@ export async function getDashboardStatsSnippet(
       avatarUrl: avatarById.get(e.userId) ?? null,
     })),
   };
+}
+
+/** Top-5 leaderboard rows for the desktop dashboard preview. */
+export async function getDashboardTop5(organizationId: string) {
+  const [matches, players] = await Promise.all([
+    loadCompletedMatchesForOrg(organizationId),
+    loadOrgPlayers(organizationId),
+  ]);
+
+  const board = calculateLeaderboard(
+    players.map((p) => ({ id: p.id, fullName: p.fullName })),
+    matches,
+    "ALL",
+  );
+  const avatarById = new Map(players.map((p) => [p.id, p.avatarUrl]));
+
+  return board.ranked.slice(0, 5).map((e) => ({
+    ...e,
+    avatarUrl: avatarById.get(e.userId) ?? null,
+  }));
 }
 
 export function parseLeaderboardTab(

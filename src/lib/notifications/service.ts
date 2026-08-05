@@ -84,3 +84,31 @@ export async function markAllNotificationsRead(userId: string) {
 
   return { count: result.count };
 }
+
+export async function deleteNotification(userId: string, notificationId: string) {
+  const existing = await prisma.notification.findFirst({
+    where: { id: notificationId, userId },
+    select: { id: true },
+  });
+
+  if (!existing) {
+    throw new NotificationError("Bildirim bulunamadı", 404);
+  }
+
+  await prisma.notification.delete({ where: { id: notificationId } });
+  return { id: notificationId };
+}
+
+export async function deleteReadNotifications(userId: string) {
+  const result = await prisma.notification.deleteMany({
+    where: { userId, isRead: true },
+  });
+  return { count: result.count };
+}
+
+export async function clearAllNotifications(userId: string) {
+  const result = await prisma.notification.deleteMany({
+    where: { userId },
+  });
+  return { count: result.count };
+}

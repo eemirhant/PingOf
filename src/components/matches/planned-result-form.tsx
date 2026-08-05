@@ -5,11 +5,13 @@ import { useActionState, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
-  canAddAnotherSet,
-  determineMatchWinner,
-  validateSetScore,
-  type SetScoreInput,
-} from "@/domain/match-scoring";
+  EMPTY_SET,
+  sanitizeScoreInput,
+  syncSetRows,
+  toSetInputs,
+  type SetDraft,
+} from "@/components/matches/set-score-draft";
+import { determineMatchWinner, validateSetScore } from "@/domain/match-scoring";
 import {
   enterPlannedMatchResultAction,
   type MatchActionState,
@@ -17,53 +19,11 @@ import {
 
 const initialState: MatchActionState = {};
 
-type SetDraft = { team1Score: string; team2Score: string };
-const EMPTY_SET: SetDraft = { team1Score: "", team2Score: "" };
-
 type PlannedResultFormProps = {
   matchId: string;
   team1Label: string;
   team2Label: string;
 };
-
-function toSetInputs(sets: SetDraft[]): SetScoreInput[] {
-  return sets
-    .filter((set) => set.team1Score !== "" && set.team2Score !== "")
-    .map((set) => ({
-      team1Score: Number(set.team1Score),
-      team2Score: Number(set.team2Score),
-    }));
-}
-
-function syncSetRows(sets: SetDraft[]): SetDraft[] {
-  const validPrefix: SetDraft[] = [];
-
-  for (const set of sets) {
-    if (set.team1Score === "" || set.team2Score === "") break;
-    const result = validateSetScore(Number(set.team1Score), Number(set.team2Score));
-    if (!result.ok) return [...validPrefix, set];
-    validPrefix.push(set);
-  }
-
-  const progress = determineMatchWinner(toSetInputs(validPrefix));
-
-  if (progress.ok && progress.complete) {
-    return validPrefix.length > 0 ? validPrefix : [{ ...EMPTY_SET }];
-  }
-
-  if (
-    progress.ok &&
-    canAddAnotherSet(progress.team1SetsWon, progress.team2SetsWon, validPrefix.length)
-  ) {
-    const trailing = sets[validPrefix.length];
-    if (trailing && (trailing.team1Score !== "" || trailing.team2Score !== "")) {
-      return [...validPrefix, trailing];
-    }
-    return [...validPrefix, { ...EMPTY_SET }];
-  }
-
-  return validPrefix.length > 0 ? validPrefix : [{ ...EMPTY_SET }];
-}
 
 export function PlannedResultForm({
   matchId,
@@ -82,8 +42,11 @@ export function PlannedResultForm({
   const canSubmit = progress.ok && progress.complete;
 
   function updateSet(index: number, side: "team1Score" | "team2Score", value: string) {
+    const sanitized = sanitizeScoreInput(value);
     setSets((prev) => {
-      const next = prev.map((set, i) => (i === index ? { ...set, [side]: value } : set));
+      const next = prev.map((set, i) =>
+        i === index ? { ...set, [side]: sanitized } : set,
+      );
       return syncSetRows(next);
     });
   }
@@ -130,9 +93,10 @@ export function PlannedResultForm({
               <div className="score-input-row">
                 <input
                   className="form-input score-input"
-                  type="number"
-                  min={0}
+                  type="text"
                   inputMode="numeric"
+                  pattern="[0-9]*"
+                  autoComplete="off"
                   placeholder="0"
                   value={set.team1Score}
                   onChange={(e) => updateSet(index, "team1Score", e.target.value)}
@@ -149,9 +113,10 @@ export function PlannedResultForm({
                 <div className="score-divider">–</div>
                 <input
                   className="form-input score-input"
-                  type="number"
-                  min={0}
+                  type="text"
                   inputMode="numeric"
+                  pattern="[0-9]*"
+                  autoComplete="off"
                   placeholder="0"
                   value={set.team2Score}
                   onChange={(e) => updateSet(index, "team2Score", e.target.value)}

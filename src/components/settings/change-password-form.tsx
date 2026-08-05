@@ -1,50 +1,49 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { FormField } from "@/components/ui/form-field";
+import { PasswordField } from "@/components/ui/password-field";
 import { changePasswordAction, type ProfileActionState } from "@/lib/actions/profile";
 
 const initialState: ProfileActionState = {};
 
 export function ChangePasswordForm() {
+  const [formKey, setFormKey] = useState(0);
   const [state, formAction, isPending] = useActionState(changePasswordAction, initialState);
   const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     if (state.success) {
       formRef.current?.reset();
+      setFormKey((value) => value + 1);
     }
   }, [state.success]);
 
   return (
-    <form ref={formRef} action={formAction}>
+    <form key={formKey} ref={formRef} action={formAction}>
       <div className="card-title">Şifre Değiştir</div>
 
-      <FormField
+      <PasswordField
         label="Mevcut şifre"
         name="currentPassword"
-        type="password"
         placeholder="••••••••"
         autoComplete="current-password"
         error={state.fieldErrors?.currentPassword?.[0]}
       />
 
-      <FormField
+      <PasswordField
         label="Yeni şifre"
         name="newPassword"
-        type="password"
-        placeholder="En az 8 karakter"
-        helper="En az 8 karakter olmalı"
+        placeholder="Güçlü bir şifre oluştur"
         autoComplete="new-password"
+        showStrength
         error={state.fieldErrors?.newPassword?.[0]}
       />
 
-      <FormField
+      <PasswordField
         label="Yeni şifre tekrar"
         name="confirmPassword"
-        type="password"
         placeholder="Şifreyi tekrar gir"
         autoComplete="new-password"
         error={state.fieldErrors?.confirmPassword?.[0]}

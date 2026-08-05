@@ -26,13 +26,22 @@ export const changePasswordSchema = z
     newPassword: passwordSchema,
     confirmPassword: z.string().min(1, "Şifre tekrarı gereklidir"),
   })
-  .refine((data) => data.newPassword === data.confirmPassword, {
-    message: "Şifreler eşleşmiyor",
-    path: ["confirmPassword"],
-  })
-  .refine((data) => data.currentPassword !== data.newPassword, {
-    message: "Yeni şifre mevcut şifreden farklı olmalıdır",
-    path: ["newPassword"],
+  .superRefine((data, ctx) => {
+    if (data.newPassword !== data.confirmPassword) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Şifreler eşleşmiyor",
+        path: ["confirmPassword"],
+      });
+    }
+
+    if (data.currentPassword === data.newPassword) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Yeni şifre mevcut şifreden farklı olmalıdır",
+        path: ["newPassword"],
+      });
+    }
   });
 
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;

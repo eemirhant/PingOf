@@ -3,19 +3,23 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { EmailField } from "@/components/ui/email-field";
 import { FormField } from "@/components/ui/form-field";
+import { PasswordField } from "@/components/ui/password-field";
 import { addPlayerAction, type AddPlayerActionState } from "@/lib/actions/players";
 
 const initialState: AddPlayerActionState = {};
 
 export function AddPlayerForm() {
   const [open, setOpen] = useState(false);
+  const [formKey, setFormKey] = useState(0);
   const [state, formAction, isPending] = useActionState(addPlayerAction, initialState);
   const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     if (state.success) {
       formRef.current?.reset();
+      setFormKey((value) => value + 1);
     }
   }, [state.success]);
 
@@ -33,7 +37,7 @@ export function AddPlayerForm() {
       </div>
 
       {open ? (
-        <form ref={formRef} action={formAction} className="mt-4">
+        <form key={formKey} ref={formRef} action={formAction} className="mt-4">
           <FormField
             label="Ad soyad"
             name="fullName"
@@ -43,22 +47,20 @@ export function AddPlayerForm() {
             error={state.fieldErrors?.fullName?.[0]}
           />
 
-          <FormField
+          <EmailField
             label="E-posta adresi"
             name="email"
-            type="email"
             placeholder="mehmet@sirket.com"
-            autoComplete="email"
             error={state.fieldErrors?.email?.[0]}
           />
 
-          <FormField
+          <PasswordField
             label="Geçici şifre"
             name="temporaryPassword"
-            type="password"
-            placeholder="En az 8 karakter"
-            helper="Oyuncu bu şifre ile giriş yapabilir. İlk girişte değiştirmesi önerilir (zorunlu değil)."
+            placeholder="Güçlü bir geçici şifre"
             autoComplete="new-password"
+            showStrength
+            helper="Oyuncu bu şifre ile giriş yapabilir. İlk girişte değiştirmesi önerilir (zorunlu değil)."
             error={state.fieldErrors?.temporaryPassword?.[0]}
           />
 

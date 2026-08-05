@@ -258,6 +258,7 @@ export default async function TournamentDetailPage({
                                 user: { fullName: p.user.fullName },
                               })),
                               1,
+                              match.team1Name,
                             )
                           : "BAY / Bekleniyor"}{" "}
                         <span className="text-text-muted">vs</span>{" "}
@@ -268,6 +269,7 @@ export default async function TournamentDetailPage({
                                 user: { fullName: p.user.fullName },
                               })),
                               2,
+                              match.team2Name,
                             )
                           : "BAY / Bekleniyor"}
                       </p>

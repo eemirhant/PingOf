@@ -42,9 +42,8 @@ Project Settings → Environment Variables (Preview + Production):
 | `DATABASE_URL` | Neon URL |
 | `AUTH_SECRET` | `openssl rand -base64 32` |
 | `AUTH_URL` | `https://<project>.vercel.app` |
-| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | `npm run push:vapid` çıktısı (public) |
-| `VAPID_PRIVATE_KEY` | `npm run push:vapid` çıktısı (private) |
-| `VAPID_SUBJECT` | örn. `mailto:noreply@yourdomain.com` |
+| `NEXT_PUBLIC_ONESIGNAL_APP_ID` | OneSignal App ID |
+| `ONESIGNAL_REST_API_KEY` | OneSignal REST API Key |
 
 Build Command: `npm run vercel-build` (`vercel.json` zaten ayarlı).
 

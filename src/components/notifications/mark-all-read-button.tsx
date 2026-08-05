@@ -1,26 +1,44 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 import {
   markAllNotificationsReadAction,
   type NotificationActionState,
 } from "@/lib/actions/notifications";
+import { useRealtime } from "@/components/realtime/realtime-provider";
 
 const initialState: NotificationActionState = {};
 
 export function MarkAllReadButton({ disabled }: { disabled?: boolean }) {
+  const router = useRouter();
+  const { unreadNotifications, setUnreadNotificationsOptimistic } = useRealtime();
   const [state, formAction, isPending] = useActionState(
     markAllNotificationsReadAction,
     initialState,
   );
 
+  useEffect(() => {
+    if (state.success) {
+      router.refresh();
+    }
+    if (state.error) {
+      router.refresh();
+    }
+  }, [state.success, state.error, router]);
+
   return (
-    <form action={formAction}>
+    <form
+      action={(fd) => {
+        setUnreadNotificationsOptimistic(0);
+        formAction(fd);
+      }}
+    >
       <button
         type="submit"
         className="btn btn-secondary btn-sm"
-        disabled={disabled || isPending}
+        disabled={disabled || isPending || unreadNotifications === 0}
       >
         {isPending ? "İşleniyor…" : "Tümünü okundu işaretle"}
       </button>

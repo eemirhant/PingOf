@@ -127,7 +127,15 @@ export default async function ChallengesPage({
                     <div className="min-w-0 flex-1">
                       <div className="mb-2 flex flex-wrap gap-2">
                         <span
-                          className={`badge ${status === "PENDING" ? "badge-planned" : status === "ACCEPTED" ? "badge-win" : ""}`}
+                          className={`badge ${
+                            status === "PENDING"
+                              ? "badge-planned"
+                              : status === "ACCEPTED"
+                                ? "badge-win"
+                                : status === "DECLINED"
+                                  ? "badge-loss"
+                                  : "badge-planned"
+                          }`}
                         >
                           {challengeStatusLabel(status)}
                         </span>
@@ -153,7 +161,9 @@ export default async function ChallengesPage({
                             timeStyle: "short",
                           }).format(challenge.proposedAt)}
                         </p>
-                      ) : null}
+                      ) : (
+                        <p className="text-text-muted mt-2 text-sm">Saat belirtilmedi</p>
+                      )}
                       {challenge.note ? (
                         <p className="text-text-muted mt-1 text-sm italic">
                           “{challenge.note}”

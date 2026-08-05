@@ -7,7 +7,8 @@ export type MatchStatusValue = "PLANNED" | "PENDING" | "COMPLETED" | "CANCELLED"
 export type MatchFormatValue = "SINGLES" | "DOUBLES";
 
 /**
- * Lazy promotion: PLANNED becomes PENDING when scheduledAt has arrived.
+ * Lazy promotion: PLANNED becomes PENDING when scheduledAt has arrived,
+ * or immediately when no scheduledAt is set (no clock to wait for).
  * Other statuses are unchanged.
  */
 export function resolveMatchStatus(
@@ -15,10 +16,27 @@ export function resolveMatchStatus(
   scheduledAt: Date | null | undefined,
   now: Date = new Date(),
 ): MatchStatusValue {
-  if (status === "PLANNED" && scheduledAt && scheduledAt.getTime() <= now.getTime()) {
-    return "PENDING";
-  }
+  if (status !== "PLANNED") return status;
+  if (!scheduledAt) return "PENDING";
+  if (scheduledAt.getTime() <= now.getTime()) return "PENDING";
   return status;
+}
+
+/**
+ * True when a match belongs in "Yaklaşan" lists:
+ * future scheduledAt, not completed/cancelled (caller filters status).
+ */
+export function isFutureScheduledMatch(
+  scheduledAt: Date | null | undefined,
+  now: Date = new Date(),
+): boolean {
+  if (!scheduledAt) return false;
+  return scheduledAt.getTime() > now.getTime();
+}
+
+/** True when time-based reminders / "starts soon" logic may run. */
+export function hasMatchClockTime(scheduledAt: Date | null | undefined): boolean {
+  return scheduledAt != null && !Number.isNaN(scheduledAt.getTime());
 }
 
 export function canCancelMatch(status: MatchStatusValue): boolean {

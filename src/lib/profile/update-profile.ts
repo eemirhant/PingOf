@@ -2,6 +2,8 @@ import { UserRole } from "@prisma/client";
 
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import { prisma } from "@/lib/db";
+import { RealtimeEventType } from "@/domain/realtime";
+import { publishOrgEvent } from "@/lib/realtime/publish";
 import { isAvatarColor, isImageAvatar } from "@/lib/utils/avatar";
 import type { ChangePasswordInput, UpdateProfileInput } from "@/lib/validations/profile";
 
@@ -60,7 +62,7 @@ export async function updateUserProfile(
   }
   // Keep existing photo when only name/color metadata changes without remove/upload
 
-  return prisma.user.update({
+  const updated = await prisma.user.update({
     where: { id: userId },
     data: {
       fullName: input.fullName.trim(),
@@ -73,6 +75,13 @@ export async function updateUserProfile(
       avatarUrl: true,
     },
   });
+
+  await publishOrgEvent(organizationId, RealtimeEventType.PROFILE_UPDATED, {
+    entityId: userId,
+    actorUserId: userId,
+  });
+
+  return updated;
 }
 
 export async function changeUserPassword(

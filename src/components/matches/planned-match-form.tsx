@@ -41,6 +41,8 @@ export function PlannedMatchForm({
   const [team2Player1Id, setTeam2Player1Id] = useState("");
   const [team2Player2Id, setTeam2Player2Id] = useState("");
   const [stakeNote, setStakeNote] = useState("");
+  const [team1Name, setTeam1Name] = useState("");
+  const [team2Name, setTeam2Name] = useState("");
 
   const team1PlayerIds = useMemo(() => {
     if (format === "SINGLES") {
@@ -72,6 +74,10 @@ export function PlannedMatchForm({
     setFormat(next);
     setTeam1PartnerId("");
     setTeam2Player2Id("");
+    if (next === "SINGLES") {
+      setTeam1Name("");
+      setTeam2Name("");
+    }
   }
 
   const scheduledIso = scheduledAt ? new Date(scheduledAt).toISOString() : "";
@@ -91,6 +97,8 @@ export function PlannedMatchForm({
         value={JSON.stringify(team2PlayerIds)}
       />
       <input type="hidden" name="stakeNote" value={stakeNote} />
+      <input type="hidden" name="team1Name" value={format === "DOUBLES" ? team1Name : ""} />
+      <input type="hidden" name="team2Name" value={format === "DOUBLES" ? team2Name : ""} />
 
       <div className="form-section">
         <div className="form-section-title">Tarih ve Saat</div>
@@ -208,6 +216,43 @@ export function PlannedMatchForm({
             />
             Varsayılan olarak Takım 1’desin; istediğin slotu açık bırakabilirsin.
           </p>
+        ) : null}
+
+        {format === "DOUBLES" ? (
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <div>
+              <label htmlFor="planned-team1Name" className="form-label">
+                Takım 1 Adı{" "}
+                <span className="text-text-muted font-normal">(opsiyonel)</span>
+              </label>
+              <input
+                id="planned-team1Name"
+                className="form-input"
+                value={team1Name}
+                onChange={(e) => setTeam1Name(e.target.value)}
+                maxLength={50}
+                placeholder="Örn. Kırmızı Şimşekler"
+                autoComplete="off"
+                spellCheck={false}
+              />
+            </div>
+            <div>
+              <label htmlFor="planned-team2Name" className="form-label">
+                Takım 2 Adı{" "}
+                <span className="text-text-muted font-normal">(opsiyonel)</span>
+              </label>
+              <input
+                id="planned-team2Name"
+                className="form-input"
+                value={team2Name}
+                onChange={(e) => setTeam2Name(e.target.value)}
+                maxLength={50}
+                placeholder="Örn. Mavi Kaplanlar"
+                autoComplete="off"
+                spellCheck={false}
+              />
+            </div>
+          </div>
         ) : null}
       </div>
 

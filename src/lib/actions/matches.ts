@@ -60,6 +60,8 @@ function parseInstantMatchForm(formData: FormData):
     team2PlayerIds,
     sets: parsedSets,
     stakeNote: String(formData.get("stakeNote") ?? ""),
+    team1Name: String(formData.get("team1Name") ?? ""),
+    team2Name: String(formData.get("team2Name") ?? ""),
   };
 
   const parsed = instantMatchSchema.safeParse(raw);
@@ -138,6 +140,8 @@ export async function createPlannedMatchAction(
     team1PlayerIds: team1PlayerIds.filter(Boolean),
     team2PlayerIds: team2PlayerIds.filter(Boolean),
     stakeNote: String(formData.get("stakeNote") ?? ""),
+    team1Name: String(formData.get("team1Name") ?? ""),
+    team2Name: String(formData.get("team2Name") ?? ""),
   });
 
   if (!parsed.success) {
@@ -362,6 +366,7 @@ export async function setStakeSettledAction(
   }
 
   const matchId = String(formData.get("matchId") ?? "").trim();
+  // Only "mark as paid" is supported — ignore client attempts to unset.
   const settledRaw = String(formData.get("settled") ?? "").trim();
   const settled = settledRaw === "true" || settledRaw === "1";
 
@@ -369,17 +374,23 @@ export async function setStakeSettledAction(
     return { error: "Maç bulunamadı" };
   }
 
+  if (!settled) {
+    return { error: "İddia yalnızca ödendi olarak işaretlenebilir" };
+  }
+
   try {
     await setMatchStakeSettled(
       session.user.organizationId,
       session.user.id,
       matchId,
-      settled,
+      true,
     );
     revalidatePath(`/matches/${matchId}`);
     revalidatePath(`/players/${session.user.id}`);
+    revalidatePath("/matches");
+    revalidatePath("/");
     return {
-      success: settled ? "İddia ödendi olarak işaretlendi" : "İddia ödenmedi olarak işaretlendi",
+      success: "İddia ödendi olarak işaretlendi",
     };
   } catch (error) {
     if (error instanceof MatchError) {

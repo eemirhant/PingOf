@@ -52,7 +52,7 @@ export function ChallengeForm({
           value={proposedAt}
           onChange={setProposedAt}
           allowEmpty
-          emptyHint="Tarih belirtmezsen kabulde yaklaşık 1 saat sonrası planlanır."
+          emptyHint="Tarih/saat belirtmezsen maç saatsiz planlanır; sonra eklenebilir."
         />
       </div>
 

@@ -4,7 +4,7 @@ import { useActionState } from "react";
 
 import { AuthShell, BackLink } from "@/components/auth/auth-shell";
 import { Button } from "@/components/ui/button";
-import { FormField } from "@/components/ui/form-field";
+import { EmailField } from "@/components/ui/email-field";
 import { forgotPasswordAction, type AuthActionState } from "@/lib/actions/auth";
 
 const initialState: AuthActionState = {};
@@ -49,12 +49,10 @@ export function ForgotPasswordForm() {
         </div>
       ) : (
         <form action={formAction}>
-          <FormField
+          <EmailField
             label="E-posta adresi"
             name="email"
-            type="email"
             placeholder="ahmet@sirket.com"
-            autoComplete="email"
             error={state.fieldErrors?.email?.[0]}
           />
 

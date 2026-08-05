@@ -24,8 +24,8 @@ export function MatchHistoryList({ rows }: MatchHistoryListProps) {
     <div className="space-y-2">
       {rows.map((row) => {
         const open = openId === row.matchId;
-        const opponents = row.opponents.map((o) => o.fullName).join(" / ");
-        const partners = row.partners.map((p) => p.fullName).join(" / ");
+        const opponents = row.opponentLabel;
+        const partners = row.partners.map((p) => p.fullName).join(" & ");
         const win = row.result === "W";
 
         return (
@@ -64,7 +64,9 @@ export function MatchHistoryList({ rows }: MatchHistoryListProps) {
                 </div>
                 <div className="text-text-secondary mt-0.5 truncate text-sm">
                   vs {opponents || "—"}
-                  {partners ? (
+                  {row.ownTeamLabel ? (
+                    <span className="text-text-muted"> · {row.ownTeamLabel}</span>
+                  ) : partners ? (
                     <span className="text-text-muted"> · partner: {partners}</span>
                   ) : null}
                 </div>

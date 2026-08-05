@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -14,13 +15,17 @@ type StakeSettleControlsProps = {
   matchId: string;
   stakeNote: string;
   stakeSettled: boolean;
+  /** Winning-side participant who may mark as paid. */
+  canSettle: boolean;
 };
 
 export function StakeSettleControls({
   matchId,
   stakeNote,
   stakeSettled,
+  canSettle,
 }: StakeSettleControlsProps) {
+  const router = useRouter();
   const [state, action, pending] = useActionState(
     setStakeSettledAction,
     initialState,
@@ -28,9 +33,9 @@ export function StakeSettleControls({
 
   useEffect(() => {
     if (state.success) {
-      window.location.reload();
+      router.refresh();
     }
-  }, [state.success]);
+  }, [state.success, router]);
 
   return (
     <div className="card mt-4 space-y-3 border border-orange/25">
@@ -46,24 +51,31 @@ export function StakeSettleControls({
           </span>
         </p>
       </div>
-      <form action={action} className="flex flex-wrap gap-2">
-        <input type="hidden" name="matchId" value={matchId} />
-        <input
-          type="hidden"
-          name="settled"
-          value={stakeSettled ? "false" : "true"}
-        />
-        <Button type="submit" variant="secondary" size="sm" disabled={pending}>
-          {pending
-            ? "Güncelleniyor…"
-            : stakeSettled
-              ? "Ödenmedi olarak işaretle"
-              : "Ödendi olarak işaretle"}
-        </Button>
-      </form>
+
+      {stakeSettled ? (
+        <span className="badge badge-win">Ödendi</span>
+      ) : canSettle ? (
+        <form action={action} className="flex flex-wrap gap-2">
+          <input type="hidden" name="matchId" value={matchId} />
+          <input type="hidden" name="settled" value="true" />
+          <Button type="submit" variant="secondary" size="sm" disabled={pending}>
+            {pending ? "Güncelleniyor…" : "İddiayı Ödendi Olarak İşaretle"}
+          </Button>
+        </form>
+      ) : (
+        <p className="text-text-muted text-xs" role="note">
+          İddianın ödendiğini yalnızca kazanan taraf onaylayabilir.
+        </p>
+      )}
+
       {state.error ? (
         <p className="text-sm text-rose-400" role="alert">
           {state.error}
+        </p>
+      ) : null}
+      {state.success ? (
+        <p className="text-sm text-emerald-400" role="status">
+          {state.success}
         </p>
       ) : null}
     </div>
@@ -88,7 +100,7 @@ export function StakeNoteBadge({
         ? "İddia · Ödenmedi"
         : "İddia";
   return (
-    <span className="badge" title={stakeNote}>
+    <span className={`badge ${completed && stakeSettled ? "badge-win" : ""}`} title={stakeNote}>
       {label}
     </span>
   );

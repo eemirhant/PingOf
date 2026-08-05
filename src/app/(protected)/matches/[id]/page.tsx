@@ -20,7 +20,8 @@ import {
   resolveMatchStatus,
   type MatchStatusValue,
 } from "@/domain/match-status";
-import { formatWinnerLabel, wasMatchEdited } from "@/lib/matches/display";
+import { canMarkStakeSettled } from "@/domain/stake";
+import { formatTeamLabel, formatWinnerLabel, wasMatchEdited } from "@/lib/matches/display";
 import { canManageMatch, getMatchForOrganization } from "@/lib/matches/service";
 import { UserAvatar } from "@/components/ui/user-avatar";
 
@@ -55,10 +56,18 @@ export default async function MatchDetailPage({
     match.scheduledAt,
   );
   const isCompleted = status === "COMPLETED";
+  const isDoubles = match.format === "DOUBLES";
   const team1 = match.participants.filter((p) => p.team === 1);
   const team2 = match.participants.filter((p) => p.team === 2);
+  const team1Heading =
+    formatTeamLabel(match.participants, 1, match.team1Name) || "Açık";
+  const team2Heading =
+    formatTeamLabel(match.participants, 2, match.team2Name) || "Açık";
   const winnerLabel = isCompleted
-    ? formatWinnerLabel(match.participants, match.winnerTeam)
+    ? formatWinnerLabel(match.participants, match.winnerTeam, {
+        team1Name: match.team1Name,
+        team2Name: match.team2Name,
+      })
     : null;
   const canManage = canManageMatch(
     { id: session.user.id, role: session.user.role },
@@ -69,6 +78,19 @@ export default async function MatchDetailPage({
       ? wasMatchEdited(match.createdAt, match.updatedAt)
       : false;
   const isParticipant = match.participants.some((p) => p.user.id === session.user.id);
+  const canSettleStake =
+    Boolean(match.stakeNote) &&
+    canMarkStakeSettled({
+      matchStatus: status,
+      stakeNote: match.stakeNote,
+      stakeSettled: match.stakeSettled,
+      winnerTeam: match.winnerTeam,
+      actorUserId: session.user.id,
+      participants: match.participants.map((p) => ({
+        userId: p.user.id,
+        team: p.team,
+      })),
+    });
   const canJoin = canJoinOpenSlot(
     status,
     match.format,
@@ -152,6 +174,7 @@ export default async function MatchDetailPage({
           matchId={match.id}
           stakeNote={match.stakeNote}
           stakeSettled={match.stakeSettled}
+          canSettle={canSettleStake}
         />
       ) : match.stakeNote ? (
         <div className="card mt-4 border border-orange/25">
@@ -171,10 +194,22 @@ export default async function MatchDetailPage({
 
       <div className="card mt-6">
         <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-3 text-center">
-          <div>
-            <div className="mb-2 text-xs font-bold uppercase tracking-wider text-accent-light">
-              Takım 1
-            </div>
+          <div className="min-w-0">
+            {isDoubles ? (
+              <h2
+                className={`mb-3 text-xl font-bold uppercase leading-snug break-words sm:text-2xl ${
+                  isCompleted && match.winnerTeam === 1
+                    ? "text-yellow"
+                    : "text-text-primary"
+                }`}
+              >
+                {team1Heading}
+              </h2>
+            ) : (
+              <div className="mb-2 text-xs font-bold uppercase tracking-wider text-accent-light">
+                Takım 1
+              </div>
+            )}
             {team1.map((p) => {
               const isWinner = isCompleted && match.winnerTeam === 1;
               return (
@@ -229,10 +264,22 @@ export default async function MatchDetailPage({
             )}
           </div>
 
-          <div>
-            <div className="mb-2 text-xs font-bold uppercase tracking-wider text-orange-light">
-              Takım 2
-            </div>
+          <div className="min-w-0">
+            {isDoubles ? (
+              <h2
+                className={`mb-3 text-xl font-bold uppercase leading-snug break-words sm:text-2xl ${
+                  isCompleted && match.winnerTeam === 2
+                    ? "text-yellow"
+                    : "text-text-primary"
+                }`}
+              >
+                {team2Heading}
+              </h2>
+            ) : (
+              <div className="mb-2 text-xs font-bold uppercase tracking-wider text-orange-light">
+                Takım 2
+              </div>
+            )}
             {team2.map((p) => {
               const isWinner = isCompleted && match.winnerTeam === 2;
               return (
@@ -310,6 +357,8 @@ export default async function MatchDetailPage({
               timeStyle: "short",
             }).format(match.scheduledAt)}
           </p>
+        ) : status === "PLANNED" || status === "PENDING" ? (
+          <p>Planlanan: Saat belirtilmedi</p>
         ) : null}
         {match.playedAt && isCompleted ? (
           <p>

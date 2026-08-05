@@ -10,14 +10,16 @@ import {
   AuthShell,
 } from "@/components/auth/auth-shell";
 import { Button } from "@/components/ui/button";
-import { FormField } from "@/components/ui/form-field";
+import { EmailField } from "@/components/ui/email-field";
+import { PasswordField } from "@/components/ui/password-field";
 import { loginAction, type AuthActionState } from "@/lib/actions/auth";
+import { toSafeInternalPath } from "@/lib/url/safe-path";
 
 const initialState: AuthActionState = {};
 
 export function LoginForm() {
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") ?? "/";
+  const callbackUrl = toSafeInternalPath(searchParams.get("callbackUrl"), "/");
   const resetSuccess = searchParams.get("reset") === "success";
   const sessionCleared = searchParams.get("cleared") === "1";
   const [state, formAction, isPending] = useActionState(loginAction, initialState);
@@ -64,33 +66,21 @@ export function LoginForm() {
       <form action={formAction} className="space-y-1">
         <input type="hidden" name="callbackUrl" value={callbackUrl} />
 
-        <FormField
+        <EmailField
           label="E-posta adresi"
           name="email"
-          type="email"
           placeholder="ahmet@sirket.com"
-          autoComplete="email"
           error={state.fieldErrors?.email?.[0]}
         />
 
-        <div className="form-group mb-4">
-          <label htmlFor="password" className="form-label flex items-center justify-between">
-            <span>Şifre</span>
-            <AuthLink href="/forgot-password">Şifremi unuttum</AuthLink>
-          </label>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            placeholder="••••••••"
-            autoComplete="current-password"
-            className={`form-input ${state.fieldErrors?.password ? "error" : ""}`}
-            aria-invalid={Boolean(state.fieldErrors?.password)}
-          />
-          {state.fieldErrors?.password?.[0] ? (
-            <p className="form-error">{state.fieldErrors.password[0]}</p>
-          ) : null}
-        </div>
+        <PasswordField
+          label="Şifre"
+          name="password"
+          placeholder="••••••••"
+          autoComplete="current-password"
+          error={state.fieldErrors?.password?.[0]}
+          labelAction={<AuthLink href="/forgot-password">Şifremi unuttum</AuthLink>}
+        />
 
         {state.error ? (
           <p className="form-error mb-4 rounded-md border border-red/20 bg-red/10 px-3 py-2" role="alert">

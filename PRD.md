@@ -324,6 +324,8 @@ Match
   tournamentId (nullable), stakeNote (nullable),
   team1SetsWon, team2SetsWon,  // 3-1 gibi set skoru; hesaplanıp saklanır
   winnerTeam (1 | 2 | null),
+  team1Name (nullable), // 2v2 opsiyonel görüntü adı — istatistikleri etkilemez
+  team2Name (nullable),
   updatedAt
 
 MatchParticipant

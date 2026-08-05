@@ -35,18 +35,14 @@ cp .env.example .env
 |---|---|
 | `DATABASE_URL` | PostgreSQL bağlantı dizesi |
 | `AUTH_SECRET` | Auth.js oturum şifreleme anahtarı |
-| `AUTH_URL` | Uygulama URL’i (geliştirmede `http://localhost:3000`) |
-| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Web Push public VAPID anahtarı |
-| `VAPID_PRIVATE_KEY` | Web Push private VAPID anahtarı (sunucu) |
-| `VAPID_SUBJECT` | VAPID subject (`mailto:` veya site URL) |
+| `AUTH_TRUST_HOST` | `true` — Auth.js request Host’u kullanır |
+| `AUTH_URL` | Opsiyonel kanonik URL (production / Vercel Preview’da HTTPS origin) |
+| `NEXT_PUBLIC_APP_URL` | Absolute linkler için genel uygulama URL’si |
+| `NEXT_PUBLIC_ENVIRONMENT` | `development` \| `production` |
+| `NEXT_PUBLIC_ONESIGNAL_APP_ID` | OneSignal App ID (istemci) |
+| `ONESIGNAL_REST_API_KEY` | OneSignal REST API Key (sunucu) |
 
-Web Push anahtarları:
-
-```bash
-npm run push:vapid
-```
-
-Çıktıyı `.env` (ve staging’de Vercel env) içine ekleyin. Ardından Ayarlar → **Bildirimleri aç**. Geliştirmede SW için `?sw=1` veya `npm run build && npm run start` kullanın.
+OneSignal: Web platformunu **Custom Code** olarak yapılandırın; Dashboard **Site URL** açtığınız origin ile birebir eşleşmeli. `NEXT_PUBLIC_ONESIGNAL_APP_ID` + `ONESIGNAL_REST_API_KEY` ekleyin. İlk girişte doğrulama diyalogundaki **Got it** ile izin istenir; `external_id` = PingOf `user.id`.
 
 3. Prisma client + migration:
 
@@ -61,6 +57,8 @@ npm run db:migrate
 npm run dev
 ```
 
+Adres: `http://localhost:3000`
+
 ## Komutlar
 
 | Komut | Açıklama |
@@ -73,13 +71,27 @@ npm run dev
 | `npm run typecheck` | TypeScript `tsc --noEmit` |
 | `npm run test` | Vitest |
 | `npm run pwa:icons` | PWA ikonlarını yeniden üret |
-| `npm run push:vapid` | Web Push VAPID anahtar çifti üret |
 | `npm run db:generate` | Prisma client |
 | `npm run db:migrate` | Migration (dev) |
 
+## Mobil Push / PWA testi
+
+OneSignal Web SDK v16, mobil tarayıcılarda **yalnızca HTTPS** (veya `localhost`) üzerinde push izni verir. Yerel `http://192.168.x.x:3000` ile telefonda test çalışmaz.
+
+Mobil HTTPS testleri için **Vercel Preview** (veya production deploy) kullanın:
+
+1. PR / branch’i Vercel’e deploy edin  
+2. Preview URL’yi OneSignal Dashboard → **Site URL** olarak ayarlayın  
+3. Telefonda Chrome ile Preview URL’yi açın → giriş → Ana ekrana ekle  
+4. Bildirim izni verin (Got it / Ayarlar)  
+
+Manifest: `/manifest.webmanifest` · ikonlar: `/icons/*` · SW: `/OneSignalSDKWorker.js`.
+
+Yerel geliştirmede push için `http://localhost:3000` + OneSignal localhost ayarı yeterlidir (Chromium).
+
 ## Staging deploy (Vercel + Neon)
 
-Ayrıntılı adımlar: [STAGING.md](STAGING.md). Özet: Neon `DATABASE_URL` + Vercel env (`AUTH_SECRET`, `AUTH_URL`, VAPID üçlüsü) + `npm run vercel-build`.
+Ayrıntılı adımlar: [STAGING.md](STAGING.md). Özet: Neon `DATABASE_URL` + Vercel env (`AUTH_SECRET`, `AUTH_URL`, OneSignal) + `npm run vercel-build`.
 
 **Not:** `public/uploads` dosya sistemi Vercel’de kalıcı değildir.
 
@@ -91,7 +103,7 @@ Ayrıntılı adımlar: [STAGING.md](STAGING.md). Özet: Neon `DATABASE_URL` + Ve
 - [x] Turnuvalar (tek eleme + lig)
 - [x] PWA (manifest, SW, offline)
 - [x] İddia notu (US-16)
-- [x] Web Push (VAPID + Ayarlar aboneliği)
+- [x] Web Push (OneSignal + Ayarlar aboneliği)
 - DoD kalite kapısı: [DOD.md](DOD.md)
 
 ## Referans

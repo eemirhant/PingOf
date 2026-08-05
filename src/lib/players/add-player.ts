@@ -4,6 +4,8 @@ import { hashPassword } from "@/lib/auth/password";
 import { NotificationType } from "@/domain/notification";
 import { prisma } from "@/lib/db";
 import { createNotificationsForUsers } from "@/lib/notifications/create";
+import { RealtimeEventType } from "@/domain/realtime";
+import { publishOrgEvent } from "@/lib/realtime/publish";
 import type { AddPlayerInput } from "@/lib/validations/players";
 
 export class AddPlayerError extends Error {
@@ -93,6 +95,10 @@ export async function addPlayerToOrganization(
     title: "Yeni oyuncu katıldı",
     body: `${player.fullName} organizasyona eklendi.`,
     linkUrl: `/players/${player.id}`,
+  });
+
+  await publishOrgEvent(organizationId, RealtimeEventType.MEMBER_JOINED, {
+    entityId: player.id,
   });
 
   return player;

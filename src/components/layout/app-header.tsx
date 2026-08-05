@@ -2,8 +2,20 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import {
+  BarChart3,
+  Handshake,
+  Home,
+  Medal,
+  Plus,
+  Settings,
+  Trophy,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
 
 import { LogoutButton } from "@/components/auth/logout-button";
+import { useRealtimeBadges } from "@/components/realtime/realtime-provider";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { isImageAvatar } from "@/lib/utils/avatar";
 
@@ -26,40 +38,78 @@ type AppHeaderProps = {
   unreadNotifications: number;
 };
 
-const DESKTOP_LINKS = [
-  { href: "/", label: "Ana Sayfa", match: (p: string) => p === "/" },
+const DESKTOP_LINKS: Array<{
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  match: (p: string) => boolean;
+}> = [
+  { href: "/", label: "Ana Sayfa", icon: Home, match: (p) => p === "/" },
   {
     href: "/matches",
     label: "Maçlar",
-    match: (p: string) =>
+    icon: Trophy,
+    match: (p) =>
       p === "/matches" || (p.startsWith("/matches/") && !p.startsWith("/matches/new")),
   },
   {
     href: "/tournaments",
     label: "Turnuvalar",
-    match: (p: string) => p.startsWith("/tournaments"),
+    icon: Medal,
+    match: (p) => p.startsWith("/tournaments"),
   },
   {
     href: "/players",
     label: "Oyuncular",
-    match: (p: string) => p.startsWith("/players"),
+    icon: Users,
+    match: (p) => p.startsWith("/players"),
   },
   {
     href: "/leaderboard",
     label: "Sıralama",
-    match: (p: string) => p.startsWith("/leaderboard"),
+    icon: BarChart3,
+    match: (p) => p.startsWith("/leaderboard"),
   },
   {
     href: "/challenges",
     label: "Teklifler",
-    match: (p: string) => p.startsWith("/challenges"),
+    icon: Handshake,
+    match: (p) => p.startsWith("/challenges"),
   },
   {
     href: "/settings",
     label: "Ayarlar",
-    match: (p: string) => p.startsWith("/settings"),
+    icon: Settings,
+    match: (p) => p.startsWith("/settings"),
   },
-] as const;
+];
+
+const MOBILE_LINKS: Array<{
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  match: (p: string) => boolean;
+}> = [
+  { href: "/", label: "Ana Sayfa", icon: Home, match: (p) => p === "/" },
+  {
+    href: "/tournaments",
+    label: "Turnuva",
+    icon: Medal,
+    match: (p) => p.startsWith("/tournaments"),
+  },
+  {
+    href: "/leaderboard",
+    label: "Sıralama",
+    icon: BarChart3,
+    match: (p) => p.startsWith("/leaderboard"),
+  },
+  {
+    href: "/settings",
+    label: "Ayarlar",
+    icon: Settings,
+    match: (p) => p.startsWith("/settings"),
+  },
+];
 
 function roleLabel(role?: string | null): string {
   if (role === "OWNER") return "Sahip";
@@ -70,10 +120,14 @@ function roleLabel(role?: string | null): string {
 export function AppHeader({
   user,
   brand,
-  pendingCount,
-  unreadNotifications,
+  pendingCount: initialPendingCount,
+  unreadNotifications: initialUnreadNotifications,
 }: AppHeaderProps) {
   const pathname = usePathname() ?? "/";
+  const { pendingChallenges: pendingCount, unreadNotifications } = useRealtimeBadges({
+    pendingChallenges: initialPendingCount,
+    unreadNotifications: initialUnreadNotifications,
+  });
   const hasLogo = isImageAvatar(brand?.logoUrl);
   const notifActive = pathname.startsWith("/notifications");
 
@@ -104,6 +158,7 @@ export function AppHeader({
             {DESKTOP_LINKS.map((link) => {
               const active = link.match(pathname);
               const isChallenges = link.href === "/challenges";
+              const Icon = link.icon;
               return (
                 <Link
                   key={link.href}
@@ -111,7 +166,12 @@ export function AppHeader({
                   className={`app-nav-link ${active ? "app-nav-link--active" : ""}`}
                   aria-current={active ? "page" : undefined}
                 >
-                  {link.label}
+                  <Icon
+                    aria-hidden="true"
+                    strokeWidth={1.75}
+                    className="app-nav-link-icon"
+                  />
+                  <span>{link.label}</span>
                   {isChallenges && pendingCount > 0 ? (
                     <span className="app-nav-badge">
                       {pendingCount > 9 ? "9+" : pendingCount}
@@ -149,6 +209,7 @@ export function AppHeader({
             <Link
               href={`/players/${user.id}`}
               className={`profile-chip ${pathname.startsWith(`/players/${user.id}`) ? "profile-chip--active" : ""}`}
+              aria-label={`${user.fullName} profili`}
             >
               <UserAvatar
                 userId={user.id}
@@ -164,46 +225,23 @@ export function AppHeader({
             </Link>
           ) : null}
 
-          <LogoutButton />
+          <div className="hidden sm:block">
+            <LogoutButton />
+          </div>
         </div>
       </div>
     </header>
   );
 }
 
-const MOBILE_LINKS = [
-  { href: "/", label: "Ana Sayfa", match: (p: string) => p === "/" },
-  {
-    href: "/tournaments",
-    label: "Turnuva",
-    match: (p: string) => p.startsWith("/tournaments"),
-  },
-  {
-    href: "/notifications",
-    label: "Bildirim",
-    match: (p: string) => p.startsWith("/notifications") || p.startsWith("/challenges"),
-  },
-  {
-    href: "/settings",
-    label: "Ayarlar",
-    match: (p: string) => p.startsWith("/settings"),
-  },
-] as const;
-
-export function MobileBottomNav({
-  pendingCount,
-  unreadNotifications,
-}: {
-  pendingCount: number;
-  unreadNotifications: number;
-}) {
+export function MobileBottomNav() {
   const pathname = usePathname() ?? "/";
-  const badgeCount = unreadNotifications + pendingCount;
 
   return (
     <nav className="app-bottom-nav sm:hidden" aria-label="Mobil menü">
       {MOBILE_LINKS.slice(0, 2).map((link) => {
         const active = link.match(pathname);
+        const Icon = link.icon;
         return (
           <Link
             key={link.href}
@@ -211,7 +249,8 @@ export function MobileBottomNav({
             className={`app-bottom-link ${active ? "app-bottom-link--active" : ""}`}
             aria-current={active ? "page" : undefined}
           >
-            {link.label}
+            <Icon aria-hidden="true" strokeWidth={1.75} className="app-bottom-link-icon" />
+            <span className="app-bottom-link-label">{link.label}</span>
           </Link>
         );
       })}
@@ -222,25 +261,21 @@ export function MobileBottomNav({
         aria-label="Maç Ekle"
         aria-current={pathname.startsWith("/matches/new") ? "page" : undefined}
       >
-        +
+        <Plus aria-hidden="true" strokeWidth={2.25} className="app-bottom-fab-icon" />
       </Link>
 
       {MOBILE_LINKS.slice(2).map((link) => {
         const active = link.match(pathname);
-        const showBadge = link.href === "/notifications" && badgeCount > 0;
+        const Icon = link.icon;
         return (
           <Link
             key={link.href}
             href={link.href}
-            className={`app-bottom-link relative ${active ? "app-bottom-link--active" : ""}`}
+            className={`app-bottom-link ${active ? "app-bottom-link--active" : ""}`}
             aria-current={active ? "page" : undefined}
           >
-            {link.label}
-            {showBadge ? (
-              <span className="app-nav-badge app-nav-badge--mobile">
-                {badgeCount > 9 ? "9+" : badgeCount}
-              </span>
-            ) : null}
+            <Icon aria-hidden="true" strokeWidth={1.75} className="app-bottom-link-icon" />
+            <span className="app-bottom-link-label">{link.label}</span>
           </Link>
         );
       })}

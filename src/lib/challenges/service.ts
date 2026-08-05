@@ -3,11 +3,15 @@ import { ChallengeStatus, MatchFormat, MatchStatus } from "@prisma/client";
 import { CHALLENGE_EXPIRY_DAYS } from "@/domain/constants";
 import {
   canRespondToChallenge,
+  resolveChallengeMatchScheduledAt,
   type ChallengeStatusValue,
 } from "@/domain/challenge";
+import { NotificationType } from "@/domain/notification";
+import { RealtimeEventType } from "@/domain/realtime";
 import { prisma } from "@/lib/db";
 import { createNotificationsForUsers } from "@/lib/notifications/create";
 import { withOrgScope } from "@/lib/org-scope";
+import { publishOrgEvent } from "@/lib/realtime/publish";
 import type { CreateChallengeInput } from "@/lib/validations/challenges";
 
 export class ChallengeError extends Error {
@@ -92,10 +96,15 @@ export async function createChallenge(
 
   await createNotificationsForUsers({
     userIds: [input.toUserId],
-    type: "CHALLENGE_RECEIVED",
+    type: NotificationType.CHALLENGE_RECEIVED,
     title: "Sana maç teklifi geldi",
     body: `${fromUser?.fullName ?? "Bir oyuncu"} sana meydan okudu.`,
     linkUrl: "/challenges",
+  });
+
+  await publishOrgEvent(organizationId, RealtimeEventType.CHALLENGE_UPDATED, {
+    entityId: challenge.id,
+    actorUserId: fromUserId,
   });
 
   return challenge;
@@ -133,10 +142,7 @@ export async function acceptChallenge(
     throw new ChallengeError("Bu teklif artık yanıtlanamaz", "status");
   }
 
-  const scheduledAt =
-    challenge.proposedAt && challenge.proposedAt.getTime() > Date.now()
-      ? challenge.proposedAt
-      : new Date(Date.now() + 60 * 60 * 1000);
+  const scheduledAt = resolveChallengeMatchScheduledAt(challenge.proposedAt);
 
   const match = await prisma.$transaction(async (tx) => {
     await tx.challenge.update({
@@ -177,10 +183,19 @@ export async function acceptChallenge(
 
   await createNotificationsForUsers({
     userIds: [challenge.fromUserId],
-    type: "CHALLENGE_ACCEPTED",
+    type: NotificationType.CHALLENGE_ACCEPTED,
     title: "Teklifin kabul edildi",
     body: `${challenge.toUser.fullName} meydan okumanı kabul etti.`,
     linkUrl: `/matches/${match.id}`,
+  });
+
+  await publishOrgEvent(organizationId, RealtimeEventType.CHALLENGE_UPDATED, {
+    entityId: challengeId,
+    actorUserId: actorUserId,
+  });
+  await publishOrgEvent(organizationId, RealtimeEventType.MATCH_UPSERTED, {
+    entityId: match.id,
+    actorUserId: actorUserId,
   });
 
   return { challengeId, matchId: match.id };
@@ -224,10 +239,15 @@ export async function declineChallenge(
 
   await createNotificationsForUsers({
     userIds: [challenge.fromUserId],
-    type: "CHALLENGE_DECLINED",
+    type: NotificationType.CHALLENGE_DECLINED,
     title: "Teklifin reddedildi",
     body: `${challenge.toUser.fullName} meydan okumanı reddetti.`,
     linkUrl: "/challenges",
+  });
+
+  await publishOrgEvent(organizationId, RealtimeEventType.CHALLENGE_UPDATED, {
+    entityId: challengeId,
+    actorUserId: actorUserId,
   });
 
   return { id: challengeId };

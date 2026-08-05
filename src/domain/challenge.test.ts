@@ -5,6 +5,7 @@ import {
   canRespondToChallenge,
   challengeExpiresAt,
   isChallengeExpired,
+  resolveChallengeMatchScheduledAt,
   resolveChallengeStatus,
 } from "@/domain/challenge";
 
@@ -37,5 +38,30 @@ describe("challenge expiry", () => {
 
   it("computes expiresAt", () => {
     expect(challengeExpiresAt(created).toISOString()).toBe("2026-07-08T12:00:00.000Z");
+  });
+});
+
+describe("resolveChallengeMatchScheduledAt", () => {
+  const now = new Date("2026-08-04T12:00:00Z");
+
+  it("returns null when proposedAt is missing", () => {
+    expect(resolveChallengeMatchScheduledAt(null, now)).toBeNull();
+    expect(resolveChallengeMatchScheduledAt(undefined, now)).toBeNull();
+  });
+
+  it("returns null when proposedAt is in the past (no default time)", () => {
+    expect(
+      resolveChallengeMatchScheduledAt(new Date("2026-08-04T11:00:00Z"), now),
+    ).toBeNull();
+  });
+
+  it("keeps a future proposedAt as scheduledAt", () => {
+    const proposed = new Date("2026-08-04T15:30:00Z");
+    expect(resolveChallengeMatchScheduledAt(proposed, now)).toEqual(proposed);
+  });
+
+  it("never invents +1 hour or midnight defaults", () => {
+    expect(resolveChallengeMatchScheduledAt(null, now)).toBeNull();
+    expect(resolveChallengeMatchScheduledAt(null, now)?.getHours()).toBeUndefined();
   });
 });

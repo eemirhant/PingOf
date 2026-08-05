@@ -19,6 +19,31 @@ const stakeNoteSchema = z
     return trimmed.length === 0 ? null : trimmed;
   });
 
+/** Optional 2v2 team display name — visual only. */
+export const teamNameSchema = z
+  .string()
+  .max(50, "Takım adı en fazla 50 karakter olabilir")
+  .optional()
+  .nullable()
+  .transform((v) => {
+    if (v == null) return null;
+    const trimmed = v.trim();
+    return trimmed.length === 0 ? null : trimmed;
+  });
+
+function normalizeTeamNamesForFormat<
+  T extends {
+    format: "SINGLES" | "DOUBLES";
+    team1Name?: string | null;
+    team2Name?: string | null;
+  },
+>(data: T): T {
+  if (data.format === "SINGLES") {
+    return { ...data, team1Name: null, team2Name: null };
+  }
+  return data;
+}
+
 export const instantMatchSchema = z
   .object({
     format: z.enum(["SINGLES", "DOUBLES"]),
@@ -26,6 +51,8 @@ export const instantMatchSchema = z
     team2PlayerIds: z.array(z.string().min(1)).min(1),
     sets: z.array(setScoreSchema).min(SETS_TO_WIN).max(5),
     stakeNote: stakeNoteSchema,
+    team1Name: teamNameSchema,
+    team2Name: teamNameSchema,
   })
   .superRefine((data, ctx) => {
     const expectedPerTeam = data.format === "SINGLES" ? 1 : 2;
@@ -60,7 +87,8 @@ export const instantMatchSchema = z
         path: ["team1PlayerIds"],
       });
     }
-  });
+  })
+  .transform(normalizeTeamNamesForFormat);
 
 export type InstantMatchInput = z.infer<typeof instantMatchSchema>;
 
@@ -75,6 +103,8 @@ export const plannedMatchSchema = z
     team1PlayerIds: z.array(z.string().min(1)).default([]),
     team2PlayerIds: z.array(z.string().min(1)).default([]),
     stakeNote: stakeNoteSchema,
+    team1Name: teamNameSchema,
+    team2Name: teamNameSchema,
   })
   .superRefine((data, ctx) => {
     if (data.scheduledAt.getTime() <= Date.now()) {
@@ -111,7 +141,8 @@ export const plannedMatchSchema = z
         path: ["team1PlayerIds"],
       });
     }
-  });
+  })
+  .transform(normalizeTeamNamesForFormat);
 
 export type PlannedMatchInput = z.infer<typeof plannedMatchSchema>;
 
@@ -123,7 +154,8 @@ export const plannedMatchResultSchema = z.object({
 export type PlannedMatchResultInput = z.infer<typeof plannedMatchResultSchema>;
 
 export const setStakeSettledSchema = z.object({
-  settled: z.coerce.boolean(),
+  /** Only marking as paid is allowed (winner-only). */
+  settled: z.literal(true),
 });
 
 export type SetStakeSettledInput = z.infer<typeof setStakeSettledSchema>;

@@ -71,6 +71,8 @@ export default async function EditMatchPage({
             team2Score: set.team2Score,
           })),
           stakeNote: match.stakeNote,
+          team1Name: match.team1Name,
+          team2Name: match.team2Name,
         }}
       />
     </div>

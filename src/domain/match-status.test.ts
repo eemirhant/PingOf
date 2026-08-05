@@ -4,6 +4,8 @@ import {
   canCancelMatch,
   canEnterResult,
   canJoinOpenSlot,
+  hasMatchClockTime,
+  isFutureScheduledMatch,
   isWaitingForMatchTime,
   nextOpenTeam,
   resolveMatchStatus,
@@ -24,6 +26,11 @@ describe("resolveMatchStatus", () => {
     ).toBe("PLANNED");
   });
 
+  it("promotes PLANNED to PENDING when scheduledAt is null (no clock time)", () => {
+    expect(resolveMatchStatus("PLANNED", null, now)).toBe("PENDING");
+    expect(resolveMatchStatus("PLANNED", undefined, now)).toBe("PENDING");
+  });
+
   it("does not change COMPLETED or CANCELLED", () => {
     expect(resolveMatchStatus("COMPLETED", new Date("2026-07-28T11:00:00Z"), now)).toBe(
       "COMPLETED",
@@ -31,6 +38,28 @@ describe("resolveMatchStatus", () => {
     expect(resolveMatchStatus("CANCELLED", new Date("2026-07-28T11:00:00Z"), now)).toBe(
       "CANCELLED",
     );
+  });
+});
+
+describe("hasMatchClockTime", () => {
+  it("is true only when a real scheduledAt exists", () => {
+    expect(hasMatchClockTime(new Date("2026-08-04T15:00:00Z"))).toBe(true);
+    expect(hasMatchClockTime(null)).toBe(false);
+    expect(hasMatchClockTime(undefined)).toBe(false);
+  });
+});
+
+describe("isFutureScheduledMatch", () => {
+  const now = new Date("2026-08-04T12:00:00Z");
+
+  it("excludes past and missing schedules from upcoming", () => {
+    expect(isFutureScheduledMatch(new Date("2026-08-04T11:00:00Z"), now)).toBe(false);
+    expect(isFutureScheduledMatch(null, now)).toBe(false);
+    expect(isFutureScheduledMatch(undefined, now)).toBe(false);
+  });
+
+  it("includes only future scheduledAt", () => {
+    expect(isFutureScheduledMatch(new Date("2026-08-04T13:00:00Z"), now)).toBe(true);
   });
 });
 

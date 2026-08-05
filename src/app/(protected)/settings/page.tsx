@@ -1,4 +1,3 @@
-import { headers } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -6,24 +5,21 @@ import { auth } from "@/auth";
 import { AddPlayerForm } from "@/components/settings/add-player-form";
 import { ChangePasswordForm } from "@/components/settings/change-password-form";
 import { CopyInviteButton } from "@/components/settings/copy-invite-button";
+import { NotificationPreferencesCard } from "@/components/settings/notification-preferences-card";
 import { OrganizationLogoForm } from "@/components/settings/organization-logo-form";
 import { ProfileForm } from "@/components/settings/profile-form";
 import { PushNotificationsCard } from "@/components/settings/push-notifications-card";
 import { RegenerateInviteButton } from "@/components/settings/regenerate-invite-button";
+import { LogoutButton } from "@/components/auth/logout-button";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { getOrganizationSettings } from "@/lib/auth/join";
+import { getResolvedNotificationSettings } from "@/lib/notifications/preferences";
 import { getUserProfile } from "@/lib/profile/update-profile";
 import { avatarColorForUser } from "@/lib/utils/avatar";
 
 async function getInviteBaseUrl(): Promise<string> {
-  const fromEnv = process.env.AUTH_URL ?? process.env.NEXTAUTH_URL;
-  if (fromEnv) return fromEnv.replace(/\/$/, "");
-
-  const headerList = await headers();
-  const host = headerList.get("x-forwarded-host") ?? headerList.get("host");
-  const proto = headerList.get("x-forwarded-proto") ?? "http";
-  if (host) return `${proto}://${host}`;
-  return "http://localhost:3000";
+  const { getRequestOrigin } = await import("@/lib/dev/public-url");
+  return getRequestOrigin();
 }
 
 export default async function SettingsPage() {
@@ -33,9 +29,10 @@ export default async function SettingsPage() {
     redirect("/login");
   }
 
-  const [organization, profile] = await Promise.all([
+  const [organization, profile, notificationSettings] = await Promise.all([
     getOrganizationSettings(session.user.organizationId),
     getUserProfile(session.user.id, session.user.organizationId),
+    getResolvedNotificationSettings(session.user.id),
   ]);
 
   if (!organization || !profile) {
@@ -85,6 +82,10 @@ export default async function SettingsPage() {
       </div>
 
       <PushNotificationsCard />
+
+      <NotificationPreferencesCard
+        initialPreferences={notificationSettings.preferences}
+      />
 
       <div
         className="card mb-4"
@@ -164,6 +165,20 @@ export default async function SettingsPage() {
             );
           })}
         </div>
+      </div>
+
+      <div
+        className="card mb-4"
+        style={{
+          borderColor: "rgba(244,63,94,0.25)",
+          background: "rgba(244,63,94,0.06)",
+        }}
+      >
+        <div className="card-title">Oturum</div>
+        <p className="text-text-secondary mb-3 text-sm">
+          Hesabından güvenli şekilde çıkış yapabilirsin.
+        </p>
+        <LogoutButton label="Çıkış Yap" className="logout-btn--settings" />
       </div>
     </div>
   );

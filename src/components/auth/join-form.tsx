@@ -4,7 +4,9 @@ import { useActionState } from "react";
 
 import { AuthLink, AuthShell } from "@/components/auth/auth-shell";
 import { Button } from "@/components/ui/button";
+import { EmailField } from "@/components/ui/email-field";
 import { FormField } from "@/components/ui/form-field";
+import { PasswordField } from "@/components/ui/password-field";
 import type { AuthActionState } from "@/lib/actions/auth";
 import { joinAction } from "@/lib/actions/join";
 
@@ -60,22 +62,19 @@ export function JoinForm({ inviteCode, organizationName }: JoinFormProps) {
           error={state.fieldErrors?.fullName?.[0]}
         />
 
-        <FormField
+        <EmailField
           label="E-posta adresi"
           name="email"
-          type="email"
           placeholder="ahmet@sirket.com"
-          autoComplete="email"
           error={state.fieldErrors?.email?.[0]}
         />
 
-        <FormField
+        <PasswordField
           label="Şifre"
           name="password"
-          type="password"
-          placeholder="En az 8 karakter"
-          helper="En az 8 karakter olmalı"
+          placeholder="Güçlü bir şifre oluştur"
           autoComplete="new-password"
+          showStrength
           error={state.fieldErrors?.password?.[0]}
         />
 

@@ -15,9 +15,12 @@ import {
   type BracketMatch,
   type RoundRobinResult,
 } from "@/domain/tournament";
+import { NotificationType } from "@/domain/notification";
+import { RealtimeEventType } from "@/domain/realtime";
 import { prisma } from "@/lib/db";
 import { createNotificationsForUsers } from "@/lib/notifications/create";
 import { withOrgScope } from "@/lib/org-scope";
+import { publishOrgEvent } from "@/lib/realtime/publish";
 import type { CreateTournamentInput } from "@/lib/validations/tournament";
 
 export class TournamentError extends Error {
@@ -203,6 +206,32 @@ export async function createTournament(
     }
 
     return created;
+  });
+
+  await publishOrgEvent(organizationId, RealtimeEventType.TOURNAMENT_UPDATED, {
+    entityId: tournament.id,
+    actorUserId: actorUserId,
+  });
+
+  const orgMembers = await prisma.user.findMany({
+    where: withOrgScope(organizationId),
+    select: { id: true },
+  });
+
+  await createNotificationsForUsers({
+    userIds: orgMembers.map((m) => m.id),
+    type: NotificationType.TOURNAMENT_CREATED,
+    title: "Yeni turnuva",
+    body: `"${input.name}" turnuvası oluşturuldu.`,
+    linkUrl: `/tournaments/${tournament.id}`,
+  });
+
+  await createNotificationsForUsers({
+    userIds: playerIds,
+    type: NotificationType.TOURNAMENT_ADDED,
+    title: "Turnuvaya eklendin",
+    body: `"${input.name}" turnuvasına eklendin.`,
+    linkUrl: `/tournaments/${tournament.id}`,
   });
 
   return tournament;
@@ -477,7 +506,7 @@ export async function startTournament(
 
   await createNotificationsForUsers({
     userIds: orgMembers.map((m) => m.id),
-    type: "TOURNAMENT_STARTED",
+    type: NotificationType.TOURNAMENT_STARTED,
     title: "Turnuva başladı",
     body: `"${tournament.name}" turnuvası başladı.`,
     linkUrl: `/tournaments/${tournamentId}`,
@@ -489,10 +518,25 @@ export async function startTournament(
 
   await createNotificationsForUsers({
     userIds: readyPlayerIds,
-    type: "TOURNAMENT_MATCH_READY",
+    type: NotificationType.TOURNAMENT_MATCH_READY,
     title: "Turnuva maçın hazır",
     body: `"${tournament.name}" turnuvasında sıradaki maçın hazır.`,
     linkUrl: `/tournaments/${tournamentId}`,
+  });
+
+  await createNotificationsForUsers({
+    userIds: readyPlayerIds,
+    type: NotificationType.TOURNAMENT_MATCH_CREATED,
+    title: "Turnuva maçı oluşturuldu",
+    body: `"${tournament.name}" için yeni bir turnuva maçı oluştu.`,
+    linkUrl: `/tournaments/${tournamentId}`,
+  });
+
+  await publishOrgEvent(organizationId, RealtimeEventType.TOURNAMENT_UPDATED, {
+    entityId: tournamentId,
+  });
+  await publishOrgEvent(organizationId, RealtimeEventType.MATCH_UPSERTED, {
+    entityId: tournamentId,
   });
 
   return { id: tournamentId };
@@ -533,6 +577,13 @@ export async function cancelTournament(
       }),
       data: { status: MatchStatus.CANCELLED },
     });
+  });
+
+  await publishOrgEvent(organizationId, RealtimeEventType.TOURNAMENT_UPDATED, {
+    entityId: tournamentId,
+  });
+  await publishOrgEvent(organizationId, RealtimeEventType.MATCH_UPSERTED, {
+    entityId: tournamentId,
   });
 
   return { id: tournamentId };
@@ -764,10 +815,17 @@ async function completeTournament(
 
   await createNotificationsForUsers({
     userIds: orgMembers.map((m) => m.id),
-    type: "TOURNAMENT_COMPLETED",
+    type: NotificationType.TOURNAMENT_COMPLETED,
     title: "Turnuva tamamlandı",
     body: `"${tournamentName}" bitti. Şampiyon: ${champ}.`,
     linkUrl: `/tournaments/${tournamentId}`,
+  });
+
+  await publishOrgEvent(organizationId, RealtimeEventType.TOURNAMENT_UPDATED, {
+    entityId: tournamentId,
+  });
+  await publishOrgEvent(organizationId, RealtimeEventType.LEADERBOARD_DIRTY, {
+    entityId: tournamentId,
   });
 }
 
@@ -941,7 +999,7 @@ export async function processTournamentMatchResult(
     );
     await createNotificationsForUsers({
       userIds,
-      type: "TOURNAMENT_MATCH_READY",
+      type: NotificationType.TOURNAMENT_MATCH_READY,
       title: "Turnuva maçın hazır",
       body: `"${tournament.name}" turnuvasında sıradaki maçın hazır.`,
       linkUrl: `/tournaments/${tournament.id}`,
@@ -955,5 +1013,9 @@ export async function processTournamentMatchResult(
       tournament.name,
       [entryName(advanced.championEntryId)],
     );
+  } else {
+    await publishOrgEvent(organizationId, RealtimeEventType.TOURNAMENT_UPDATED, {
+      entityId: tournament.id,
+    });
   }
 }

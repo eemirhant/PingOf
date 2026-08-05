@@ -174,8 +174,8 @@ export default async function PlayerProfilePage({
                     {match.stakeNote}
                   </span>
                   <span className="text-text-muted text-xs">
-                    {formatTeamLabel(match.participants, 1)} vs{" "}
-                    {formatTeamLabel(match.participants, 2)}
+                    {formatTeamLabel(match.participants, 1, match.team1Name)} vs{" "}
+                    {formatTeamLabel(match.participants, 2, match.team2Name)}
                     {match.playedAt
                       ? ` · ${new Intl.DateTimeFormat("tr-TR", {
                           dateStyle: "medium",

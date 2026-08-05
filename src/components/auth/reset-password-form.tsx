@@ -4,7 +4,7 @@ import { useActionState } from "react";
 
 import { AuthLink, AuthShell, BackLink } from "@/components/auth/auth-shell";
 import { Button } from "@/components/ui/button";
-import { FormField } from "@/components/ui/form-field";
+import { PasswordField } from "@/components/ui/password-field";
 import { resetPasswordAction, type AuthActionState } from "@/lib/actions/auth";
 
 const initialState: AuthActionState = {};
@@ -62,7 +62,7 @@ export function ResetPasswordForm({ token, isValid }: ResetPasswordFormProps) {
           </div>
           <h2 className="text-2xl font-bold tracking-tight text-text-primary">Yeni şifre belirle</h2>
           <p className="text-text-secondary mt-2 text-[0.9rem]">
-            En az 8 karakterlik yeni bir şifre gir.
+            Büyük/küçük harf, rakam ve özel karakter içeren güçlü bir şifre gir.
           </p>
         </div>
       </div>
@@ -70,20 +70,18 @@ export function ResetPasswordForm({ token, isValid }: ResetPasswordFormProps) {
       <form action={formAction}>
         <input type="hidden" name="token" value={token} />
 
-        <FormField
+        <PasswordField
           label="Yeni şifre"
           name="password"
-          type="password"
-          placeholder="En az 8 karakter"
-          helper="En az 8 karakter olmalı"
+          placeholder="Güçlü bir şifre oluştur"
           autoComplete="new-password"
+          showStrength
           error={state.fieldErrors?.password?.[0]}
         />
 
-        <FormField
+        <PasswordField
           label="Şifre tekrar"
           name="confirmPassword"
-          type="password"
           placeholder="Şifreni tekrar gir"
           autoComplete="new-password"
           error={state.fieldErrors?.confirmPassword?.[0]}

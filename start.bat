@@ -47,6 +47,7 @@ start "PingOf - Dev Server" cmd /k "cd /d ""%~dp0"" && npm run dev"
 
 echo  Dev sunucu yeni pencerede baslatildi.
 echo  Adres: http://localhost:3000
+echo  Mobil HTTPS test icin Vercel Preview kullanin.
 echo  Durdurmak icin stop.bat dosyasini calistirin.
 echo.
 timeout /t 4 >nul
