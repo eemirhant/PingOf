@@ -44,60 +44,89 @@ function formatOneSignalError(
   return text.slice(0, 500) || `HTTP ${status}`;
 }
 
-function getConfig() {
-  const appId =
-    process.env.ONESIGNAL_APP_ID?.trim() ||
-    process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID?.trim() ||
-    ONESIGNAL_APP_ID;
-  const apiKey = process.env.ONESIGNAL_REST_API_KEY?.trim();
-  return {
-    appId: appId || null,
-    apiKey: apiKey || null,
-    configured: Boolean(appId && apiKey),
-  };
-}
-
 /**
- * Boolean presence of every env key related to OneSignal server config.
- * Values themselves are never logged (secrets).
+ * Resolve App ID + REST API key at call time (not module load).
+ *
+ * Env names actually used for the configured decision:
+ * - App ID: ONESIGNAL_APP_ID → NEXT_PUBLIC_ONESIGNAL_APP_ID → hardcoded fallback
+ * - API key: ONESIGNAL_REST_API_KEY only
+ *
+ * NOT used for config (checked only in debug): ONESIGNAL_API_KEY,
+ * ONESIGNAL_USER_AUTH_KEY, REST_API_KEY, NEXT_PUBLIC_ONESIGNAL_REST_API_KEY.
+ *
+ * NEXT_PUBLIC_* may be inlined at build; secret keys must be read at runtime.
+ * Bracket access (process.env["NAME"]) avoids accidental build-time replacement.
  */
-function logOneSignalEnvPresence(reason: {
-  resolvedAppIdPresent: boolean;
-  resolvedApiKeyPresent: boolean;
-  hardcodedAppIdFallbackPresent: boolean;
-}) {
-  const missing: string[] = [];
-  if (!reason.resolvedAppIdPresent) {
-    missing.push(
-      "appId (ONESIGNAL_APP_ID | NEXT_PUBLIC_ONESIGNAL_APP_ID | hardcoded fallback)",
+function getConfig() {
+  // --- User-requested raw presence / length probe (never log key value) ---
+  console.log("[OneSignal Debug]", {
+    nodeEnv: process.env.NODE_ENV,
+    appId_env: !!process.env.ONESIGNAL_APP_ID,
+    appId_public: !!process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID,
+    apiKey: !!process.env.ONESIGNAL_REST_API_KEY,
+    appId_value:
+      process.env.ONESIGNAL_APP_ID ??
+      process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID ??
+      null,
+    apiKeyLength: process.env.ONESIGNAL_REST_API_KEY?.length ?? 0,
+  });
+
+  // Related key names present on process.env (typo detection) — names only
+  const relatedEnvKeys = Object.keys(process.env)
+    .filter((key) => /onesignal|vapid|rest_api/i.test(key))
+    .sort();
+  console.log("[OneSignal Debug] related env key names on process.env", {
+    relatedEnvKeys,
+  });
+
+  // --- Direct read test (same as requested fallback snippet) ---
+  const directAppId =
+    process.env.ONESIGNAL_APP_ID || process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
+  const directApiKey = process.env.ONESIGNAL_REST_API_KEY;
+  console.log("[OneSignal Debug] direct read test", {
+    appIdExists: !!directAppId,
+    apiKeyExists: !!directApiKey,
+    directAppIdLength: directAppId?.length ?? 0,
+    directApiKeyLength: directApiKey?.length ?? 0,
+  });
+
+  // Runtime-safe reads (bracket + trim). Do not use wrong alternate key names.
+  const envAppId = (
+    process.env["ONESIGNAL_APP_ID"] ||
+    process.env["NEXT_PUBLIC_ONESIGNAL_APP_ID"] ||
+    ""
+  ).trim();
+  const envApiKey = (process.env["ONESIGNAL_REST_API_KEY"] || "").trim();
+
+  const appId = envAppId || ONESIGNAL_APP_ID || null;
+  const apiKey = envApiKey || null;
+  const configured = Boolean(appId && apiKey);
+
+  console.log("[OneSignal Config]", {
+    appIdExists: !!appId,
+    apiKeyExists: !!apiKey,
+    configured,
+    usedHardcodedAppIdFallback: !envAppId && Boolean(ONESIGNAL_APP_ID),
+    // Compare paths: if direct works but trimmed/bracket fails, surface it
+    directApiKeyExists: !!directApiKey,
+    trimmedApiKeyExists: !!envApiKey,
+  });
+
+  if (!appId) {
+    console.error("[OneSignal] Missing App ID");
+  }
+  if (!apiKey) {
+    console.error("[OneSignal] Missing REST API KEY");
+    console.error(
+      "[OneSignal] Expected env name: ONESIGNAL_REST_API_KEY (not ONESIGNAL_API_KEY / USER_AUTH_KEY / NEXT_PUBLIC_ONESIGNAL_REST_API_KEY)",
     );
   }
-  if (!reason.resolvedApiKeyPresent) {
-    missing.push("ONESIGNAL_REST_API_KEY");
-  }
 
-  console.log("[OneSignal Debug]", {
-    ONESIGNAL_APP_ID: !!process.env.ONESIGNAL_APP_ID,
-    ONESIGNAL_REST_API_KEY: !!process.env.ONESIGNAL_REST_API_KEY,
-    NEXT_PUBLIC_ONESIGNAL_APP_ID: !!process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID,
-    // Alternate names sometimes used in OneSignal docs / other projects
-    ONESIGNAL_API_KEY: !!process.env.ONESIGNAL_API_KEY,
-    ONESIGNAL_USER_AUTH_KEY: !!process.env.ONESIGNAL_USER_AUTH_KEY,
-    ONESIGNAL_ORGANIZATION_API_KEY: !!process.env.ONESIGNAL_ORGANIZATION_API_KEY,
-  });
-
-  console.log("[OneSignal Debug] resolved config presence", {
-    resolvedAppIdPresent: reason.resolvedAppIdPresent,
-    resolvedApiKeyPresent: reason.resolvedApiKeyPresent,
-    hardcodedAppIdFallbackPresent: reason.hardcodedAppIdFallbackPresent,
-    // getConfig() requires BOTH resolvedAppId AND resolvedApiKey
-    configuredDecision: reason.resolvedAppIdPresent && reason.resolvedApiKeyPresent,
-  });
-
-  console.log(
-    "[OneSignal Debug] push skipped because missing:",
-    missing.length > 0 ? missing.join(", ") : "(unknown)",
-  );
+  return {
+    appId,
+    apiKey,
+    configured,
+  };
 }
 
 export function isOneSignalConfigured(): boolean {
@@ -178,12 +207,6 @@ export async function sendOneSignalPushToUsers(
   // appId from: ONESIGNAL_APP_ID | NEXT_PUBLIC_ONESIGNAL_APP_ID | hardcoded ONESIGNAL_APP_ID
   // apiKey from: ONESIGNAL_REST_API_KEY only (ONESIGNAL_API_KEY is NOT read)
   if (!configured || !appId || !apiKey) {
-    logOneSignalEnvPresence({
-      resolvedAppIdPresent: Boolean(appId),
-      resolvedApiKeyPresent: Boolean(apiKey),
-      hardcodedAppIdFallbackPresent: Boolean(ONESIGNAL_APP_ID),
-    });
-
     pushDebug("OneSignal API isteği gönderilmedi — yapılandırma eksik", {
       hasAppId: Boolean(appId),
       hasApiKey: Boolean(apiKey),
