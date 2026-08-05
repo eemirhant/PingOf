@@ -6,6 +6,9 @@ import { countPendingIncoming } from "@/lib/challenges/service";
 import { countUnreadNotifications } from "@/lib/notifications/service";
 import { getOrganizationBrand, getUserProfile } from "@/lib/profile/update-profile";
 
+/** Server Actions + RSC for challenges/matches/notifications must see Node env secrets. */
+export const runtime = "nodejs";
+
 export default async function ProtectedLayout({
   children,
 }: {

@@ -10,7 +10,15 @@ import {
 } from "@/lib/notifications/diagnostics/store";
 import { sendOneSignalPushToUsers } from "@/lib/notifications/onesignal";
 
+export const runtime = "nodejs";
+
 export async function POST() {
+  console.log("[Runtime Info]", {
+    runtime: process.env.NEXT_RUNTIME,
+    nodeEnv: process.env.NODE_ENV,
+    apiKeyExists: !!process.env.ONESIGNAL_REST_API_KEY,
+  });
+
   const access = await requireNotificationDebugAccess();
   if (!access.ok) return access.response;
 

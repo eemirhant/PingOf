@@ -12,11 +12,19 @@ import {
   updateTrace,
 } from "@/lib/notifications/diagnostics/store";
 
+export const runtime = "nodejs";
+
 /**
  * Exercises the real createNotificationsForUsers chain as CHALLENGE_ACCEPTED
  * for the current user (does not create a Challenge row).
  */
 export async function POST() {
+  console.log("[Runtime Info]", {
+    runtime: process.env.NEXT_RUNTIME,
+    nodeEnv: process.env.NODE_ENV,
+    apiKeyExists: !!process.env.ONESIGNAL_REST_API_KEY,
+  });
+
   const access = await requireNotificationDebugAccess();
   if (!access.ok) return access.response;
 

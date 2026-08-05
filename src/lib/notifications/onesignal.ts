@@ -58,6 +58,24 @@ function formatOneSignalError(
  * Bracket access (process.env["NAME"]) avoids accidental build-time replacement.
  */
 function getConfig() {
+  // First touch of the secret — if undefined here, process.env never had it
+  // in this invocation (not overwritten later in our code).
+  const firstReadApiKey = process.env["ONESIGNAL_REST_API_KEY"];
+  console.log("[OneSignal Env Probe — first read]", {
+    key: "ONESIGNAL_REST_API_KEY",
+    typeofValue: typeof firstReadApiKey,
+    isUndefined: firstReadApiKey === undefined,
+    isNull: firstReadApiKey === null,
+    isEmptyString: firstReadApiKey === "",
+    length: firstReadApiKey?.length ?? 0,
+  });
+
+  console.log("[Runtime Info]", {
+    runtime: process.env.NEXT_RUNTIME,
+    nodeEnv: process.env.NODE_ENV,
+    apiKeyExists: !!process.env.ONESIGNAL_REST_API_KEY,
+  });
+
   // --- User-requested raw presence / length probe (never log key value) ---
   console.log("[OneSignal Debug]", {
     nodeEnv: process.env.NODE_ENV,
@@ -96,7 +114,7 @@ function getConfig() {
     process.env["NEXT_PUBLIC_ONESIGNAL_APP_ID"] ||
     ""
   ).trim();
-  const envApiKey = (process.env["ONESIGNAL_REST_API_KEY"] || "").trim();
+  const envApiKey = (firstReadApiKey || "").trim();
 
   const appId = envAppId || ONESIGNAL_APP_ID || null;
   const apiKey = envApiKey || null;
@@ -119,6 +137,9 @@ function getConfig() {
     console.error("[OneSignal] Missing REST API KEY");
     console.error(
       "[OneSignal] Expected env name: ONESIGNAL_REST_API_KEY (not ONESIGNAL_API_KEY / USER_AUTH_KEY / NEXT_PUBLIC_ONESIGNAL_REST_API_KEY)",
+    );
+    console.error(
+      "[OneSignal] First undefined at getConfig() first read of process.env[\"ONESIGNAL_REST_API_KEY\"] — key was never present on this process; our code does not clear it.",
     );
   }
 
@@ -172,6 +193,19 @@ export async function sendOneSignalPushToUsers(
   userIds: string[],
   payload: OneSignalPushPayload,
 ): Promise<SendOneSignalResult> {
+  console.log("[Runtime Info]", {
+    runtime: process.env.NEXT_RUNTIME,
+    nodeEnv: process.env.NODE_ENV,
+    apiKeyExists: !!process.env.ONESIGNAL_REST_API_KEY,
+  });
+
+  if (process.env.NEXT_RUNTIME === "edge") {
+    console.error(
+      "[OneSignal] RUNNING ON EDGE RUNTIME — secrets like ONESIGNAL_REST_API_KEY are often unavailable. Push skipped. Force Node.js via export const runtime = 'nodejs'.",
+    );
+    return { sentBatches: 0, skipped: true };
+  }
+
   const unique = [...new Set(userIds.filter(Boolean))];
 
   pushDebug("sendOneSignalPushToUsers çağrıldı", {
