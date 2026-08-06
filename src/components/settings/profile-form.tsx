@@ -84,6 +84,21 @@ export function ProfileForm({
   }, [state, router]);
 
   useEffect(() => {
+    if (state.error) {
+      console.error("[Avatar Upload Client] action error string:", state.error);
+    }
+    if (state.fieldErrors?.photo?.[0]) {
+      console.error(
+        "[Avatar Upload Client] photo field error string:",
+        state.fieldErrors.photo[0],
+      );
+    }
+    if (localError) {
+      console.error("[Avatar Upload Client] local error string:", localError);
+    }
+  }, [state.error, state.fieldErrors, localError]);
+
+  useEffect(() => {
     return () => {
       if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
     };

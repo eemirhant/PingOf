@@ -71,15 +71,36 @@ export async function updateProfileAction(
 
   let photoDataUrl: string | null = null;
   if (photo instanceof File && photo.size > 0) {
+    console.log("[Avatar Upload Action] starting saveUploadedImage", {
+      photoName: photo.name,
+      photoType: photo.type,
+      photoSize: photo.size,
+    });
     try {
       photoDataUrl = await saveUploadedImage(photo, "avatars", session.user.id);
+      console.log("[Avatar Upload Action] saveUploadedImage returned", photoDataUrl);
     } catch (error) {
+      console.error("[Avatar Upload Action] saveUploadedImage threw", error);
+      if (error instanceof Error) {
+        console.error("[Avatar Upload Action] error details", {
+          name: error.name,
+          message: error.message,
+          stack: error.stack,
+          cause: error.cause,
+          serialized: JSON.stringify(error, Object.getOwnPropertyNames(error)),
+        });
+      }
       if (error instanceof ImageUploadError) {
         return { fieldErrors: { photo: [error.message] } };
       }
       console.error("[profile] photo upload failed", error);
       return { error: "Fotoğraf yüklenirken bir hata oluştu." };
     }
+  } else {
+    console.log("[Avatar Upload Action] no photo file in formData", {
+      isFile: photo instanceof File,
+      size: photo instanceof File ? photo.size : null,
+    });
   }
 
   try {
