@@ -142,7 +142,7 @@ export async function saveUploadedImage(
     throw new ImageUploadError("Geçersiz görsel dosyası");
   }
 
-  if (!hasBlobToken()) {
+  if (!hasBlobToken) {
     console.error("[Blob Debug] missing blob token before put()", {
       hasBlobToken: false,
       tokenLength: tokenRaw?.length ?? 0,
