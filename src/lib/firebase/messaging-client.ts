@@ -97,6 +97,29 @@ export type EnablePushResult =
   | { ok: true; token: string }
   | { ok: false; error: string };
 
+function vapidKeyPreview(vapidKey: string): {
+  length: number;
+  first10: string;
+  last10: string;
+} {
+  return {
+    length: vapidKey.length,
+    first10: vapidKey.slice(0, 10),
+    last10: vapidKey.slice(-10),
+  };
+}
+
+function swWorkerSnapshot(worker: ServiceWorker | null | undefined): {
+  scriptURL: string | null;
+  state: string | null;
+} | null {
+  if (!worker) return null;
+  return {
+    scriptURL: worker.scriptURL ?? null,
+    state: worker.state ?? null,
+  };
+}
+
 /**
  * Request notification permission, obtain FCM token, register device on server.
  */
@@ -137,6 +160,13 @@ export async function enableWebPush(): Promise<EnablePushResult> {
   const messaging = await getFirebaseMessagingClient();
   const vapidKey = getClientVapidKey();
   if (!messaging || !vapidKey) {
+    console.error("[FCM] getToken() çağrılmadı — messaging veya vapidKey yok", {
+      hasMessaging: Boolean(messaging),
+      hasVapidKey: Boolean(vapidKey),
+      Notification_permission: Notification.permission,
+      isSecureContext: window.isSecureContext,
+      location_href: window.location.href,
+    });
     return {
       ok: false,
       error: "Push bildirimleri bu cihazda desteklenmiyor.",
@@ -145,6 +175,12 @@ export async function enableWebPush(): Promise<EnablePushResult> {
 
   const registration = await ensureMessagingServiceWorker();
   if (!registration) {
+    console.error("[FCM] getToken() çağrılmadı — Service Worker kaydı yok", {
+      Notification_permission: Notification.permission,
+      isSecureContext: window.isSecureContext,
+      location_href: window.location.href,
+      controller: navigator.serviceWorker?.controller ?? null,
+    });
     return {
       ok: false,
       error: "Service Worker kaydı başarısız oldu.",
@@ -152,29 +188,146 @@ export async function enableWebPush(): Promise<EnablePushResult> {
   }
 
   let token: string;
+  let getTokenCalled = false;
   try {
-    const { getToken } = await import("firebase/messaging");
+    const { getToken, isSupported } = await import("firebase/messaging");
+    const supported = await isSupported().catch((supportError: unknown) => {
+      console.error("[FCM] isSupported() failed", supportError);
+      return false;
+    });
+
+    console.info("[FCM] getToken() çağrılıyor", {
+      Firebase_isSupported: supported,
+      Notification_permission: Notification.permission,
+      isSecureContext: window.isSecureContext,
+      location_href: window.location.href,
+      registration_scope: registration.scope,
+      registration_active: swWorkerSnapshot(registration.active),
+      registration_waiting: swWorkerSnapshot(registration.waiting),
+      registration_installing: swWorkerSnapshot(registration.installing),
+      controller: swWorkerSnapshot(navigator.serviceWorker.controller),
+      vapidKey_preview: vapidKeyPreview(vapidKey),
+    });
+
+    getTokenCalled = true;
     token = await getToken(messaging, {
       vapidKey,
       serviceWorkerRegistration: registration,
     });
   } catch (error) {
+    const err = error as {
+      name?: string;
+      code?: string;
+      message?: string;
+      stack?: string;
+    };
+    let readyRegistration: ServiceWorkerRegistration | null = null;
+    try {
+      readyRegistration = await navigator.serviceWorker.ready;
+    } catch {
+      readyRegistration = null;
+    }
+
+    console.error("[FCM] getToken() başarısız", {
+      error,
+      error_name: err?.name ?? null,
+      error_code: err?.code ?? null,
+      error_message: err?.message ?? (error instanceof Error ? error.message : String(error)),
+      error_stack: err?.stack ?? (error instanceof Error ? error.stack : null),
+      registration,
+      registration_scope: registration.scope,
+      registration_active: swWorkerSnapshot(registration.active),
+      registration_waiting: swWorkerSnapshot(registration.waiting),
+      registration_installing: swWorkerSnapshot(registration.installing),
+      navigator_serviceWorker_controller: swWorkerSnapshot(
+        navigator.serviceWorker.controller,
+      ),
+      navigator_serviceWorker_ready: readyRegistration
+        ? {
+            scope: readyRegistration.scope,
+            active: swWorkerSnapshot(readyRegistration.active),
+          }
+        : null,
+      Notification_permission: Notification.permission,
+      isSecureContext: window.isSecureContext,
+      location_href: window.location.href,
+      vapidKey_preview: vapidKeyPreview(vapidKey),
+      getTokenCalled,
+    });
+
     pushLog.failed({
       reason: "get_token_failed",
-      error: error instanceof Error ? error.message : String(error),
+      error: err?.message ?? (error instanceof Error ? error.message : String(error)),
+      code: err?.code ?? null,
+      name: err?.name ?? null,
     });
+
+    if (window.isSecureContext === false) {
+      return {
+        ok: false,
+        error: "FCM token alınamadı. HTTPS veya localhost gerekir.",
+      };
+    }
+
+    const realMessage =
+      typeof err?.message === "string" && err.message.trim()
+        ? err.message.trim()
+        : error instanceof Error && error.message
+          ? error.message
+          : String(error);
+    const codePrefix =
+      typeof err?.code === "string" && err.code ? `[${err.code}] ` : "";
     return {
       ok: false,
-      error: "FCM token alınamadı. HTTPS veya localhost gerekir.",
+      error: `FCM token alınamadı: ${codePrefix}${realMessage}`,
     };
   }
 
+  if (!getTokenCalled) {
+    console.error("[FCM] getToken() hiç çağrılmadı (beklenmeyen kontrol akışı)");
+  }
+
   if (!token) {
+    let readyRegistration: ServiceWorkerRegistration | null = null;
+    try {
+      readyRegistration = await navigator.serviceWorker.ready;
+    } catch {
+      readyRegistration = null;
+    }
+
+    console.error("[FCM] getToken() null/boş döndü", {
+      token,
+      registration,
+      registration_scope: registration.scope,
+      registration_active: swWorkerSnapshot(registration.active),
+      registration_waiting: swWorkerSnapshot(registration.waiting),
+      registration_installing: swWorkerSnapshot(registration.installing),
+      navigator_serviceWorker_controller: swWorkerSnapshot(
+        navigator.serviceWorker.controller,
+      ),
+      navigator_serviceWorker_ready: readyRegistration
+        ? {
+            scope: readyRegistration.scope,
+            active: swWorkerSnapshot(readyRegistration.active),
+          }
+        : null,
+      Notification_permission: Notification.permission,
+      isSecureContext: window.isSecureContext,
+      location_href: window.location.href,
+      vapidKey_preview: vapidKeyPreview(vapidKey),
+      reason:
+        "Firebase getToken resolved without throwing but returned empty token. Check VAPID key, SW script, and Firebase project Web Push certificates.",
+    });
+
     pushLog.failed({
       reason: "get_token_null",
       message: "FCM getToken returned empty string",
     });
-    return { ok: false, error: "FCM token boş döndü." };
+    return {
+      ok: false,
+      error:
+        "FCM token boş döndü. VAPID key / Service Worker / Firebase Web Push ayarlarını kontrol edin.",
+    };
   }
 
   storeFcmToken(token);
