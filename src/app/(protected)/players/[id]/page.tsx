@@ -111,6 +111,7 @@ export default async function PlayerProfilePage({
             userId={user.id}
             fullName={user.fullName}
             avatarUrl={user.avatarUrl}
+            avatarColor={user.avatarColor}
             size="lg"
           />
           <div className="min-w-0 flex-1">

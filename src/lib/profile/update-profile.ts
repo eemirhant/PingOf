@@ -4,7 +4,13 @@ import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import { prisma } from "@/lib/db";
 import { RealtimeEventType } from "@/domain/realtime";
 import { publishOrgEvent } from "@/lib/realtime/publish";
-import { isAvatarColor, isImageAvatar } from "@/lib/utils/avatar";
+import {
+  avatarColorForUser,
+  hashAvatarColor,
+  isAvatarColor,
+  isImageAvatar,
+} from "@/lib/utils/avatar";
+import { avatarColors } from "@/lib/design-tokens";
 import type { ChangePasswordInput, UpdateProfileInput } from "@/lib/validations/profile";
 
 export class ProfileError extends Error {
@@ -17,17 +23,61 @@ export class ProfileError extends Error {
   }
 }
 
+/**
+ * Prefer an unused palette color in the org; fall back to deterministic hash(userId).
+ * Never assigns based on list index.
+ */
+export async function assignAvatarColorForNewUser(
+  organizationId: string,
+  userId: string,
+): Promise<string> {
+  const members = await prisma.user.findMany({
+    where: {
+      organizationId,
+      id: { not: userId },
+      avatarColor: { not: null },
+    },
+    select: { avatarColor: true },
+  });
+  const used = new Set(
+    members
+      .map((m) => m.avatarColor?.toLowerCase())
+      .filter((c): c is string => Boolean(c)),
+  );
+
+  for (const color of avatarColors) {
+    if (!used.has(color)) return color;
+  }
+
+  return hashAvatarColor(userId);
+}
+
 export async function getUserProfile(userId: string, organizationId: string) {
-  return prisma.user.findFirst({
+  const profile = await prisma.user.findFirst({
     where: { id: userId, organizationId },
     select: {
       id: true,
       fullName: true,
       email: true,
       avatarUrl: true,
+      avatarColor: true,
       role: true,
     },
   });
+
+  if (!profile) return null;
+
+  // Backfill missing colors (pre-migration rows) so UI is stable across devices.
+  if (!profile.avatarColor) {
+    const color = avatarColorForUser(profile.id, profile.avatarUrl, null);
+    await prisma.user.update({
+      where: { id: profile.id },
+      data: { avatarColor: color },
+    });
+    return { ...profile, avatarColor: color };
+  }
+
+  return profile;
 }
 
 export async function updateUserProfile(
@@ -40,7 +90,7 @@ export async function updateUserProfile(
 ) {
   const user = await prisma.user.findFirst({
     where: { id: userId, organizationId },
-    select: { id: true, avatarUrl: true },
+    select: { id: true, avatarUrl: true, avatarColor: true },
   });
 
   if (!user) {
@@ -51,28 +101,31 @@ export async function updateUserProfile(
     throw new ProfileError("Geçersiz avatar rengi", "avatarColor");
   }
 
-  let nextAvatar = user.avatarUrl;
+  const nextColor = input.avatarColor.toLowerCase();
+  let nextAvatarUrl = user.avatarUrl;
 
   if (input.photoDataUrl) {
-    nextAvatar = input.photoDataUrl;
+    nextAvatarUrl = input.photoDataUrl;
   } else if (input.removePhoto) {
-    nextAvatar = input.avatarColor.toLowerCase();
+    nextAvatarUrl = null;
   } else if (!isImageAvatar(user.avatarUrl)) {
-    nextAvatar = input.avatarColor.toLowerCase();
+    // Clear legacy hex-in-avatarUrl; color now lives only in avatarColor
+    nextAvatarUrl = null;
   }
-  // Keep existing photo when only name/color metadata changes without remove/upload
 
   const updated = await prisma.user.update({
     where: { id: userId },
     data: {
       fullName: input.fullName.trim(),
-      avatarUrl: nextAvatar,
+      avatarUrl: nextAvatarUrl,
+      avatarColor: nextColor,
     },
     select: {
       id: true,
       fullName: true,
       email: true,
       avatarUrl: true,
+      avatarColor: true,
     },
   });
 

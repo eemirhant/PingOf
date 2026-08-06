@@ -15,7 +15,7 @@ export async function listNotificationsForUser(
   options: { page?: number; pageSize?: number } = {},
 ) {
   const page = Math.max(1, options.page ?? 1);
-  const pageSize = Math.min(50, Math.max(1, options.pageSize ?? 20));
+  const pageSize = Math.min(100, Math.max(1, options.pageSize ?? 20));
   const skip = (page - 1) * pageSize;
 
   const where = { userId };
@@ -59,7 +59,7 @@ export async function countUnreadNotifications(userId: string): Promise<number> 
 export async function markNotificationRead(userId: string, notificationId: string) {
   const existing = await prisma.notification.findFirst({
     where: { id: notificationId, userId },
-    select: { id: true, isRead: true, linkUrl: true },
+    select: { id: true, type: true, isRead: true, linkUrl: true },
   });
 
   if (!existing) {

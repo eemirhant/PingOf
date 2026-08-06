@@ -11,6 +11,7 @@ type NewChallengePanelProps = {
   currentUserId: string;
   currentUserName: string;
   currentUserAvatarUrl?: string | null;
+  currentUserAvatarColor?: string | null;
   players: OrgPlayerOption[];
   initialOpponentId?: string | null;
 };
@@ -19,6 +20,7 @@ export function NewChallengePanel({
   currentUserId,
   currentUserName,
   currentUserAvatarUrl,
+  currentUserAvatarColor,
   players,
   initialOpponentId = null,
 }: NewChallengePanelProps) {
@@ -48,6 +50,7 @@ export function NewChallengePanel({
           id: currentUserId,
           fullName: currentUserName,
           avatarUrl: currentUserAvatarUrl,
+          avatarColor: currentUserAvatarColor,
         }}
         opponent={
           selected
@@ -55,6 +58,7 @@ export function NewChallengePanel({
                 id: selected.id,
                 fullName: selected.fullName,
                 avatarUrl: selected.avatarUrl,
+                avatarColor: selected.avatarColor,
               }
             : null
         }
@@ -91,6 +95,7 @@ export function NewChallengePanel({
                       userId={player.id}
                       fullName={player.fullName}
                       avatarUrl={player.avatarUrl}
+                      avatarColor={player.avatarColor}
                       size="sm"
                       className="shrink-0"
                     />

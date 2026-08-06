@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import {
   acceptChallenge,
+  cancelChallenge,
   ChallengeError,
   createChallenge,
   declineChallenge,
@@ -123,5 +124,36 @@ export async function declineChallengeAction(
       return { error: error.message };
     }
     return { error: "Teklif reddedilirken bir hata oluştu" };
+  }
+}
+
+export async function cancelChallengeAction(
+  _prevState: ChallengeActionState,
+  formData: FormData,
+): Promise<ChallengeActionState> {
+  const session = await auth();
+  if (!session?.user) {
+    return { error: "Oturum bulunamadı" };
+  }
+
+  const challengeId = String(formData.get("challengeId") ?? "").trim();
+  if (!challengeId) {
+    return { error: "Teklif bulunamadı" };
+  }
+
+  try {
+    await cancelChallenge(
+      session.user.organizationId,
+      session.user.id,
+      challengeId,
+    );
+    revalidatePath("/challenges");
+    revalidatePath("/", "layout");
+    return { success: "Meydan okuma iptal edildi." };
+  } catch (error) {
+    if (error instanceof ChallengeError) {
+      return { error: error.message };
+    }
+    return { error: "Teklif iptal edilirken bir hata oluştu" };
   }
 }

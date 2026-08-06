@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { AppHeader, MobileBottomNav } from "@/components/layout/app-header";
+import { NotificationDeepLinkListener } from "@/components/notifications/notification-deep-link-listener";
 import { FcmProvider } from "@/components/push/fcm-provider";
 import { RealtimeProvider } from "@/components/realtime/realtime-provider";
 import { countPendingIncoming } from "@/lib/challenges/service";
@@ -31,6 +32,7 @@ export default async function ProtectedLayout({
         id: session.user.id,
         fullName: profile?.fullName ?? session.user.fullName,
         avatarUrl: profile?.avatarUrl ?? session.user.avatarUrl,
+        avatarColor: profile?.avatarColor ?? null,
         role: session.user.role,
       }
     : null;
@@ -41,6 +43,7 @@ export default async function ProtectedLayout({
       initialUnreadNotifications={unreadNotifications}
     >
       <FcmProvider enabled={Boolean(session?.user)} />
+      <NotificationDeepLinkListener />
       <div className="min-h-screen bg-bg-900">
         <AppHeader
           user={user}

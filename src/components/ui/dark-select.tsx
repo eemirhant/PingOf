@@ -8,6 +8,7 @@ export type DarkSelectOption = {
   value: string;
   label: string;
   avatarUrl?: string | null;
+  avatarColor?: string | null;
   /** Shown as muted hint, e.g. "(Sen)" */
   hint?: string;
 };
@@ -93,6 +94,7 @@ export function DarkSelect({
               userId={selected.value}
               fullName={selected.label}
               avatarUrl={selected.avatarUrl}
+              avatarColor={selected.avatarColor}
               size="xs"
             />
           ) : null}
@@ -142,6 +144,7 @@ export function DarkSelect({
                     userId={opt.value}
                     fullName={opt.label}
                     avatarUrl={opt.avatarUrl}
+                    avatarColor={opt.avatarColor}
                     size="xs"
                   />
                   <span className="dark-select-label">

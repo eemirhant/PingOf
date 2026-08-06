@@ -7,6 +7,8 @@ import {
   listenForegroundMessages,
   syncWebPushToken,
 } from "@/lib/firebase/messaging-client";
+import { navigateFromNotificationUrl } from "@/components/notifications/notification-deep-link-listener";
+import { toSafeInternalPath } from "@/lib/url/safe-path";
 
 /**
  * After login: sync FCM token when permission already granted.
@@ -38,15 +40,16 @@ export function FcmProvider({ enabled }: { enabled: boolean }) {
         return;
       }
       try {
+        const path = toSafeInternalPath(url, "/notifications");
         const n = new Notification(title, {
           body,
           icon: "/icons/icon-192.png",
-          data: { url },
+          data: { url: path },
         });
         n.onclick = () => {
           window.focus();
-          if (url) window.location.href = url;
           n.close();
+          navigateFromNotificationUrl(path);
         };
       } catch {
         // Safari / restricted contexts

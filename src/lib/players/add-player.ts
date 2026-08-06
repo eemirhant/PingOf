@@ -95,6 +95,8 @@ export async function addPlayerToOrganization(
     title: "Yeni oyuncu katıldı",
     body: `${player.fullName} organizasyona eklendi.`,
     linkUrl: `/players/${player.id}`,
+    playerId: player.id,
+    entityId: player.id,
   });
 
   await publishOrgEvent(organizationId, RealtimeEventType.MEMBER_JOINED, {

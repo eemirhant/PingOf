@@ -3,6 +3,7 @@ import { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { generateInviteCode } from "@/lib/auth/invite-code";
 import { hashPassword } from "@/lib/auth/password";
+import { avatarColors } from "@/lib/design-tokens";
 import type { RegisterInput } from "@/lib/validations/auth";
 
 export class RegisterError extends Error {
@@ -63,6 +64,8 @@ export async function registerOrganization(input: RegisterInput) {
         passwordHash,
         fullName: input.fullName.trim(),
         role: UserRole.OWNER,
+        // First member of a new org — first palette color (deterministic, not index of a list render)
+        avatarColor: avatarColors[0],
       },
     });
 

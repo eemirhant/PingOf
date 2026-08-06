@@ -197,6 +197,7 @@ export function TournamentForm({ players }: TournamentFormProps) {
                       userId={player.id}
                       fullName={player.fullName}
                       avatarUrl={player.avatarUrl}
+                      avatarColor={player.avatarColor}
                       size="sm"
                     />
                     <span className="text-sm font-medium text-text-primary">
@@ -227,6 +228,7 @@ export function TournamentForm({ players }: TournamentFormProps) {
                       value: p.id,
                       label: p.fullName,
                       avatarUrl: p.avatarUrl,
+                      avatarColor: p.avatarColor,
                     }))}
                   />
                   <DarkSelect
@@ -238,6 +240,7 @@ export function TournamentForm({ players }: TournamentFormProps) {
                       value: p.id,
                       label: p.fullName,
                       avatarUrl: p.avatarUrl,
+                      avatarColor: p.avatarColor,
                     }))}
                   />
                 </div>

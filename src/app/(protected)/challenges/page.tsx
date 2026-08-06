@@ -2,10 +2,13 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
+import { ChallengeCancelButton } from "@/components/challenges/challenge-cancel-button";
+import { ChallengeDeepLinkFocus } from "@/components/challenges/challenge-deep-link-focus";
 import { ChallengeDuelAnimation } from "@/components/challenges/challenge-duel-animation";
 import { ChallengeRespondButtons } from "@/components/challenges/challenge-respond-buttons";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import {
+  canCancelChallenge,
   challengeStatusLabel,
   resolveChallengeStatus,
   type ChallengeStatusValue,
@@ -19,13 +22,13 @@ import { getUserProfile } from "@/lib/profile/update-profile";
 export default async function ChallengesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; id?: string; challengeId?: string }>;
 }) {
   const session = await auth();
   if (!session?.user) redirect("/login");
 
   const params = await searchParams;
-  const tab = params.tab === "outgoing" ? "outgoing" : "incoming";
+  const focusChallengeId = (params.challengeId ?? params.id ?? "").trim() || null;
 
   const [incoming, outgoing, me] = await Promise.all([
     listIncomingChallenges(session.user.organizationId, session.user.id),
@@ -35,10 +38,21 @@ export default async function ChallengesPage({
 
   if (!me) redirect("/login");
 
+  let tab: "incoming" | "outgoing" =
+    params.tab === "outgoing" ? "outgoing" : "incoming";
+  if (focusChallengeId) {
+    if (outgoing.some((c) => c.id === focusChallengeId)) {
+      tab = "outgoing";
+    } else if (incoming.some((c) => c.id === focusChallengeId)) {
+      tab = "incoming";
+    }
+  }
+
   const list = tab === "outgoing" ? outgoing : incoming;
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-8">
+      <ChallengeDeepLinkFocus challengeId={focusChallengeId} />
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <Link href="/players" className="text-text-muted hover:text-text-secondary text-sm">
@@ -89,10 +103,19 @@ export default async function ChallengesPage({
               challenge.createdAt,
             );
             const isPending = status === "PENDING";
+            const showCancel =
+              tab === "outgoing" &&
+              canCancelChallenge(
+                challenge.status as ChallengeStatusValue,
+                challenge.createdAt,
+                session.user.id,
+                challenge.fromUserId,
+              );
             const selfSide = {
               id: me.id,
               fullName: me.fullName,
               avatarUrl: me.avatarUrl,
+              avatarColor: me.avatarColor,
             };
             const other =
               tab === "incoming" ? challenge.fromUser : challenge.toUser;
@@ -102,6 +125,7 @@ export default async function ChallengesPage({
                     id: challenge.fromUser.id,
                     fullName: challenge.fromUser.fullName,
                     avatarUrl: challenge.fromUser.avatarUrl,
+                    avatarColor: challenge.fromUser.avatarColor,
                   }
                 : selfSide;
             const opponent =
@@ -111,10 +135,19 @@ export default async function ChallengesPage({
                     id: challenge.toUser.id,
                     fullName: challenge.toUser.fullName,
                     avatarUrl: challenge.toUser.avatarUrl,
+                    avatarColor: challenge.toUser.avatarColor,
                   };
 
             return (
-              <li key={challenge.id} className="space-y-3">
+              <li
+                key={challenge.id}
+                id={`challenge-${challenge.id}`}
+                className={`space-y-3 rounded-xl transition ${
+                  focusChallengeId === challenge.id
+                    ? "challenge-deep-link-focus"
+                    : ""
+                }`}
+              >
                 {isPending ? (
                   <ChallengeDuelAnimation
                     challenger={challenger}
@@ -132,7 +165,7 @@ export default async function ChallengesPage({
                               ? "badge-planned"
                               : status === "ACCEPTED"
                                 ? "badge-win"
-                                : status === "DECLINED"
+                                : status === "DECLINED" || status === "CANCELLED"
                                   ? "badge-loss"
                                   : "badge-planned"
                           }`}
@@ -149,6 +182,7 @@ export default async function ChallengesPage({
                           userId={other.id}
                           fullName={other.fullName}
                           avatarUrl={other.avatarUrl}
+                          avatarColor={other.avatarColor}
                           size="sm"
                         />
                         {other.fullName}
@@ -178,6 +212,9 @@ export default async function ChallengesPage({
                     </div>
                     {tab === "incoming" && isPending ? (
                       <ChallengeRespondButtons challengeId={challenge.id} />
+                    ) : null}
+                    {showCancel ? (
+                      <ChallengeCancelButton challengeId={challenge.id} />
                     ) : null}
                   </div>
                 </div>

@@ -12,7 +12,7 @@ import {
   markAllNotificationsRead,
   markNotificationRead,
 } from "@/lib/notifications/service";
-import { toSafeInternalPath } from "@/lib/url/safe-path";
+import { resolveSafeNotificationDestination } from "@/lib/notifications/resolve-destination";
 
 export type NotificationActionState = {
   error?: string;
@@ -42,9 +42,13 @@ export async function markNotificationReadAction(
     const notification = await markNotificationRead(session.user.id, notificationId);
     revalidateNotificationPaths();
     if (notification.linkUrl) {
-      redirect(
-        toSafeInternalPath(notification.linkUrl, "/notifications"),
-      );
+      const destination = await resolveSafeNotificationDestination({
+        organizationId: session.user.organizationId,
+        type: notification.type,
+        linkUrl: notification.linkUrl,
+        notificationId: notification.id,
+      });
+      redirect(destination);
     }
     return { success: "Okundu işaretlendi." };
   } catch (error) {
@@ -76,7 +80,7 @@ export async function markAllNotificationsReadAction(
   }
 }
 
-/** Click handler: mark read then navigate (used from link form). */
+/** Click handler: mark read then navigate to validated deep link. */
 export async function openNotificationAction(formData: FormData): Promise<void> {
   const session = await auth();
   if (!session?.user) {
@@ -84,15 +88,17 @@ export async function openNotificationAction(formData: FormData): Promise<void> 
   }
 
   const notificationId = String(formData.get("notificationId") ?? "").trim();
-  const fallback = toSafeInternalPath(
-    formData.get("linkUrl"),
-    "/notifications",
-  );
 
   try {
     const notification = await markNotificationRead(session.user.id, notificationId);
+    const destination = await resolveSafeNotificationDestination({
+      organizationId: session.user.organizationId,
+      type: notification.type,
+      linkUrl: notification.linkUrl,
+      notificationId: notification.id,
+    });
     revalidateNotificationPaths();
-    redirect(toSafeInternalPath(notification.linkUrl, fallback));
+    redirect(destination);
   } catch (error) {
     if (error instanceof NotificationError) {
       redirect("/notifications");

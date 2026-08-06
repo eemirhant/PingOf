@@ -56,6 +56,9 @@ export async function sendMatchRemindersForOrganization(
       title: "Maç hatırlatması",
       body: "Maçına yaklaşık 30 dakika kaldı.",
       linkUrl: `/matches/${match.id}`,
+      matchId: match.id,
+      entityId: match.id,
+      organizationId,
     });
     sent += count;
   }

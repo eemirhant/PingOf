@@ -42,7 +42,11 @@ export default async function SettingsPage() {
   const isOwner = session.user.role === "OWNER";
   const baseUrl = await getInviteBaseUrl();
   const inviteUrl = `${baseUrl}/join/${organization.inviteCode}`;
-  const avatarColor = avatarColorForUser(profile.id, profile.avatarUrl);
+  const avatarColor = avatarColorForUser(
+    profile.id,
+    profile.avatarUrl,
+    profile.avatarColor,
+  );
 
   return (
     <div className="mx-auto max-w-[720px] px-6 py-8">
@@ -135,6 +139,7 @@ export default async function SettingsPage() {
                     userId={member.id}
                     fullName={member.fullName}
                     avatarUrl={member.avatarUrl}
+                    avatarColor={member.avatarColor}
                     size="sm"
                   />
                   <div>

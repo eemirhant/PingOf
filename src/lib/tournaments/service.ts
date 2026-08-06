@@ -224,6 +224,8 @@ export async function createTournament(
     title: "Yeni turnuva",
     body: `"${input.name}" turnuvası oluşturuldu.`,
     linkUrl: `/tournaments/${tournament.id}`,
+    tournamentId: tournament.id,
+    entityId: tournament.id,
   });
 
   await createNotificationsForUsers({
@@ -232,6 +234,8 @@ export async function createTournament(
     title: "Turnuvaya eklendin",
     body: `"${input.name}" turnuvasına eklendin.`,
     linkUrl: `/tournaments/${tournament.id}`,
+    tournamentId: tournament.id,
+    entityId: tournament.id,
   });
 
   return tournament;
@@ -510,6 +514,8 @@ export async function startTournament(
     title: "Turnuva başladı",
     body: `"${tournament.name}" turnuvası başladı.`,
     linkUrl: `/tournaments/${tournamentId}`,
+    tournamentId: tournamentId,
+    entityId: tournamentId,
   });
 
   const readyPlayerIds = createdMatches
@@ -522,6 +528,8 @@ export async function startTournament(
     title: "Turnuva maçın hazır",
     body: `"${tournament.name}" turnuvasında sıradaki maçın hazır.`,
     linkUrl: `/tournaments/${tournamentId}`,
+    tournamentId: tournamentId,
+    entityId: tournamentId,
   });
 
   await createNotificationsForUsers({
@@ -530,6 +538,8 @@ export async function startTournament(
     title: "Turnuva maçı oluşturuldu",
     body: `"${tournament.name}" için yeni bir turnuva maçı oluştu.`,
     linkUrl: `/tournaments/${tournamentId}`,
+    tournamentId: tournamentId,
+    entityId: tournamentId,
   });
 
   await publishOrgEvent(organizationId, RealtimeEventType.TOURNAMENT_UPDATED, {
@@ -625,10 +635,10 @@ export async function getTournamentDetail(
   const tournament = await prisma.tournament.findFirst({
     where: withOrgScope(organizationId, { id: tournamentId }),
     include: {
-      createdBy: { select: { id: true, fullName: true, avatarUrl: true } },
+      createdBy: { select: { id: true, fullName: true, avatarUrl: true, avatarColor: true } },
       participants: {
         include: {
-          user: { select: { id: true, fullName: true, avatarUrl: true } },
+          user: { select: { id: true, fullName: true, avatarUrl: true, avatarColor: true } },
         },
         orderBy: [{ seed: "asc" }, { userId: "asc" }],
       },
@@ -636,7 +646,7 @@ export async function getTournamentDetail(
         include: {
           participants: {
             include: {
-              user: { select: { id: true, fullName: true, avatarUrl: true } },
+              user: { select: { id: true, fullName: true, avatarUrl: true, avatarColor: true } },
             },
           },
           sets: { orderBy: { setNumber: "asc" } },
@@ -819,6 +829,8 @@ async function completeTournament(
     title: "Turnuva tamamlandı",
     body: `"${tournamentName}" bitti. Şampiyon: ${champ}.`,
     linkUrl: `/tournaments/${tournamentId}`,
+    tournamentId: tournamentId,
+    entityId: tournamentId,
   });
 
   await publishOrgEvent(organizationId, RealtimeEventType.TOURNAMENT_UPDATED, {
@@ -1003,6 +1015,8 @@ export async function processTournamentMatchResult(
       title: "Turnuva maçın hazır",
       body: `"${tournament.name}" turnuvasında sıradaki maçın hazır.`,
       linkUrl: `/tournaments/${tournament.id}`,
+    tournamentId: tournament.id,
+    entityId: tournament.id,
     });
   }
 

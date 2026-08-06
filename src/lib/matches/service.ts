@@ -52,6 +52,7 @@ export type OrgPlayerOption = {
   id: string;
   fullName: string;
   avatarUrl: string | null;
+  avatarColor: string | null;
 };
 
 /** KK-8: creator or organization OWNER may edit/delete/cancel. */
@@ -81,6 +82,7 @@ export async function getOrganizationPlayers(
       id: true,
       fullName: true,
       avatarUrl: true,
+      avatarColor: true,
     },
   });
 }
@@ -222,6 +224,8 @@ export async function createInstantMatch(
       format: input.format,
     }),
     linkUrl: `/matches/${match.id}`,
+    matchId: match.id,
+    entityId: match.id,
   });
 
   if (input.stakeNote?.trim()) {
@@ -231,6 +235,8 @@ export async function createInstantMatch(
       title: "İddia eklendi",
       body: `Bu maça iddia eklendi: ${input.stakeNote.trim()}`,
       linkUrl: `/matches/${match.id}`,
+    matchId: match.id,
+    entityId: match.id,
     });
   }
 
@@ -292,6 +298,8 @@ export async function createPlannedMatch(
     title: "Yeni maç planlandı",
     body: "Organizasyonunda ileri tarihli bir maç planlandı.",
     linkUrl: `/matches/${match.id}`,
+    matchId: match.id,
+    entityId: match.id,
   });
 
   if (input.stakeNote?.trim()) {
@@ -304,6 +312,8 @@ export async function createPlannedMatch(
       title: "İddia eklendi",
       body: `Planlanan maça iddia eklendi: ${input.stakeNote.trim()}`,
       linkUrl: `/matches/${match.id}`,
+    matchId: match.id,
+    entityId: match.id,
     });
   }
 
@@ -418,6 +428,8 @@ export async function cancelMatch(
     title: "Maç iptal edildi",
     body: "Planlanan bir maç iptal edildi.",
     linkUrl: `/matches/${matchId}`,
+    matchId: matchId,
+    entityId: matchId,
   });
 
   await publishOrgEvent(organizationId, RealtimeEventType.MATCH_UPSERTED, {
@@ -539,6 +551,8 @@ export async function enterPlannedMatchResult(
       format: formatValue,
     }),
     linkUrl: `/matches/${matchId}`,
+    matchId: matchId,
+    entityId: matchId,
   });
 
   await notifyLeaderboardAfterMatch(organizationId, participantIds, previousRanks);
@@ -817,7 +831,7 @@ export async function listMatchesForOrganization(
         participants: {
           include: {
             user: {
-              select: { id: true, fullName: true, avatarUrl: true },
+              select: { id: true, fullName: true, avatarUrl: true, avatarColor: true },
             },
           },
         },
@@ -881,7 +895,7 @@ export async function getMatchForOrganization(organizationId: string, matchId: s
       participants: {
         include: {
           user: {
-            select: { id: true, fullName: true, avatarUrl: true },
+            select: { id: true, fullName: true, avatarUrl: true, avatarColor: true },
           },
         },
         orderBy: [{ team: "asc" }, { id: "asc" }],
@@ -932,7 +946,7 @@ export async function getRecentMatches(organizationId: string, limit = 5) {
       participants: {
         include: {
           user: {
-            select: { id: true, fullName: true, avatarUrl: true },
+            select: { id: true, fullName: true, avatarUrl: true, avatarColor: true },
           },
         },
       },
@@ -964,7 +978,7 @@ export async function listUpcomingForUser(
       participants: {
         include: {
           user: {
-            select: { id: true, fullName: true, avatarUrl: true },
+            select: { id: true, fullName: true, avatarUrl: true, avatarColor: true },
           },
         },
       },
@@ -1050,6 +1064,8 @@ export async function setMatchStakeSettled(
       title: "İddia ödendi",
       body: `${actor.fullName}, bu maçın iddiasını "Ödendi" olarak işaretledi.`,
       linkUrl: `/matches/${matchId}`,
+    matchId: matchId,
+    entityId: matchId,
     });
   }
 
@@ -1077,7 +1093,7 @@ export async function listUnpaidStakesForUser(
     include: {
       participants: {
         include: {
-          user: { select: { id: true, fullName: true, avatarUrl: true } },
+          user: { select: { id: true, fullName: true, avatarUrl: true, avatarColor: true } },
         },
       },
     },

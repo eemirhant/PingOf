@@ -2,6 +2,7 @@ import { ChallengeStatus, MatchFormat, MatchStatus } from "@prisma/client";
 
 import { CHALLENGE_EXPIRY_DAYS } from "@/domain/constants";
 import {
+  canCancelChallenge,
   canRespondToChallenge,
   resolveChallengeMatchScheduledAt,
   type ChallengeStatusValue,
@@ -116,6 +117,9 @@ export async function createChallenge(
     title: "Sana maç teklifi geldi",
     body: `${fromUser?.fullName ?? "Bir oyuncu"} sana meydan okudu.`,
     linkUrl: "/challenges",
+    organizationId,
+    challengeId: challenge.id,
+    entityId: challenge.id,
   });
 
   await publishOrgEvent(organizationId, RealtimeEventType.CHALLENGE_UPDATED, {
@@ -207,6 +211,10 @@ export async function acceptChallenge(
     title: "Yeni maç planlandı",
     body: `${challenge.fromUser.fullName} vs ${challenge.toUser.fullName} maçı kabul edildi.`,
     linkUrl: `/matches/${match.id}`,
+    organizationId,
+    matchId: match.id,
+    challengeId,
+    entityId: match.id,
   });
 
   await createNotificationsForUsers({
@@ -215,6 +223,10 @@ export async function acceptChallenge(
     title: "Teklifin kabul edildi",
     body: `${challenge.toUser.fullName} meydan okumanı kabul etti.`,
     linkUrl: `/matches/${match.id}`,
+    organizationId,
+    matchId: match.id,
+    challengeId,
+    entityId: match.id,
   });
 
   await publishOrgEvent(organizationId, RealtimeEventType.CHALLENGE_UPDATED, {
@@ -279,6 +291,9 @@ export async function declineChallenge(
     title: "Teklifin reddedildi",
     body: `${challenge.toUser.fullName} meydan okumanı reddetti.`,
     linkUrl: "/challenges",
+    organizationId,
+    challengeId,
+    entityId: challengeId,
   });
 
   await publishOrgEvent(organizationId, RealtimeEventType.CHALLENGE_UPDATED, {
@@ -289,12 +304,81 @@ export async function declineChallenge(
   return { id: challengeId };
 }
 
+export async function cancelChallenge(
+  organizationId: string,
+  actorUserId: string,
+  challengeId: string,
+) {
+  await syncExpiredChallenges(organizationId);
+
+  const challenge = await prisma.challenge.findFirst({
+    where: withOrgScope(organizationId, { id: challengeId }),
+    include: {
+      fromUser: { select: { id: true, fullName: true } },
+      toUser: { select: { id: true, fullName: true } },
+    },
+  });
+
+  if (!challenge) {
+    throw new ChallengeError("Teklif bulunamadı", "challenge", 404);
+  }
+
+  if (
+    !canCancelChallenge(
+      challenge.status as ChallengeStatusValue,
+      challenge.createdAt,
+      actorUserId,
+      challenge.fromUserId,
+    )
+  ) {
+    if (challenge.fromUserId !== actorUserId) {
+      throw new ChallengeError(
+        "Bu teklifi yalnızca gönderen iptal edebilir",
+        "permission",
+        403,
+      );
+    }
+    throw new ChallengeError("Bu teklif artık iptal edilemez", "status");
+  }
+
+  await prisma.challenge.update({
+    where: { id: challengeId },
+    data: { status: ChallengeStatus.CANCELLED },
+  });
+
+  pushDebug("Meydan okuma iptal edildi — bildirim akışı başlıyor", {
+    event: "CHALLENGE_CANCELLED",
+    challengeId,
+    actorUserId,
+    targetUserIds: [challenge.toUserId],
+    targetExternalIds: [challenge.toUserId],
+  });
+
+  await createNotificationsForUsers({
+    userIds: [challenge.toUserId],
+    type: NotificationType.CHALLENGE_CANCELLED,
+    title: "Meydan okuma iptal edildi",
+    body: `${challenge.fromUser.fullName} gönderdiği meydan okumayı iptal etti.`,
+    linkUrl: "/challenges",
+    organizationId,
+    challengeId,
+    entityId: challengeId,
+  });
+
+  await publishOrgEvent(organizationId, RealtimeEventType.CHALLENGE_UPDATED, {
+    entityId: challengeId,
+    actorUserId,
+  });
+
+  return { id: challengeId };
+}
+
 const challengeInclude = {
   fromUser: {
-    select: { id: true, fullName: true, avatarUrl: true },
+    select: { id: true, fullName: true, avatarUrl: true, avatarColor: true },
   },
   toUser: {
-    select: { id: true, fullName: true, avatarUrl: true },
+    select: { id: true, fullName: true, avatarUrl: true, avatarColor: true },
   },
 } as const;
 
@@ -354,6 +438,7 @@ export async function getOrgPlayerForChallenge(
       id: true,
       fullName: true,
       avatarUrl: true,
+      avatarColor: true,
     },
   });
 }
@@ -366,6 +451,7 @@ export async function listOrgPlayersForChallenge(organizationId: string) {
       id: true,
       fullName: true,
       avatarUrl: true,
+      avatarColor: true,
       createdAt: true,
     },
   });

@@ -46,11 +46,13 @@ export default async function ChallengePlayerPage({
             id: me.id,
             fullName: me.fullName,
             avatarUrl: me.avatarUrl,
+            avatarColor: me.avatarColor,
           }}
           opponent={{
             id: player.id,
             fullName: player.fullName,
             avatarUrl: player.avatarUrl,
+            avatarColor: player.avatarColor,
           }}
           mode="ready"
         />

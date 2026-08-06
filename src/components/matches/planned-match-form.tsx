@@ -21,6 +21,7 @@ type PlannedMatchFormProps = {
   currentUserId: string;
   currentUserName: string;
   currentUserAvatarUrl?: string | null;
+  currentUserAvatarColor?: string | null;
   players: OrgPlayerOption[];
 };
 
@@ -28,6 +29,7 @@ export function PlannedMatchForm({
   currentUserId,
   currentUserName,
   currentUserAvatarUrl,
+  currentUserAvatarColor,
   players,
 }: PlannedMatchFormProps) {
   const [state, formAction, isPending] = useActionState(
@@ -66,6 +68,7 @@ export function PlannedMatchForm({
         value: p.id,
         label: p.fullName,
         avatarUrl: p.avatarUrl,
+        avatarColor: p.avatarColor,
         hint: p.id === currentUserId ? "(Sen)" : undefined,
       }));
   }
@@ -212,6 +215,7 @@ export function PlannedMatchForm({
               userId={currentUserId}
               fullName={currentUserName}
               avatarUrl={currentUserAvatarUrl}
+              avatarColor={currentUserAvatarColor}
               size="xs"
             />
             Varsayılan olarak Takım 1’desin; istediğin slotu açık bırakabilirsin.

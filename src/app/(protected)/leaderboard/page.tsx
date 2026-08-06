@@ -22,6 +22,7 @@ type BoardEntry = {
   userId: string;
   fullName: string;
   avatarUrl: string | null;
+  avatarColor: string | null;
   played: number;
   wins: number;
   losses: number;
@@ -84,6 +85,7 @@ function LeaderboardMobileCard({
               userId={entry.userId}
               fullName={entry.fullName}
               avatarUrl={entry.avatarUrl}
+              avatarColor={entry.avatarColor}
               size="sm"
             />
             <div className="min-w-0">
@@ -231,6 +233,7 @@ export default async function LeaderboardPage({
                             userId={entry.userId}
                             fullName={entry.fullName}
                             avatarUrl={entry.avatarUrl}
+                            avatarColor={entry.avatarColor}
                             size="xs"
                           />
                           <span>
@@ -280,6 +283,7 @@ export default async function LeaderboardPage({
                         userId={entry.userId}
                         fullName={entry.fullName}
                         avatarUrl={entry.avatarUrl}
+                        avatarColor={entry.avatarColor}
                         size="xs"
                       />
                       <span className="min-w-0 break-words">

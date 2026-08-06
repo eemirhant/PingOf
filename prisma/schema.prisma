@@ -43,6 +43,7 @@ enum ChallengeStatus {
   ACCEPTED
   DECLINED
   EXPIRED
+  CANCELLED
 }
 
 // --- Models (PRD Bölüm 5) ---
@@ -75,6 +76,8 @@ model User {
   passwordHash   String
   fullName       String
   avatarUrl      String?
+  /// Initials avatar color (#rrggbb). Always per-user; never derived from list index.
+  avatarColor    String?
   role           UserRole
   createdAt      DateTime @default(now())
 

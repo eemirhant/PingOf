@@ -77,7 +77,15 @@ messaging.onBackgroundMessage((payload) => {
     icon: icon,
     badge: badge,
     tag: tag,
-    data: { url: url },
+    data: {
+      url: url,
+      notificationType: (payload.data && payload.data.notificationType) || '',
+      entityId: (payload.data && payload.data.entityId) || '',
+      organizationId: (payload.data && payload.data.organizationId) || '',
+      challengeId: (payload.data && payload.data.challengeId) || '',
+      matchId: (payload.data && payload.data.matchId) || '',
+      tournamentId: (payload.data && payload.data.tournamentId) || '',
+    },
     renotify: true,
   };
   if (image) {
@@ -89,9 +97,8 @@ messaging.onBackgroundMessage((payload) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const rawUrl =
-    (event.notification.data && event.notification.data.url) ||
-    '/notifications';
+  const data = event.notification.data || {};
+  const rawUrl = data.url || '/notifications';
   let targetUrl = '/notifications';
   try {
     const u = new URL(rawUrl, self.location.origin);
@@ -111,8 +118,22 @@ self.addEventListener('notificationclick', (event) => {
       for (const client of allClients) {
         if ('focus' in client) {
           await client.focus();
-          if ('navigate' in client) {
-            await client.navigate(targetUrl);
+          try {
+            client.postMessage({
+              type: 'PINGOF_NAVIGATE',
+              url: targetUrl,
+              notificationType: data.notificationType || '',
+              entityId: data.entityId || '',
+              challengeId: data.challengeId || '',
+              matchId: data.matchId || '',
+              tournamentId: data.tournamentId || '',
+            });
+          } catch (_) {
+            if ('navigate' in client) {
+              try {
+                await client.navigate(targetUrl);
+              } catch (_) {}
+            }
           }
           return;
         }

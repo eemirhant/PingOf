@@ -5,8 +5,10 @@ import { hashPassword } from "@/lib/auth/password";
 import { prisma } from "@/lib/db";
 import { NotificationType } from "@/domain/notification";
 import { createNotificationsForUsers } from "@/lib/notifications/create";
+import { assignAvatarColorForNewUser } from "@/lib/profile/update-profile";
 import { RealtimeEventType } from "@/domain/realtime";
 import { publishOrgEvent } from "@/lib/realtime/publish";
+import { hashAvatarColor } from "@/lib/utils/avatar";
 import type { JoinInput } from "@/lib/validations/auth";
 
 export class JoinError extends Error {
@@ -71,13 +73,24 @@ export async function joinOrganizationWithInvite(input: JoinInput) {
       passwordHash,
       fullName: input.fullName.trim(),
       role: UserRole.MEMBER,
+      // Temporary; replaced below with org-unique color when possible
+      avatarColor: hashAvatarColor(`${organization.id}:${email}`),
     },
   });
+
+  const avatarColor = await assignAvatarColorForNewUser(organization.id, user.id);
+  const userWithColor =
+    avatarColor === user.avatarColor
+      ? user
+      : await prisma.user.update({
+          where: { id: user.id },
+          data: { avatarColor },
+        });
 
   const others = await prisma.user.findMany({
     where: {
       organizationId: organization.id,
-      id: { not: user.id },
+      id: { not: userWithColor.id },
     },
     select: { id: true },
   });
@@ -86,15 +99,17 @@ export async function joinOrganizationWithInvite(input: JoinInput) {
     userIds: others.map((m) => m.id),
     type: NotificationType.MEMBER_JOINED,
     title: "Yeni oyuncu katıldı",
-    body: `${user.fullName} organizasyona katıldı.`,
-    linkUrl: `/players/${user.id}`,
+    body: `${userWithColor.fullName} organizasyona katıldı.`,
+    linkUrl: `/players/${userWithColor.id}`,
+    playerId: userWithColor.id,
+    entityId: userWithColor.id,
   });
 
   await publishOrgEvent(organization.id, RealtimeEventType.MEMBER_JOINED, {
-    entityId: user.id,
+    entityId: userWithColor.id,
   });
 
-  return user;
+  return userWithColor;
 }
 
 /**
@@ -153,6 +168,7 @@ export async function getOrganizationSettings(organizationId: string) {
           email: true,
           role: true,
           avatarUrl: true,
+          avatarColor: true,
           createdAt: true,
         },
       },

@@ -93,6 +93,8 @@ export async function notifyLeaderboardAfterMatch(
         title: "Galibiyet serisi",
         body: `${stats.currentStreak.count} maçlık galibiyet serisi oluşturdun.`,
         linkUrl: `/players/${userId}`,
+    playerId: userId,
+    entityId: userId,
       });
     }
   }

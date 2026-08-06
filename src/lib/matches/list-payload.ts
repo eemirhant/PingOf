@@ -23,6 +23,7 @@ export type MatchesListPayload = {
         id: string;
         fullName: string;
         avatarUrl: string | null;
+        avatarColor: string | null;
       };
     }>;
   }>;
@@ -57,6 +58,7 @@ type MatchListSource = {
         id: string;
         fullName: string;
         avatarUrl: string | null;
+        avatarColor: string | null;
       };
     }>;
   }>;
@@ -89,6 +91,7 @@ export function serializeMatchesList(result: MatchListSource): MatchesListPayloa
           id: p.user.id,
           fullName: p.user.fullName,
           avatarUrl: p.user.avatarUrl,
+          avatarColor: p.user.avatarColor,
         },
       })),
     })),

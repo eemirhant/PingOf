@@ -146,6 +146,7 @@ export default async function TournamentDetailPage({
                 userId={p.user.id}
                 fullName={p.user.fullName}
                 avatarUrl={p.user.avatarUrl}
+                avatarColor={p.user.avatarColor}
                 size="sm"
               />
               <div>

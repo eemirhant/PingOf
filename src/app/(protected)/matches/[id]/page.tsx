@@ -219,6 +219,7 @@ export default async function MatchDetailPage({
                       userId={p.user.id}
                       fullName={p.user.fullName}
                       avatarUrl={p.user.avatarUrl}
+                      avatarColor={p.user.avatarColor}
                       size="lg"
                       style={{
                         boxShadow: isWinner ? "0 0 0 2px rgba(234,179,8,0.7)" : undefined,
@@ -289,6 +290,7 @@ export default async function MatchDetailPage({
                       userId={p.user.id}
                       fullName={p.user.fullName}
                       avatarUrl={p.user.avatarUrl}
+                      avatarColor={p.user.avatarColor}
                       size="lg"
                       style={{
                         boxShadow: isWinner ? "0 0 0 2px rgba(234,179,8,0.7)" : undefined,

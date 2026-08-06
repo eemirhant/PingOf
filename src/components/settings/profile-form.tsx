@@ -1,13 +1,14 @@
 "use client";
 
-import { useActionState, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { updateProfileAction, type ProfileActionState } from "@/lib/actions/profile";
 import { avatarColors } from "@/lib/design-tokens";
 import { compressImageForUpload } from "@/lib/media/compress-image";
-import { isImageAvatar } from "@/lib/utils/avatar";
+import { avatarImageSrc, isImageAvatar } from "@/lib/utils/avatar";
 
 const initialState: ProfileActionState = {};
 
@@ -30,6 +31,7 @@ export function ProfileForm({
   avatarColor,
   avatarUrl,
 }: ProfileFormProps) {
+  const router = useRouter();
   const [state, formAction, isPending] = useActionState(updateProfileAction, initialState);
   const [selectedColor, setSelectedColor] = useState(avatarColor);
   const [namePreview, setNamePreview] = useState(fullName);
@@ -40,8 +42,50 @@ export function ProfileForm({
   const [localError, setLocalError] = useState<string | null>(null);
   const [compressing, startCompress] = useTransition();
   const fileRef = useRef<HTMLInputElement>(null);
+  /** Compressed file kept in memory — do not rely on input.files = DataTransfer (fragile on mobile). */
+  const pendingFileRef = useRef<File | null>(null);
+  const objectUrlRef = useRef<string | null>(null);
 
   const showPhoto = Boolean(previewUrl) && !removePhoto;
+
+  useEffect(() => {
+    setSelectedColor(avatarColor);
+    setNamePreview(fullName);
+    if (!pendingFileRef.current) {
+      setPreviewUrl(isImageAvatar(avatarUrl) ? avatarUrl! : null);
+      setRemovePhoto(false);
+    }
+  }, [avatarColor, avatarUrl, fullName]);
+
+  useEffect(() => {
+    if (!state.success) return;
+
+    pendingFileRef.current = null;
+    if (fileRef.current) fileRef.current.value = "";
+
+    if (typeof state.avatarColor === "string") {
+      setSelectedColor(state.avatarColor);
+    }
+    if (typeof state.fullName === "string") {
+      setNamePreview(state.fullName);
+    }
+    if (state.avatarUrl !== undefined) {
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current);
+        objectUrlRef.current = null;
+      }
+      setPreviewUrl(isImageAvatar(state.avatarUrl) ? state.avatarUrl : null);
+      setRemovePhoto(false);
+    }
+
+    router.refresh();
+  }, [state, router]);
+
+  useEffect(() => {
+    return () => {
+      if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
+    };
+  }, []);
 
   function onPickFile(fileList: FileList | null) {
     const file = fileList?.[0];
@@ -50,14 +94,16 @@ export function ProfileForm({
     startCompress(async () => {
       try {
         const compressed = await compressImageForUpload(file, { maxEdge: 512, quality: 0.82 });
-        const dt = new DataTransfer();
-        dt.items.add(compressed);
-        if (fileRef.current) fileRef.current.files = dt.files;
+        pendingFileRef.current = compressed;
+        if (fileRef.current) fileRef.current.value = "";
+        if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
         const objectUrl = URL.createObjectURL(compressed);
+        objectUrlRef.current = objectUrl;
         setPreviewUrl(objectUrl);
         setRemovePhoto(false);
       } catch {
         setLocalError("Görsel işlenemedi. JPG veya PNG dene.");
+        pendingFileRef.current = null;
         if (fileRef.current) fileRef.current.value = "";
       }
     });
@@ -65,12 +111,26 @@ export function ProfileForm({
 
   function clearPhoto() {
     setRemovePhoto(true);
+    pendingFileRef.current = null;
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current);
+      objectUrlRef.current = null;
+    }
     setPreviewUrl(null);
     if (fileRef.current) fileRef.current.value = "";
   }
 
+  function submitAction(formData: FormData) {
+    if (pendingFileRef.current) {
+      formData.set("photo", pendingFileRef.current);
+    } else {
+      formData.delete("photo");
+    }
+    formAction(formData);
+  }
+
   return (
-    <form action={formAction}>
+    <form action={submitAction}>
       <div className="card-title">Profil Bilgileri</div>
 
       <div className="mb-5 flex items-center gap-4">
@@ -85,7 +145,11 @@ export function ProfileForm({
             {showPhoto ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={previewUrl!}
+                src={
+                  previewUrl!.startsWith("blob:")
+                    ? previewUrl!
+                    : avatarImageSrc(previewUrl!)
+                }
                 alt={namePreview || fullName}
                 className="avatar avatar-xl object-cover"
               />
@@ -93,7 +157,8 @@ export function ProfileForm({
               <UserAvatar
                 userId={userId}
                 fullName={namePreview || fullName}
-                avatarUrl={selectedColor}
+                avatarUrl={null}
+                avatarColor={selectedColor}
                 size="xl"
               />
             )}

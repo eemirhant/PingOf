@@ -12,6 +12,7 @@ type NewMatchClientProps = {
   currentUserId: string;
   currentUserName: string;
   currentUserAvatarUrl?: string | null;
+  currentUserAvatarColor?: string | null;
   players: OrgPlayerOption[];
   initialType: MatchType;
 };
@@ -20,6 +21,7 @@ export function NewMatchClient({
   currentUserId,
   currentUserName,
   currentUserAvatarUrl,
+  currentUserAvatarColor,
   players,
   initialType,
 }: NewMatchClientProps) {
@@ -75,6 +77,7 @@ export function NewMatchClient({
           currentUserId={currentUserId}
           currentUserName={currentUserName}
           currentUserAvatarUrl={currentUserAvatarUrl}
+          currentUserAvatarColor={currentUserAvatarColor}
           players={players}
           initialOpponentId={opponentId}
         />
@@ -83,6 +86,7 @@ export function NewMatchClient({
           currentUserId={currentUserId}
           currentUserName={currentUserName}
           currentUserAvatarUrl={currentUserAvatarUrl}
+          currentUserAvatarColor={currentUserAvatarColor}
           players={players}
         />
       ) : (
@@ -90,6 +94,7 @@ export function NewMatchClient({
           currentUserId={currentUserId}
           currentUserName={currentUserName}
           currentUserAvatarUrl={currentUserAvatarUrl}
+          currentUserAvatarColor={currentUserAvatarColor}
           players={players}
         />
       )}

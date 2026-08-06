@@ -14,6 +14,9 @@ export type PushPayload = {
   notificationType?: string;
   entityId?: string | null;
   organizationId?: string | null;
+  challengeId?: string | null;
+  matchId?: string | null;
+  tournamentId?: string | null;
   timestamp?: string;
   priority?: "normal" | "high";
 };
@@ -48,6 +51,9 @@ export async function sendPushToUsers(
     notificationType: payload.notificationType,
     entityId: payload.entityId ?? null,
     organizationId: payload.organizationId ?? null,
+    challengeId: payload.challengeId ?? null,
+    matchId: payload.matchId ?? null,
+    tournamentId: payload.tournamentId ?? null,
     timestamp: payload.timestamp ?? new Date().toISOString(),
     priority: payload.priority ?? "high",
   };

@@ -16,6 +16,12 @@ export type NotificationEvent = {
   title: string;
   body: string;
   linkUrl?: string | null;
+  entityId?: string | null;
+  organizationId?: string | null;
+  challengeId?: string | null;
+  matchId?: string | null;
+  tournamentId?: string | null;
+  playerId?: string | null;
 };
 
 export async function dispatchNotificationEvent(
@@ -27,6 +33,12 @@ export async function dispatchNotificationEvent(
     title: event.title,
     body: event.body,
     linkUrl: event.linkUrl,
+    entityId: event.entityId,
+    organizationId: event.organizationId,
+    challengeId: event.challengeId,
+    matchId: event.matchId,
+    tournamentId: event.tournamentId,
+    playerId: event.playerId,
   };
   return createNotificationsForUsers(input);
 }

@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import { CHALLENGE_EXPIRY_DAYS } from "@/domain/constants";
 import {
+  canCancelChallenge,
   canRespondToChallenge,
   challengeExpiresAt,
+  challengeStatusLabel,
   isChallengeExpired,
   resolveChallengeMatchScheduledAt,
   resolveChallengeStatus,
@@ -29,11 +31,13 @@ describe("challenge expiry", () => {
     expect(resolveChallengeStatus("PENDING", created, now)).toBe("EXPIRED");
   });
 
-  it("does not change ACCEPTED/DECLINED", () => {
+  it("does not change ACCEPTED/DECLINED/CANCELLED", () => {
     const now = new Date("2026-08-01T12:00:00Z");
     expect(resolveChallengeStatus("ACCEPTED", created, now)).toBe("ACCEPTED");
     expect(resolveChallengeStatus("DECLINED", created, now)).toBe("DECLINED");
+    expect(resolveChallengeStatus("CANCELLED", created, now)).toBe("CANCELLED");
     expect(canRespondToChallenge("ACCEPTED", created, now)).toBe(false);
+    expect(canRespondToChallenge("CANCELLED", created, now)).toBe(false);
   });
 
   it("computes expiresAt", () => {
@@ -63,5 +67,40 @@ describe("resolveChallengeMatchScheduledAt", () => {
   it("never invents +1 hour or midnight defaults", () => {
     expect(resolveChallengeMatchScheduledAt(null, now)).toBeNull();
     expect(resolveChallengeMatchScheduledAt(null, now)?.getHours()).toBeUndefined();
+  });
+});
+
+describe("canCancelChallenge", () => {
+  const created = new Date("2026-07-01T12:00:00Z");
+  const sender = "user-sender";
+  const receiver = "user-receiver";
+
+  it("allows sender to cancel a pending challenge", () => {
+    const now = new Date("2026-07-02T12:00:00Z");
+    expect(canCancelChallenge("PENDING", created, sender, sender, now)).toBe(true);
+  });
+
+  it("blocks recipient and other users", () => {
+    const now = new Date("2026-07-02T12:00:00Z");
+    expect(canCancelChallenge("PENDING", created, receiver, sender, now)).toBe(false);
+    expect(canCancelChallenge("PENDING", created, "someone-else", sender, now)).toBe(
+      false,
+    );
+  });
+
+  it("blocks non-pending statuses", () => {
+    const now = new Date("2026-07-02T12:00:00Z");
+    for (const status of ["ACCEPTED", "DECLINED", "EXPIRED", "CANCELLED"] as const) {
+      expect(canCancelChallenge(status, created, sender, sender, now)).toBe(false);
+    }
+  });
+
+  it("blocks expired pending challenges", () => {
+    const now = new Date("2026-07-08T12:00:00Z");
+    expect(canCancelChallenge("PENDING", created, sender, sender, now)).toBe(false);
+  });
+
+  it("labels cancelled challenges in Turkish", () => {
+    expect(challengeStatusLabel("CANCELLED")).toBe("İptal edildi");
   });
 });

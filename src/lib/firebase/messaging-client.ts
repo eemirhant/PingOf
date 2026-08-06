@@ -533,17 +533,36 @@ export async function syncWebPushToken(): Promise<void> {
 }
 
 export async function listenForegroundMessages(
-  onNotify: (payload: { title: string; body: string; url?: string }) => void,
+  onNotify: (payload: {
+    title: string;
+    body: string;
+    url?: string;
+    notificationType?: string;
+    entityId?: string;
+    challengeId?: string;
+    matchId?: string;
+    tournamentId?: string;
+  }) => void,
 ): Promise<() => void> {
   const messaging = await getFirebaseMessagingClient();
   if (!messaging) return () => undefined;
 
   const { onMessage } = await import("firebase/messaging");
   return onMessage(messaging, (payload) => {
+    const data = payload.data ?? {};
     const title =
-      payload.notification?.title ?? payload.data?.title ?? "PingOf";
-    const body = payload.notification?.body ?? payload.data?.body ?? "";
-    const url = payload.data?.url;
-    onNotify({ title, body, url });
+      payload.notification?.title ?? data.title ?? "PingOf";
+    const body = payload.notification?.body ?? data.body ?? "";
+    const url = data.url;
+    onNotify({
+      title,
+      body,
+      url,
+      notificationType: data.notificationType,
+      entityId: data.entityId,
+      challengeId: data.challengeId,
+      matchId: data.matchId,
+      tournamentId: data.tournamentId,
+    });
   });
 }

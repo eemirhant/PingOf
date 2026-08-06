@@ -23,6 +23,7 @@ type AppHeaderUser = {
   id: string;
   fullName: string;
   avatarUrl?: string | null;
+  avatarColor?: string | null;
   role?: string | null;
 };
 
@@ -215,6 +216,7 @@ export function AppHeader({
                 userId={user.id}
                 fullName={user.fullName}
                 avatarUrl={user.avatarUrl}
+                avatarColor={user.avatarColor}
                 size="sm"
                 className="profile-chip-avatar"
               />

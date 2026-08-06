@@ -2,6 +2,21 @@ import { avatarColors } from "@/lib/design-tokens";
 
 const HEX_COLOR = /^#[0-9A-Fa-f]{6}$/;
 
+/** Shared Prisma select for avatar rendering (photo + owned color). */
+export const userAvatarSelect = {
+  id: true,
+  fullName: true,
+  avatarUrl: true,
+  avatarColor: true,
+} as const;
+
+export type UserAvatarFields = {
+  id: string;
+  fullName: string;
+  avatarUrl?: string | null;
+  avatarColor?: string | null;
+};
+
 export function getInitials(fullName: string | null | undefined): string {
   if (!fullName?.trim()) return "?";
   return fullName
@@ -34,19 +49,57 @@ export function avatarUrlForSession(avatarUrl?: string | null): string | null {
   return avatarUrl;
 }
 
-export function avatarColorForUser(userId: string, avatarUrl?: string | null): string {
-  if (avatarUrl && HEX_COLOR.test(avatarUrl)) {
-    return avatarUrl;
-  }
-
-  let hash = 0;
+/**
+ * Deterministic palette index from userId only.
+ * Never uses list index, render order, or another user's data.
+ */
+export function hashAvatarColor(userId: string): string {
+  let hash = 5381;
   for (let i = 0; i < userId.length; i++) {
-    hash = (hash + userId.charCodeAt(i) * (i + 1)) % avatarColors.length;
+    hash = ((hash << 5) + hash) ^ userId.charCodeAt(i);
+  }
+  const index = Math.abs(hash) % avatarColors.length;
+  return avatarColors[index] ?? avatarColors[0];
+}
+
+/**
+ * Resolve the color that belongs to this user.
+ * Priority: explicit DB color → legacy hex in avatarUrl → hash(userId).
+ */
+export function avatarColorForUser(
+  userId: string,
+  avatarUrl?: string | null,
+  avatarColor?: string | null,
+): string {
+  if (avatarColor && HEX_COLOR.test(avatarColor)) {
+    return avatarColor.toLowerCase();
   }
 
-  return avatarColors[hash] ?? avatarColors[0];
+  // Legacy dual-purpose avatarUrl (pre-avatarColor column)
+  if (avatarUrl && HEX_COLOR.test(avatarUrl)) {
+    return avatarUrl.toLowerCase();
+  }
+
+  return hashAvatarColor(userId);
 }
 
 export function isAvatarColor(value: string): boolean {
-  return HEX_COLOR.test(value) && (avatarColors as readonly string[]).includes(value.toLowerCase());
+  return (
+    HEX_COLOR.test(value) &&
+    (avatarColors as readonly string[]).includes(value.toLowerCase())
+  );
+}
+
+/**
+ * Cache-bust image URLs so a replaced photo is visible without a hard reload.
+ * Filenames already include a timestamp; query still helps CDN/browser edge cases.
+ */
+export function avatarImageSrc(avatarUrl: string): string {
+  if (!avatarUrl || avatarUrl.startsWith("data:") || avatarUrl.startsWith("blob:")) {
+    return avatarUrl;
+  }
+  if (avatarUrl.includes("?")) return avatarUrl;
+  const stamped = avatarUrl.match(/-(\d{10,})\.[a-z0-9]+$/i);
+  if (stamped?.[1]) return `${avatarUrl}?v=${stamped[1]}`;
+  return `${avatarUrl}?v=${encodeURIComponent(avatarUrl.slice(-32))}`;
 }

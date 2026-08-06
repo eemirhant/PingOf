@@ -21,12 +21,28 @@ export type ProfileActionState = {
   error?: string;
   success?: string;
   fieldErrors?: Partial<Record<string, string[]>>;
+  avatarUrl?: string | null;
+  avatarColor?: string | null;
+  fullName?: string;
 };
 
 function zodFieldErrors(error: {
   flatten: () => { fieldErrors: ProfileActionState["fieldErrors"] };
 }) {
   return error.flatten().fieldErrors;
+}
+
+function revalidateProfileSurfaces(userId: string) {
+  revalidatePath("/", "layout");
+  revalidatePath("/settings");
+  revalidatePath("/");
+  revalidatePath(`/players/${userId}`);
+  revalidatePath("/players");
+  revalidatePath("/challenges");
+  revalidatePath("/matches");
+  revalidatePath("/matches/new");
+  revalidatePath("/leaderboard");
+  revalidatePath("/tournaments");
 }
 
 export async function updateProfileAction(
@@ -61,6 +77,7 @@ export async function updateProfileAction(
       if (error instanceof ImageUploadError) {
         return { fieldErrors: { photo: [error.message] } };
       }
+      console.error("[profile] photo upload failed", error);
       return { error: "Fotoğraf yüklenirken bir hata oluştu." };
     }
   }
@@ -77,16 +94,16 @@ export async function updateProfileAction(
         fullName: updated.fullName,
         name: updated.fullName,
       },
-    });    revalidatePath("/settings");
-    revalidatePath("/");
-    revalidatePath(`/players/${session.user.id}`);
-    revalidatePath("/players");
-    revalidatePath("/challenges");
-    revalidatePath("/matches");
-    revalidatePath("/matches/new");
-    revalidatePath("/leaderboard");
+    });
 
-    return { success: "Profil güncellendi." };
+    revalidateProfileSurfaces(session.user.id);
+
+    return {
+      success: "Profil güncellendi.",
+      avatarUrl: updated.avatarUrl,
+      avatarColor: updated.avatarColor,
+      fullName: updated.fullName,
+    };
   } catch (error) {
     if (error instanceof ProfileError) {
       if (error.field) {
@@ -94,6 +111,7 @@ export async function updateProfileAction(
       }
       return { error: error.message };
     }
+    console.error("[profile] update failed", error);
     return { error: "Profil güncellenirken bir hata oluştu." };
   }
 }
@@ -119,6 +137,7 @@ export async function updateOrganizationLogoAction(
       if (error instanceof ImageUploadError) {
         return { fieldErrors: { logo: [error.message] } };
       }
+      console.error("[profile] logo upload failed", error);
       return { error: "Logo yüklenirken bir hata oluştu." };
     }
   }
@@ -135,6 +154,7 @@ export async function updateOrganizationLogoAction(
       removeLogo ? null : logoDataUrl,
     );
 
+    revalidatePath("/", "layout");
     revalidatePath("/settings");
     revalidatePath("/");
 

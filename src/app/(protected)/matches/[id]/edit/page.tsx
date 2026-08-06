@@ -61,6 +61,7 @@ export default async function EditMatchPage({
         currentUserId={session.user.id}
         currentUserName={session.user.fullName}
         currentUserAvatarUrl={me?.avatarUrl}
+        currentUserAvatarColor={me?.avatarColor}
         players={players}
         initialValues={{
           format: match.format === "SINGLES" ? "SINGLES" : "DOUBLES",

@@ -5,7 +5,12 @@
 
 import { CHALLENGE_EXPIRY_DAYS } from "@/domain/constants";
 
-export type ChallengeStatusValue = "PENDING" | "ACCEPTED" | "DECLINED" | "EXPIRED";
+export type ChallengeStatusValue =
+  | "PENDING"
+  | "ACCEPTED"
+  | "DECLINED"
+  | "EXPIRED"
+  | "CANCELLED";
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -22,6 +27,22 @@ export function canRespondToChallenge(
   createdAt: Date,
   now: Date = new Date(),
 ): boolean {
+  if (status !== "PENDING") return false;
+  return !isChallengeExpired(createdAt, now);
+}
+
+/**
+ * Only the sender may cancel, and only while the offer is still pending
+ * (not expired / accepted / declined / already cancelled).
+ */
+export function canCancelChallenge(
+  status: ChallengeStatusValue,
+  createdAt: Date,
+  actorUserId: string,
+  fromUserId: string,
+  now: Date = new Date(),
+): boolean {
+  if (actorUserId !== fromUserId) return false;
   if (status !== "PENDING") return false;
   return !isChallengeExpired(createdAt, now);
 }
@@ -48,6 +69,8 @@ export function challengeStatusLabel(status: ChallengeStatusValue): string {
       return "Reddedildi";
     case "EXPIRED":
       return "Süresi doldu";
+    case "CANCELLED":
+      return "İptal edildi";
     default:
       return status;
   }

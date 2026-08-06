@@ -17,6 +17,7 @@ type MatchListCardParticipant = {
     id: string;
     fullName: string;
     avatarUrl: string | null;
+    avatarColor: string | null;
   };
 };
 
@@ -180,6 +181,7 @@ export function MatchListCard({
               userId={p.user.id}
               fullName={p.user.fullName}
               avatarUrl={p.user.avatarUrl}
+              avatarColor={p.user.avatarColor}
               size="xs"
               className="match-list-card__avatar border border-bg-900"
             />

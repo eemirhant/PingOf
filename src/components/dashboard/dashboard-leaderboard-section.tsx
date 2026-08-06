@@ -13,6 +13,7 @@ export type DashboardTop5Entry = {
   userId: string;
   fullName: string;
   avatarUrl: string | null;
+  avatarColor: string | null;
   rank: number | null;
   wins: number;
   winRate: number;
@@ -108,6 +109,7 @@ export function DashboardLeaderboardSection({
                     userId={entry.userId}
                     fullName={entry.fullName}
                     avatarUrl={entry.avatarUrl}
+                    avatarColor={entry.avatarColor}
                     size="xs"
                   />
                   {entry.fullName}

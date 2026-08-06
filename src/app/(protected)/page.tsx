@@ -363,6 +363,7 @@ export default async function HomePage() {
                           userId={p.user.id}
                           fullName={p.user.fullName}
                           avatarUrl={p.user.avatarUrl}
+                          avatarColor={p.user.avatarColor}
                           size="xs"
                           className="border border-bg-900"
                           style={{

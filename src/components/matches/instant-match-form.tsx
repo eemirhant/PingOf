@@ -40,6 +40,7 @@ type InstantMatchFormProps = {
   currentUserId: string;
   currentUserName: string;
   currentUserAvatarUrl?: string | null;
+  currentUserAvatarColor?: string | null;
   players: OrgPlayerOption[];
   mode?: "create" | "edit";
   matchId?: string;
@@ -50,6 +51,7 @@ export function InstantMatchForm({
   currentUserId,
   currentUserName,
   currentUserAvatarUrl,
+  currentUserAvatarColor,
   players,
   mode = "create",
   matchId,
@@ -107,6 +109,7 @@ export function InstantMatchForm({
         value: p.id,
         label: p.fullName,
         avatarUrl: p.avatarUrl,
+        avatarColor: p.avatarColor,
         hint: p.id === currentUserId ? "(Sen)" : undefined,
       }));
   }
@@ -211,6 +214,7 @@ export function InstantMatchForm({
                     userId={currentUserId}
                     fullName={currentUserName}
                     avatarUrl={currentUserAvatarUrl}
+                    avatarColor={currentUserAvatarColor}
                     size="sm"
                   />
                   <span className="flex-1 text-sm font-semibold">

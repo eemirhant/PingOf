@@ -46,6 +46,7 @@ export default async function NewMatchPage({
           currentUserId={me.id}
           currentUserName={me.fullName}
           currentUserAvatarUrl={me.avatarUrl}
+          currentUserAvatarColor={me.avatarColor}
           players={players}
           initialType={initialType}
         />

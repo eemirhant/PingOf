@@ -106,6 +106,7 @@ async function loadOrgPlayers(organizationId: string) {
       id: true,
       fullName: true,
       avatarUrl: true,
+      avatarColor: true,
       createdAt: true,
     },
   });
@@ -155,6 +156,7 @@ export type PlayerProfilePayload = {
     id: string;
     fullName: string;
     avatarUrl: string | null;
+    avatarColor: string | null;
     createdAt: Date;
   };
   stats: PlayerStats;
@@ -179,6 +181,7 @@ export async function getPlayerProfileStats(
       id: true,
       fullName: true,
       avatarUrl: true,
+      avatarColor: true,
       createdAt: true,
     },
   });
@@ -234,16 +237,23 @@ export async function getLeaderboard(
     tab,
   );
 
-  const avatarById = new Map(players.map((p) => [p.id, p.avatarUrl]));
+  const avatarById = new Map(
+    players.map((p) => [
+      p.id,
+      { avatarUrl: p.avatarUrl, avatarColor: p.avatarColor },
+    ]),
+  );
 
   return {
     ranked: board.ranked.map((e) => ({
       ...e,
-      avatarUrl: avatarById.get(e.userId) ?? null,
+      avatarUrl: avatarById.get(e.userId)?.avatarUrl ?? null,
+      avatarColor: avatarById.get(e.userId)?.avatarColor ?? null,
     })),
     unranked: board.unranked.map((e) => ({
       ...e,
-      avatarUrl: avatarById.get(e.userId) ?? null,
+      avatarUrl: avatarById.get(e.userId)?.avatarUrl ?? null,
+      avatarColor: avatarById.get(e.userId)?.avatarColor ?? null,
     })),
   };
 }
@@ -275,7 +285,12 @@ export async function getDashboardStatsSnippet(
   }
 
   const board = calculateLeaderboard(playerInputs, matches, "ALL");
-  const avatarById = new Map(players.map((p) => [p.id, p.avatarUrl]));
+  const avatarById = new Map(
+    players.map((p) => [
+      p.id,
+      { avatarUrl: p.avatarUrl, avatarColor: p.avatarColor },
+    ]),
+  );
 
   return {
     overall: stats.overall,
@@ -284,7 +299,8 @@ export async function getDashboardStatsSnippet(
     rank,
     top5: board.ranked.slice(0, 5).map((e) => ({
       ...e,
-      avatarUrl: avatarById.get(e.userId) ?? null,
+      avatarUrl: avatarById.get(e.userId)?.avatarUrl ?? null,
+      avatarColor: avatarById.get(e.userId)?.avatarColor ?? null,
     })),
   };
 }
@@ -301,11 +317,17 @@ export async function getDashboardTop5(organizationId: string) {
     matches,
     "ALL",
   );
-  const avatarById = new Map(players.map((p) => [p.id, p.avatarUrl]));
+  const avatarById = new Map(
+    players.map((p) => [
+      p.id,
+      { avatarUrl: p.avatarUrl, avatarColor: p.avatarColor },
+    ]),
+  );
 
   return board.ranked.slice(0, 5).map((e) => ({
     ...e,
-    avatarUrl: avatarById.get(e.userId) ?? null,
+    avatarUrl: avatarById.get(e.userId)?.avatarUrl ?? null,
+    avatarColor: avatarById.get(e.userId)?.avatarColor ?? null,
   }));
 }
 

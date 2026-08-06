@@ -6,6 +6,7 @@ type Side = {
   id: string;
   fullName: string;
   avatarUrl?: string | null;
+  avatarColor?: string | null;
 };
 
 type ChallengeDuelAnimationProps = {
@@ -31,6 +32,7 @@ function DuelFace({
           userId={side.id}
           fullName={side.fullName}
           avatarUrl={side.avatarUrl}
+          avatarColor={side.avatarColor}
           size="lg"
           className="challenge-duel-avatar-img"
         />

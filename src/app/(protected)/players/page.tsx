@@ -51,6 +51,7 @@ export default async function PlayersPage() {
                       userId={player.id}
                       fullName={player.fullName}
                       avatarUrl={player.avatarUrl}
+                      avatarColor={player.avatarColor}
                       size="sm"
                     />
                     <span className="truncate">

@@ -4,6 +4,10 @@ import { hasMatchClockTime } from "@/domain/match-status";
 import { allowsInApp, allowsPush } from "@/domain/notification-preferences";
 import { RealtimeEventType } from "@/domain/realtime";
 import {
+  buildNotificationDeepLink,
+  extractRefsFromLinkUrl,
+} from "@/lib/notifications/deep-link";
+import {
   appendDiagStep,
   getAlsContext,
   isNotificationDiagVerbose,
@@ -25,6 +29,10 @@ export type CreateNotificationInput = {
   linkUrl?: string | null;
   entityId?: string | null;
   organizationId?: string | null;
+  challengeId?: string | null;
+  matchId?: string | null;
+  tournamentId?: string | null;
+  playerId?: string | null;
   image?: string | null;
 };
 
@@ -63,12 +71,30 @@ export async function createNotificationsForUsers(
   input: CreateNotificationInput,
 ): Promise<number> {
   const uniqueIds = [...new Set(input.userIds.filter(Boolean))];
+  const deepLinkPath = buildNotificationDeepLink(input);
+  const deepLinkRefs = extractRefsFromLinkUrl(deepLinkPath);
+  const resolvedEntityId =
+    input.entityId ??
+    deepLinkRefs.challengeId ??
+    deepLinkRefs.matchId ??
+    deepLinkRefs.tournamentId ??
+    deepLinkRefs.playerId ??
+    null;
+  const resolvedChallengeId =
+    input.challengeId ?? deepLinkRefs.challengeId ?? null;
+  const resolvedMatchId = input.matchId ?? deepLinkRefs.matchId ?? null;
+  const resolvedTournamentId =
+    input.tournamentId ?? deepLinkRefs.tournamentId ?? null;
 
   pushDebug("Event tetiklendi", {
     type: input.type,
     title: input.title,
     body: input.body,
-    linkUrl: input.linkUrl ?? null,
+    linkUrl: deepLinkPath,
+    entityId: resolvedEntityId,
+    challengeId: resolvedChallengeId,
+    matchId: resolvedMatchId,
+    tournamentId: resolvedTournamentId,
     requestedUserIds: input.userIds,
     uniqueTargetUserIds: uniqueIds,
     targetExternalIds: uniqueIds,
@@ -109,7 +135,8 @@ export async function createNotificationsForUsers(
         detail: {
           title: input.title,
           body: input.body,
-          linkUrl: input.linkUrl,
+          linkUrl: deepLinkPath,
+          entityId: resolvedEntityId,
         },
       });
     }
@@ -193,7 +220,7 @@ export async function createNotificationsForUsers(
           type: input.type,
           title: input.title,
           body: input.body,
-          linkUrl: input.linkUrl ?? null,
+          linkUrl: deepLinkPath,
           isRead: false,
         })),
       });
@@ -206,7 +233,8 @@ export async function createNotificationsForUsers(
         targetExternalIds: inAppRecipients,
         title: input.title,
         body: input.body,
-        linkUrl: input.linkUrl ?? null,
+        linkUrl: deepLinkPath,
+        entityId: resolvedEntityId,
       });
 
       if (traceId) {
@@ -232,7 +260,7 @@ export async function createNotificationsForUsers(
           firstUser.organizationId,
           RealtimeEventType.NOTIFICATION,
           {
-            entityId: input.entityId ?? inAppRecipients[0],
+            entityId: resolvedEntityId ?? inAppRecipients[0],
           },
         );
       }
@@ -263,7 +291,7 @@ export async function createNotificationsForUsers(
     }
 
     if (pushRecipients.length > 0) {
-      const absoluteUrl = toAbsoluteAppUrl(input.linkUrl);
+      const absoluteUrl = toAbsoluteAppUrl(deepLinkPath);
       const absoluteIcon = toAbsoluteAppUrl("/icons/icon-192.png");
       const absoluteImage = input.image
         ? toAbsoluteAppUrl(input.image)
@@ -283,6 +311,7 @@ export async function createNotificationsForUsers(
         body: input.body,
         url: absoluteUrl,
         tag: `pingof-${input.type}`,
+        entityId: resolvedEntityId,
       });
 
       try {
@@ -295,8 +324,11 @@ export async function createNotificationsForUsers(
           icon: absoluteIcon,
           badge: absoluteIcon,
           image: absoluteImage,
-          entityId: input.entityId ?? null,
+          entityId: resolvedEntityId,
           organizationId: resolvedOrganizationId,
+          challengeId: resolvedChallengeId,
+          matchId: resolvedMatchId,
+          tournamentId: resolvedTournamentId,
           priority: "high",
         });
 

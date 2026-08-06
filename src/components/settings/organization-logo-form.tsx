@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -8,7 +9,7 @@ import {
   type ProfileActionState,
 } from "@/lib/actions/profile";
 import { compressImageForUpload } from "@/lib/media/compress-image";
-import { isImageAvatar } from "@/lib/utils/avatar";
+import { avatarImageSrc, isImageAvatar } from "@/lib/utils/avatar";
 
 const initialState: ProfileActionState = {};
 
@@ -21,6 +22,7 @@ export function OrganizationLogoForm({
   organizationName,
   logoUrl,
 }: OrganizationLogoFormProps) {
+  const router = useRouter();
   const [state, formAction, isPending] = useActionState(
     updateOrganizationLogoAction,
     initialState,
@@ -32,6 +34,28 @@ export function OrganizationLogoForm({
   const [localError, setLocalError] = useState<string | null>(null);
   const [compressing, startCompress] = useTransition();
   const fileRef = useRef<HTMLInputElement>(null);
+  const pendingFileRef = useRef<File | null>(null);
+  const objectUrlRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!pendingFileRef.current) {
+      setPreviewUrl(isImageAvatar(logoUrl) ? logoUrl! : null);
+      setRemoveLogo(false);
+    }
+  }, [logoUrl]);
+
+  useEffect(() => {
+    if (!state.success) return;
+    pendingFileRef.current = null;
+    if (fileRef.current) fileRef.current.value = "";
+    router.refresh();
+  }, [state.success, router]);
+
+  useEffect(() => {
+    return () => {
+      if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
+    };
+  }, []);
 
   function onPickFile(fileList: FileList | null) {
     const file = fileList?.[0];
@@ -39,21 +63,36 @@ export function OrganizationLogoForm({
     setLocalError(null);
     startCompress(async () => {
       try {
-        const compressed = await compressImageForUpload(file, { maxEdge: 512, quality: 0.85 });
-        const dt = new DataTransfer();
-        dt.items.add(compressed);
-        if (fileRef.current) fileRef.current.files = dt.files;
-        setPreviewUrl(URL.createObjectURL(compressed));
+        const compressed = await compressImageForUpload(file, {
+          maxEdge: 512,
+          quality: 0.85,
+        });
+        pendingFileRef.current = compressed;
+        if (fileRef.current) fileRef.current.value = "";
+        if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
+        const objectUrl = URL.createObjectURL(compressed);
+        objectUrlRef.current = objectUrl;
+        setPreviewUrl(objectUrl);
         setRemoveLogo(false);
       } catch {
         setLocalError("Logo işlenemedi. JPG veya PNG dene.");
+        pendingFileRef.current = null;
         if (fileRef.current) fileRef.current.value = "";
       }
     });
   }
 
+  function submitAction(formData: FormData) {
+    if (pendingFileRef.current) {
+      formData.set("logo", pendingFileRef.current);
+    } else {
+      formData.delete("logo");
+    }
+    formAction(formData);
+  }
+
   return (
-    <form action={formAction}>
+    <form action={submitAction}>
       <div className="card-title">Organizasyon logosu</div>
       <p className="text-text-secondary mb-4 text-sm">
         Bu logo üst bardaki markanın yanında görünür. Yalnızca kurucu yükleyebilir.
@@ -63,7 +102,11 @@ export function OrganizationLogoForm({
         {previewUrl && !removeLogo ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={previewUrl}
+            src={
+              previewUrl.startsWith("blob:")
+                ? previewUrl
+                : avatarImageSrc(previewUrl)
+            }
             alt={`${organizationName} logosu`}
             className="h-14 w-14 rounded-[12px] object-cover"
             style={{ boxShadow: "0 4px 14px rgba(99,102,241,0.35)" }}
@@ -108,6 +151,11 @@ export function OrganizationLogoForm({
               className="btn btn-secondary btn-sm"
               onClick={() => {
                 setRemoveLogo(true);
+                pendingFileRef.current = null;
+                if (objectUrlRef.current) {
+                  URL.revokeObjectURL(objectUrlRef.current);
+                  objectUrlRef.current = null;
+                }
                 setPreviewUrl(null);
                 if (fileRef.current) fileRef.current.value = "";
               }}

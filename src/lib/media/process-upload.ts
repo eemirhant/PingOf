@@ -1,8 +1,11 @@
 /**
  * Image upload helpers for avatars / org logos.
- * Files are saved under public/uploads (short URLs — safe for JWT cookies).
+ *
+ * Production (Vercel): persists to Vercel Blob when BLOB_READ_WRITE_TOKEN is set.
+ * Local/dev: writes under public/uploads (gitignored).
  */
 
+import { put } from "@vercel/blob";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 
@@ -47,9 +50,13 @@ function looksLikeImage(buffer: Buffer, mime: string): boolean {
 
 export type UploadFolder = "avatars" | "logos";
 
+function hasBlobToken(): boolean {
+  return Boolean(process.env.BLOB_READ_WRITE_TOKEN?.trim());
+}
+
 /**
- * Validate and save an uploaded image. Returns a short public path like
- * `/uploads/avatars/userId-timestamp.jpg` (never a data URL — those blow JWT cookies).
+ * Validate and save an uploaded image.
+ * Returns a public URL (Blob) or path (`/uploads/...`) — never a data URL.
  */
 export async function saveUploadedImage(
   file: File,
@@ -77,11 +84,43 @@ export async function saveUploadedImage(
   const ext = EXT_BY_MIME[mime] ?? "jpg";
   const safeKey = key.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 64) || "file";
   const filename = `${safeKey}-${Date.now()}.${ext}`;
-  const dir = path.join(process.cwd(), "public", "uploads", folder);
-  await mkdir(dir, { recursive: true });
-  await writeFile(path.join(dir, filename), buffer);
+  const objectPath = `uploads/${folder}/${filename}`;
 
-  return `/uploads/${folder}/${filename}`;
+  if (hasBlobToken()) {
+    try {
+      const blob = await put(objectPath, buffer, {
+        access: "public",
+        contentType: mime,
+        addRandomSuffix: false,
+      });
+      return blob.url;
+    } catch (error) {
+      console.error("[upload] Vercel Blob put failed", error);
+      throw new ImageUploadError(
+        "Fotoğraf depolanamadı. Lütfen tekrar dene.",
+      );
+    }
+  }
+
+  // Serverless (Vercel) without Blob token cannot persist local files.
+  if (process.env.VERCEL) {
+    throw new ImageUploadError(
+      "Fotoğraf depolama yapılandırılmamış. Yöneticinin BLOB_READ_WRITE_TOKEN eklemesi gerekir.",
+    );
+  }
+
+  // Local / environments without Blob token
+  try {
+    const dir = path.join(process.cwd(), "public", "uploads", folder);
+    await mkdir(dir, { recursive: true });
+    await writeFile(path.join(dir, filename), buffer);
+    return `/uploads/${folder}/${filename}`;
+  } catch (error) {
+    console.error("[upload] local write failed", error);
+    throw new ImageUploadError(
+      "Fotoğraf kaydedilemedi. Sunucu depolama alanı kullanılamıyor.",
+    );
+  }
 }
 
 /** @deprecated Prefer saveUploadedImage — data URLs break JWT session cookies. */

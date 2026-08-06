@@ -54,7 +54,7 @@ Adım adım: [STAGING.md](STAGING.md)
 
 ## Bilinen sınırlamalar
 
-- `public/uploads` Vercel’de ephemeral (avatar/logo kalıcılığı için ileride object storage)
+- Avatar/logo: production’da `BLOB_READ_WRITE_TOKEN` ile Vercel Blob kullanın; token yoksa yerel `public/uploads` (yalnızca lokal geliştirme)
 - Elo, grafik bracket, 2v2 meydan okuma — PRD §11 kapsam dışı
 - Web Push (FCM) için Firebase env zorunlu; yoksa Ayarlar’da yapılandırma uyarısı gösterilir
 - Geliştirmede SW varsayılan kapalı (`?sw=1` veya production `npm run start`)
