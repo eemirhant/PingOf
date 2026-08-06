@@ -102,15 +102,46 @@ export async function saveUploadedImage(
   const filename = `${randomUUID()}-${Date.now()}.${ext}`;
   const objectPath = `${folder}/${filename}`;
 
+  console.log("[Blob Debug]", {
+    hasToken: !!process.env.BLOB_READ_WRITE_TOKEN,
+    tokenPrefix: process.env.BLOB_READ_WRITE_TOKEN?.slice(0, 18),
+    filename,
+    mimeType: mime,
+    size: file.size,
+    extension: ext,
+  });
+
   try {
     const blob = await put(objectPath, buffer, {
       access: "public",
       contentType: mime,
       addRandomSuffix: false,
     });
+    console.log("[Blob Upload Success]", blob.url);
     return blob.url;
   } catch (error) {
-    console.error("[BLOB] put failed", error);
+    const err = error as {
+      name?: string;
+      message?: string;
+      stack?: string;
+      status?: number;
+      code?: string | number;
+      response?: unknown;
+      body?: unknown;
+      cause?: unknown;
+    };
+
+    console.error("[BLOB] put failed — diagnostic", {
+      name: err?.name,
+      message: err?.message,
+      stack: err?.stack,
+      status: err?.status,
+      code: err?.code,
+      responseBody: err?.response ?? err?.body ?? undefined,
+      cause: err?.cause,
+    });
+    console.error("[BLOB] put failed — original error object", error);
+
     throw new ImageUploadError("Fotoğraf depolanamadı. Lütfen tekrar dene.");
   }
 }
