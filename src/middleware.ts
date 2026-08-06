@@ -103,6 +103,14 @@ function isPublicAuthPath(pathname: string): boolean {
   );
 }
 
+/** FCM public endpoints — never redirect to login (no secrets). */
+function isPublicFcmPath(pathname: string): boolean {
+  return (
+    pathname === "/api/push/config" ||
+    pathname === "/firebase-messaging-sw.js"
+  );
+}
+
 function cookieHeaderLooksOversized(req: NextRequest): boolean {
   const cookieHeader = req.headers.get("cookie") ?? "";
   if (cookieHeader.length > 6_000) return true;
@@ -131,14 +139,21 @@ function isHttpsRequest(req: NextRequest): boolean {
 }
 
 export default async function middleware(req: NextRequest) {
+  const pathname = req.nextUrl.pathname;
+
   // Force-clear endpoint (also linked from login when session is corrupt)
-  if (req.nextUrl.pathname === "/clear-session") {
+  if (pathname === "/clear-session") {
     const login = req.nextUrl.clone();
     login.pathname = "/login";
     login.search = "?cleared=1";
     const response = NextResponse.redirect(login);
     clearAuthCookies(response, req);
     return response;
+  }
+
+  // FCM public endpoints must never hit login redirect (SW / client config fetch).
+  if (isPublicFcmPath(pathname)) {
+    return NextResponse.next();
   }
 
   // Oversized / chunked JWTs from base64 avatars → clear before Auth.js parses them
@@ -156,7 +171,7 @@ export default async function middleware(req: NextRequest) {
         secureCookie: isHttpsRequest(req),
       });
       if (!token) {
-        if (isPublicAuthPath(req.nextUrl.pathname)) {
+        if (isPublicAuthPath(pathname)) {
           const response = NextResponse.next();
           clearAuthCookies(response, req);
           return response;
@@ -183,9 +198,9 @@ export default async function middleware(req: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Skip auth for static/PWA assets — otherwise browsers get HTML login
-     * pages for manifest/sw/icons (Manifest: Syntax error).
+     * Skip auth for static/PWA assets and public FCM endpoints —
+     * otherwise browsers get HTML login pages (Manifest / SW / config).
      */
-    "/((?!api/auth|_next/static|_next/image|favicon.ico|icon.svg|uploads|icons/|sw\\.js|firebase-messaging-sw\\.js|offline\\.html|manifest\\.webmanifest).*)",
+    "/((?!api/auth|api/push/config|_next/static|_next/image|favicon.ico|icon.svg|uploads|icons/|sw\\.js|firebase-messaging-sw\\.js|offline\\.html|manifest\\.webmanifest).*)",
   ],
 };

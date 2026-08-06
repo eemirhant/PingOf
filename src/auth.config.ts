@@ -17,7 +17,10 @@ export const authConfig = {
       const isPublicPath =
         publicPaths.includes(pathname) ||
         pathname.startsWith("/join/") ||
-        pathname.startsWith("/reset-password/");
+        pathname.startsWith("/reset-password/") ||
+        // FCM public config + messaging SW (no secrets; must not login-redirect)
+        pathname === "/api/push/config" ||
+        pathname === "/firebase-messaging-sw.js";
 
       if (isPublicPath) {
         if (isLoggedIn && (pathname === "/login" || pathname === "/register")) {
