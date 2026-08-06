@@ -269,6 +269,12 @@ export async function createNotificationsForUsers(
         ? toAbsoluteAppUrl(input.image)
         : undefined;
 
+      console.info("[push-diag] Tercih sonrası push alıcıları", {
+        type: input.type,
+        pushRecipients,
+        skippedPush,
+      });
+
       pushDebug("Push gönderimi çağrılacak", {
         type: input.type,
         targetUserIds: pushRecipients,
@@ -341,6 +347,15 @@ export async function createNotificationsForUsers(
         }
       }
     } else {
+      console.info("[push-diag] Push alıcı yok — tercih veya boş liste", {
+        type: input.type,
+        targetUserIds: uniqueIds,
+        skippedPush,
+        reason:
+          skippedPush.length > 0
+            ? "Kullanıcı push tercihi kapalı veya DND"
+            : "Hedef kullanıcı yok",
+      });
       pushDebug("Push gönderilmedi — push alıcı yok", {
         type: input.type,
         skippedPush,

@@ -177,6 +177,50 @@ export async function listActiveTokensForUsers(
   });
 }
 
+/**
+ * Diagnostic-only: all DeviceToken rows for users (active + inactive).
+ * Does not change delivery behavior.
+ */
+export async function diagnoseDeviceTokensForUsers(userIds: string[]): Promise<
+  Array<{
+    userId: string;
+    deviceId: string;
+    platform: string;
+    browser: string | null;
+    isActive: boolean;
+    lastSeenAt: Date;
+    tokenLength: number;
+    tokenPreview: string;
+  }>
+> {
+  if (userIds.length === 0) return [];
+
+  const rows = await prisma.deviceToken.findMany({
+    where: { userId: { in: userIds } },
+    select: {
+      userId: true,
+      deviceId: true,
+      platform: true,
+      browser: true,
+      isActive: true,
+      lastSeenAt: true,
+      fcmToken: true,
+    },
+    orderBy: { lastSeenAt: "desc" },
+  });
+
+  return rows.map((row) => ({
+    userId: row.userId,
+    deviceId: row.deviceId,
+    platform: row.platform,
+    browser: row.browser,
+    isActive: row.isActive,
+    lastSeenAt: row.lastSeenAt,
+    tokenLength: row.fcmToken.length,
+    tokenPreview: `${row.fcmToken.slice(0, 8)}…${row.fcmToken.slice(-8)}`,
+  }));
+}
+
 export async function removeInvalidTokens(
   fcmTokens: string[],
 ): Promise<number> {

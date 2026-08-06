@@ -95,6 +95,13 @@ export async function createChallenge(
     select: { id: true },
   });
 
+  console.info("[push-diag] Meydan okuma hedefi", {
+    challengeId: challenge.id,
+    fromUserId,
+    targetUserId: input.toUserId,
+    event: "CHALLENGE_RECEIVED",
+  });
+
   pushDebug("Meydan okuma oluşturuldu — bildirim akışı başlıyor", {
     event: "CHALLENGE_RECEIVED",
     challengeId: challenge.id,
