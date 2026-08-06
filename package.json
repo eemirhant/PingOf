@@ -17,7 +17,7 @@
     "db:studio": "prisma studio",
     "fix:avatars": "node scripts/clear-data-url-avatars.js",
     "postinstall": "prisma generate",
-    "vercel-build": "prisma migrate deploy && next build",
+    "vercel-build": "next build",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest"
