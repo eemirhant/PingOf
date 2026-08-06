@@ -36,7 +36,14 @@ export function PushNotificationsCard() {
     setError(null);
     startTransition(() => {
       void (async () => {
+        console.info(
+          "[fcm-register] PushNotificationsCard: Bildirimleri aç tıklandı → enableWebPush()",
+        );
         const result = await enableWebPush();
+        console.info(
+          "[fcm-register] PushNotificationsCard: enableWebPush sonucu",
+          result,
+        );
         if (!result.ok) {
           setError(result.error);
           if (typeof Notification !== "undefined") {

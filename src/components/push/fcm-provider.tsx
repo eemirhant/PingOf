@@ -14,10 +14,22 @@ import {
  */
 export function FcmProvider({ enabled }: { enabled: boolean }) {
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled) {
+      console.info("[fcm-register] FcmProvider: enabled=false — sync yok");
+      return;
+    }
     if (typeof window === "undefined") return;
-    if (!isFirebaseWebConfigured()) return;
+    if (!isFirebaseWebConfigured()) {
+      console.info(
+        "[fcm-register] FcmProvider: Firebase yapılandırılmamış — sync yok",
+      );
+      return;
+    }
 
+    console.info("[fcm-register] FcmProvider: syncWebPushToken tetikleniyor", {
+      permission:
+        "Notification" in window ? Notification.permission : "no-api",
+    });
     void syncWebPushToken();
 
     let unsubscribe: (() => void) | undefined;

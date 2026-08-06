@@ -24,6 +24,15 @@ export async function registerDeviceToken(
   const platform = input.platform?.trim() || "web";
   const now = new Date();
 
+  console.info("[fcm-register-db] registerDeviceToken() başladı", {
+    userId: input.userId,
+    organizationId: input.organizationId,
+    deviceId: input.deviceId,
+    platform,
+    tokenLength: input.fcmToken.length,
+    tokenPreview: `${input.fcmToken.slice(0, 8)}…${input.fcmToken.slice(-8)}`,
+  });
+
   const existingByDevice = await prisma.deviceToken.findUnique({
     where: {
       userId_deviceId: {
@@ -35,6 +44,13 @@ export async function registerDeviceToken(
 
   const existingByToken = await prisma.deviceToken.findUnique({
     where: { fcmToken: input.fcmToken },
+  });
+
+  console.info("[fcm-register-db] mevcut kayıtlar", {
+    existingByDeviceId: existingByDevice?.id ?? null,
+    existingByDeviceActive: existingByDevice?.isActive ?? null,
+    existingByTokenId: existingByToken?.id ?? null,
+    existingByTokenUserId: existingByToken?.userId ?? null,
   });
 
   if (
@@ -53,6 +69,11 @@ export async function registerDeviceToken(
         organizationId: input.organizationId,
       },
     });
+    console.info("[fcm-register-db] UPDATE same device+token → isActive=true", {
+      id: updated.id,
+      userId: input.userId,
+      deviceId: input.deviceId,
+    });
     pushLog.deviceRegistered({
       userId: input.userId,
       deviceId: input.deviceId,
@@ -63,6 +84,10 @@ export async function registerDeviceToken(
   }
 
   if (existingByToken && existingByToken.id !== existingByDevice?.id) {
+    console.info("[fcm-register-db] çakışan fcmToken siliniyor", {
+      deletedId: existingByToken.id,
+      previousUserId: existingByToken.userId,
+    });
     await prisma.deviceToken.delete({ where: { id: existingByToken.id } });
   }
 
@@ -79,6 +104,13 @@ export async function registerDeviceToken(
         deviceName: input.deviceName ?? existingByDevice.deviceName,
         organizationId: input.organizationId,
       },
+    });
+    console.info("[fcm-register-db] UPDATE by deviceId", {
+      id: updated.id,
+      refreshed,
+      userId: input.userId,
+      deviceId: input.deviceId,
+      isActive: true,
     });
     if (refreshed) {
       pushLog.tokenRefreshed({
@@ -109,6 +141,15 @@ export async function registerDeviceToken(
       lastSeenAt: now,
       isActive: true,
     },
+  });
+
+  console.info("[fcm-register-db] CREATE yeni DeviceToken", {
+    id: created.id,
+    userId: created.userId,
+    deviceId: created.deviceId,
+    platform: created.platform,
+    isActive: created.isActive,
+    tokenLength: input.fcmToken.length,
   });
 
   pushLog.deviceRegistered({

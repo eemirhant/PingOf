@@ -124,11 +124,23 @@ function swWorkerSnapshot(worker: ServiceWorker | null | undefined): {
  * Request notification permission, obtain FCM token, register device on server.
  */
 export async function enableWebPush(): Promise<EnablePushResult> {
+  console.info("[fcm-register] enableWebPush() başladı", {
+    href: typeof window !== "undefined" ? window.location.href : null,
+    isSecureContext:
+      typeof window !== "undefined" ? window.isSecureContext : null,
+  });
+
   if (typeof window === "undefined") {
+    console.info("[fcm-register] RETURN early: window yok (SSR)", {
+      step: "window",
+    });
     return { ok: false, error: "Tarayıcı ortamı gerekli." };
   }
 
   if (!isFirebaseWebConfigured()) {
+    console.info("[fcm-register] RETURN early: Firebase web config yok", {
+      step: "isFirebaseWebConfigured",
+    });
     return {
       ok: false,
       error: "Push bildirimleri henüz yapılandırılmamış.",
@@ -136,13 +148,24 @@ export async function enableWebPush(): Promise<EnablePushResult> {
   }
 
   if (!("Notification" in window)) {
+    console.info("[fcm-register] RETURN early: Notification API yok", {
+      step: "Notification",
+    });
     return {
       ok: false,
       error: "Bu tarayıcı bildirimleri desteklemiyor.",
     };
   }
 
+  console.info(
+    "[fcm-register] Notification.permission =",
+    Notification.permission,
+  );
+
   if (Notification.permission === "denied") {
+    console.info("[fcm-register] RETURN early: permission denied", {
+      step: "Notification.permission",
+    });
     return {
       ok: false,
       error:
@@ -151,16 +174,31 @@ export async function enableWebPush(): Promise<EnablePushResult> {
   }
 
   if (Notification.permission !== "granted") {
+    console.info("[fcm-register] requestPermission() çağrılıyor…");
     const permission = await Notification.requestPermission();
+    console.info("[fcm-register] requestPermission sonucu =", permission);
     if (permission !== "granted") {
+      console.info("[fcm-register] RETURN early: izin verilmedi", {
+        step: "Notification.requestPermission",
+        permission,
+      });
       return { ok: false, error: "Bildirim izni verilmedi." };
     }
   }
 
+  console.info("[fcm-register] getFirebaseMessagingClient() çağrılıyor…");
   const messaging = await getFirebaseMessagingClient();
   const vapidKey = getClientVapidKey();
+  console.info("[fcm-register] messaging/vapid durumu", {
+    step: "getMessaging+VAPID",
+    hasMessaging: Boolean(messaging),
+    hasVapidKey: Boolean(vapidKey),
+    vapidKey_preview: vapidKey ? vapidKeyPreview(vapidKey) : null,
+  });
+
   if (!messaging || !vapidKey) {
-    console.error("[FCM] getToken() çağrılmadı — messaging veya vapidKey yok", {
+    console.error("[fcm-register] RETURN early: messaging veya vapidKey yok", {
+      step: !messaging ? "getMessaging()" : "VAPID",
       hasMessaging: Boolean(messaging),
       hasVapidKey: Boolean(vapidKey),
       Notification_permission: Notification.permission,
@@ -173,13 +211,21 @@ export async function enableWebPush(): Promise<EnablePushResult> {
     };
   }
 
+  console.info("[fcm-register] ensureMessagingServiceWorker() çağrılıyor…");
   const registration = await ensureMessagingServiceWorker();
+  console.info("[fcm-register] Service Worker sonucu", {
+    step: "ServiceWorker.register",
+    hasRegistration: Boolean(registration),
+    scope: registration?.scope ?? null,
+    active: swWorkerSnapshot(registration?.active),
+    waiting: swWorkerSnapshot(registration?.waiting),
+    installing: swWorkerSnapshot(registration?.installing),
+    controller: swWorkerSnapshot(navigator.serviceWorker.controller),
+  });
+
   if (!registration) {
-    console.error("[FCM] getToken() çağrılmadı — Service Worker kaydı yok", {
-      Notification_permission: Notification.permission,
-      isSecureContext: window.isSecureContext,
-      location_href: window.location.href,
-      controller: navigator.serviceWorker?.controller ?? null,
+    console.error("[fcm-register] RETURN early: Service Worker kaydı yok", {
+      step: "ServiceWorker",
     });
     return {
       ok: false,
@@ -192,11 +238,12 @@ export async function enableWebPush(): Promise<EnablePushResult> {
   try {
     const { getToken, isSupported } = await import("firebase/messaging");
     const supported = await isSupported().catch((supportError: unknown) => {
-      console.error("[FCM] isSupported() failed", supportError);
+      console.error("[fcm-register] isSupported() failed", supportError);
       return false;
     });
 
-    console.info("[FCM] getToken() çağrılıyor", {
+    console.info("[fcm-register] getToken() çağrılıyor", {
+      step: "getToken()",
       Firebase_isSupported: supported,
       Notification_permission: Notification.permission,
       isSecureContext: window.isSecureContext,
@@ -214,6 +261,11 @@ export async function enableWebPush(): Promise<EnablePushResult> {
       vapidKey,
       serviceWorkerRegistration: registration,
     });
+    console.info("[fcm-register] getToken() tamamlandı", {
+      step: "getToken()",
+      tokenLength: token?.length ?? 0,
+      tokenPreview: token ? `${token.slice(0, 8)}…${token.slice(-8)}` : null,
+    });
   } catch (error) {
     const err = error as {
       name?: string;
@@ -228,13 +280,15 @@ export async function enableWebPush(): Promise<EnablePushResult> {
       readyRegistration = null;
     }
 
-    console.error("[FCM] getToken() başarısız", {
+    console.error("[fcm-register] RETURN early: getToken() exception", {
+      step: "getToken()",
       error,
       error_name: err?.name ?? null,
       error_code: err?.code ?? null,
-      error_message: err?.message ?? (error instanceof Error ? error.message : String(error)),
+      error_message:
+        err?.message ??
+        (error instanceof Error ? error.message : String(error)),
       error_stack: err?.stack ?? (error instanceof Error ? error.stack : null),
-      registration,
       registration_scope: registration.scope,
       registration_active: swWorkerSnapshot(registration.active),
       registration_waiting: swWorkerSnapshot(registration.waiting),
@@ -257,7 +311,9 @@ export async function enableWebPush(): Promise<EnablePushResult> {
 
     pushLog.failed({
       reason: "get_token_failed",
-      error: err?.message ?? (error instanceof Error ? error.message : String(error)),
+      error:
+        err?.message ??
+        (error instanceof Error ? error.message : String(error)),
       code: err?.code ?? null,
       name: err?.name ?? null,
     });
@@ -284,41 +340,16 @@ export async function enableWebPush(): Promise<EnablePushResult> {
   }
 
   if (!getTokenCalled) {
-    console.error("[FCM] getToken() hiç çağrılmadı (beklenmeyen kontrol akışı)");
+    console.error(
+      "[fcm-register] getToken() hiç çağrılmadı (beklenmeyen kontrol akışı)",
+    );
   }
 
   if (!token) {
-    let readyRegistration: ServiceWorkerRegistration | null = null;
-    try {
-      readyRegistration = await navigator.serviceWorker.ready;
-    } catch {
-      readyRegistration = null;
-    }
-
-    console.error("[FCM] getToken() null/boş döndü", {
+    console.error("[fcm-register] RETURN early: getToken() null/boş", {
+      step: "getToken() null",
       token,
-      registration,
-      registration_scope: registration.scope,
-      registration_active: swWorkerSnapshot(registration.active),
-      registration_waiting: swWorkerSnapshot(registration.waiting),
-      registration_installing: swWorkerSnapshot(registration.installing),
-      navigator_serviceWorker_controller: swWorkerSnapshot(
-        navigator.serviceWorker.controller,
-      ),
-      navigator_serviceWorker_ready: readyRegistration
-        ? {
-            scope: readyRegistration.scope,
-            active: swWorkerSnapshot(readyRegistration.active),
-          }
-        : null,
-      Notification_permission: Notification.permission,
-      isSecureContext: window.isSecureContext,
-      location_href: window.location.href,
-      vapidKey_preview: vapidKeyPreview(vapidKey),
-      reason:
-        "Firebase getToken resolved without throwing but returned empty token. Check VAPID key, SW script, and Firebase project Web Push certificates.",
     });
-
     pushLog.failed({
       reason: "get_token_null",
       message: "FCM getToken returned empty string",
@@ -333,30 +364,83 @@ export async function enableWebPush(): Promise<EnablePushResult> {
   storeFcmToken(token);
 
   const deviceId = getOrCreateDeviceId();
-  const res = await fetch("/api/push/register", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      deviceId,
-      fcmToken: token,
-      platform: detectPlatform(),
-      browser: detectBrowser(),
-      deviceName:
-        typeof navigator !== "undefined"
-          ? navigator.userAgent.slice(0, 180)
-          : null,
-    }),
+  const requestBody = {
+    deviceId,
+    fcmToken: token,
+    platform: detectPlatform(),
+    browser: detectBrowser(),
+    deviceName:
+      typeof navigator !== "undefined"
+        ? navigator.userAgent.slice(0, 180)
+        : null,
+  };
+
+  console.info("[fcm-register] POST /api/push/register gönderiliyor", {
+    step: "POST /api/push/register",
+    url: "/api/push/register",
+    body: {
+      deviceId: requestBody.deviceId,
+      platform: requestBody.platform,
+      browser: requestBody.browser,
+      deviceName: requestBody.deviceName,
+      fcmTokenLength: requestBody.fcmToken.length,
+      fcmTokenPreview: `${requestBody.fcmToken.slice(0, 8)}…${requestBody.fcmToken.slice(-8)}`,
+    },
+  });
+
+  let res: Response;
+  try {
+    res = await fetch("/api/push/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(requestBody),
+    });
+  } catch (networkError) {
+    console.error("[fcm-register] POST /api/push/register network hatası", {
+      step: "POST /api/push/register fetch",
+      error:
+        networkError instanceof Error
+          ? networkError.message
+          : String(networkError),
+    });
+    return { ok: false, error: "Cihaz kaydı ağ hatası." };
+  }
+
+  const responseText = await res.text();
+  let responseJson: unknown = null;
+  try {
+    responseJson = responseText ? JSON.parse(responseText) : null;
+  } catch {
+    responseJson = { raw: responseText.slice(0, 500) };
+  }
+
+  console.info("[fcm-register] POST /api/push/register yanıtı", {
+    step: "POST /api/push/register response",
+    status: res.status,
+    ok: res.ok,
+    body: responseJson,
   });
 
   if (!res.ok) {
-    const json = (await res.json().catch(() => null)) as {
-      error?: string;
-    } | null;
+    const json = responseJson as { error?: string } | null;
+    console.info("[fcm-register] RETURN early: register API başarısız", {
+      step: "POST /api/push/register",
+      status: res.status,
+      error: json?.error ?? null,
+    });
     return {
       ok: false,
       error: json?.error ?? "Cihaz kaydı başarısız oldu.",
     };
   }
+
+  console.info(
+    "[fcm-register] enableWebPush() BAŞARILI — DeviceToken kaydı istenmiş olmalı",
+    {
+      deviceId,
+      tokenLength: token.length,
+    },
+  );
 
   return { ok: true, token };
 }
@@ -402,16 +486,49 @@ export async function deactivatePushOnLogout(): Promise<void> {
  * Sync token on authenticated page load (refresh / new session).
  */
 export async function syncWebPushToken(): Promise<void> {
-  if (typeof window === "undefined") return;
-  if (!isFirebaseWebConfigured()) return;
+  console.info("[fcm-register] syncWebPushToken() çağrıldı", {
+    href: typeof window !== "undefined" ? window.location.href : null,
+    configured:
+      typeof window !== "undefined" ? isFirebaseWebConfigured() : null,
+    permission:
+      typeof window !== "undefined" && "Notification" in window
+        ? Notification.permission
+        : null,
+  });
+
+  if (typeof window === "undefined") {
+    console.info("[fcm-register] syncWebPushToken RETURN: window yok");
+    return;
+  }
+  if (!isFirebaseWebConfigured()) {
+    console.info(
+      "[fcm-register] syncWebPushToken RETURN: Firebase yapılandırılmamış",
+    );
+    return;
+  }
   if (!("Notification" in window) || Notification.permission !== "granted") {
+    console.info(
+      "[fcm-register] syncWebPushToken RETURN: permission granted değil — enableWebPush çağrılmayacak",
+      {
+        hasNotificationApi: "Notification" in window,
+        permission:
+          "Notification" in window ? Notification.permission : null,
+        hint: "Telefonda Ayarlar → Bildirimleri aç ile enableWebPush() çalışmalı",
+      },
+    );
     return;
   }
 
   try {
-    await enableWebPush();
-  } catch {
-    // ignore — in-app notifications still work
+    console.info(
+      "[fcm-register] syncWebPushToken → enableWebPush() çağrılıyor",
+    );
+    const result = await enableWebPush();
+    console.info("[fcm-register] syncWebPushToken → enableWebPush sonucu", result);
+  } catch (error) {
+    console.error("[fcm-register] syncWebPushToken enableWebPush exception", {
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 }
 
