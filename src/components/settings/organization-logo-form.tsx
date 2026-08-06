@@ -139,7 +139,7 @@ export function OrganizationLogoForm({
           name="logo"
           ref={fileRef}
           type="file"
-          accept="image/jpeg,image/png,image/webp"
+          accept="image/jpeg,image/png,image/webp,image/avif"
           className="form-input"
           onChange={(e) => onPickFile(e.target.files)}
           disabled={removeLogo}

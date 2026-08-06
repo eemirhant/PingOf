@@ -1,22 +1,26 @@
 /**
- * Image upload helpers for avatars / org logos.
- *
- * Production (Vercel): persists to Vercel Blob when BLOB_READ_WRITE_TOKEN is set.
- * Local/dev: writes under public/uploads (gitignored).
+ * Image upload helpers for avatars / org logos via Vercel Blob.
  */
 
 import { put } from "@vercel/blob";
-import { mkdir, writeFile } from "fs/promises";
-import path from "path";
+import { randomUUID } from "crypto";
 
-const ALLOWED_MIME = new Set(["image/jpeg", "image/png", "image/webp"]);
+const ALLOWED_MIME = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/avif",
+]);
 const MAX_RAW_BYTES = 2 * 1024 * 1024; // 2MB
 
 const EXT_BY_MIME: Record<string, string> = {
   "image/jpeg": "jpg",
   "image/png": "png",
   "image/webp": "webp",
+  "image/avif": "avif",
 };
+
+const USER_FACING_UNAVAILABLE = "Dosya yükleme şu anda kullanılamıyor.";
 
 export class ImageUploadError extends Error {
   constructor(message: string) {
@@ -45,6 +49,12 @@ function looksLikeImage(buffer: Buffer, mime: string): boolean {
       buffer.toString("ascii", 8, 12) === "WEBP"
     );
   }
+  if (mime === "image/avif") {
+    if (buffer.length < 12) return false;
+    if (buffer.toString("ascii", 4, 8) !== "ftyp") return false;
+    const brandRegion = buffer.toString("ascii", 8, Math.min(buffer.length, 32));
+    return brandRegion.includes("avif") || brandRegion.includes("avis");
+  }
   return false;
 }
 
@@ -55,21 +65,23 @@ function hasBlobToken(): boolean {
 }
 
 /**
- * Validate and save an uploaded image.
- * Returns a public URL (Blob) or path (`/uploads/...`) — never a data URL.
+ * Validate and save an uploaded image to Vercel Blob.
+ * Returns the public Blob URL — never a data URL.
  */
 export async function saveUploadedImage(
   file: File,
   folder: UploadFolder,
-  key: string,
+  _key: string,
 ): Promise<string> {
+  void _key;
+
   if (!(file instanceof File) || file.size <= 0) {
     throw new ImageUploadError("Dosya seçilmedi");
   }
 
   const mime = file.type;
   if (!ALLOWED_MIME.has(mime)) {
-    throw new ImageUploadError("Sadece JPG, PNG veya WebP yükleyebilirsin");
+    throw new ImageUploadError("Sadece JPG, PNG, WebP veya AVIF yükleyebilirsin");
   }
 
   if (file.size > MAX_RAW_BYTES) {
@@ -81,52 +93,24 @@ export async function saveUploadedImage(
     throw new ImageUploadError("Geçersiz görsel dosyası");
   }
 
+  if (!hasBlobToken()) {
+    console.error("[BLOB] Missing BLOB_READ_WRITE_TOKEN");
+    throw new ImageUploadError(USER_FACING_UNAVAILABLE);
+  }
+
   const ext = EXT_BY_MIME[mime] ?? "jpg";
-  const safeKey = key.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 64) || "file";
-  const filename = `${safeKey}-${Date.now()}.${ext}`;
-  const objectPath = `uploads/${folder}/${filename}`;
+  const filename = `${randomUUID()}-${Date.now()}.${ext}`;
+  const objectPath = `${folder}/${filename}`;
 
-  if (hasBlobToken()) {
-    try {
-      const blob = await put(objectPath, buffer, {
-        access: "public",
-        contentType: mime,
-        addRandomSuffix: false,
-      });
-      return blob.url;
-    } catch (error) {
-      console.error("[upload] Vercel Blob put failed", error);
-      throw new ImageUploadError(
-        "Fotoğraf depolanamadı. Lütfen tekrar dene.",
-      );
-    }
-  }
-
-  // Serverless (Vercel) without Blob token cannot persist local files.
-  if (process.env.VERCEL) {
-    throw new ImageUploadError(
-      "Fotoğraf depolama yapılandırılmamış. Yöneticinin BLOB_READ_WRITE_TOKEN eklemesi gerekir.",
-    );
-  }
-
-  // Local / environments without Blob token
   try {
-    const dir = path.join(process.cwd(), "public", "uploads", folder);
-    await mkdir(dir, { recursive: true });
-    await writeFile(path.join(dir, filename), buffer);
-    return `/uploads/${folder}/${filename}`;
+    const blob = await put(objectPath, buffer, {
+      access: "public",
+      contentType: mime,
+      addRandomSuffix: false,
+    });
+    return blob.url;
   } catch (error) {
-    console.error("[upload] local write failed", error);
-    throw new ImageUploadError(
-      "Fotoğraf kaydedilemedi. Sunucu depolama alanı kullanılamıyor.",
-    );
+    console.error("[BLOB] put failed", error);
+    throw new ImageUploadError("Fotoğraf depolanamadı. Lütfen tekrar dene.");
   }
-}
-
-/** @deprecated Prefer saveUploadedImage — data URLs break JWT session cookies. */
-export async function fileToStoredDataUrl(_file: File): Promise<string> {
-  void _file;
-  throw new ImageUploadError(
-    "Bu yükleme yolu artık kullanılmıyor. Sayfayı yenileyip tekrar dene.",
-  );
 }

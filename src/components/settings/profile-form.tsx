@@ -40,6 +40,7 @@ export function ProfileForm({
   );
   const [removePhoto, setRemovePhoto] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
+  const [hasPendingPhoto, setHasPendingPhoto] = useState(false);
   const [compressing, startCompress] = useTransition();
   const fileRef = useRef<HTMLInputElement>(null);
   /** Compressed file kept in memory — do not rely on input.files = DataTransfer (fragile on mobile). */
@@ -61,6 +62,7 @@ export function ProfileForm({
     if (!state.success) return;
 
     pendingFileRef.current = null;
+    setHasPendingPhoto(false);
     if (fileRef.current) fileRef.current.value = "";
 
     if (typeof state.avatarColor === "string") {
@@ -95,6 +97,7 @@ export function ProfileForm({
       try {
         const compressed = await compressImageForUpload(file, { maxEdge: 512, quality: 0.82 });
         pendingFileRef.current = compressed;
+        setHasPendingPhoto(true);
         if (fileRef.current) fileRef.current.value = "";
         if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
         const objectUrl = URL.createObjectURL(compressed);
@@ -102,8 +105,9 @@ export function ProfileForm({
         setPreviewUrl(objectUrl);
         setRemovePhoto(false);
       } catch {
-        setLocalError("Görsel işlenemedi. JPG veya PNG dene.");
+        setLocalError("Görsel işlenemedi. JPG, PNG, WebP veya AVIF dene.");
         pendingFileRef.current = null;
+        setHasPendingPhoto(false);
         if (fileRef.current) fileRef.current.value = "";
       }
     });
@@ -112,6 +116,7 @@ export function ProfileForm({
   function clearPhoto() {
     setRemovePhoto(true);
     pendingFileRef.current = null;
+    setHasPendingPhoto(false);
     if (objectUrlRef.current) {
       URL.revokeObjectURL(objectUrlRef.current);
       objectUrlRef.current = null;
@@ -208,7 +213,7 @@ export function ProfileForm({
         name="photo"
         ref={fileRef}
         type="file"
-        accept="image/jpeg,image/png,image/webp"
+        accept="image/jpeg,image/png,image/webp,image/avif"
         className="sr-only"
         tabIndex={-1}
         onChange={(e) => onPickFile(e.target.files)}
@@ -289,7 +294,13 @@ export function ProfileForm({
       ) : null}
 
       <Button type="submit" variant="primary" size="sm" disabled={isPending || compressing}>
-        {compressing ? "Fotoğraf hazırlanıyor…" : isPending ? "Kaydediliyor…" : "Profili Güncelle"}
+        {compressing
+          ? "Fotoğraf hazırlanıyor…"
+          : isPending
+            ? hasPendingPhoto
+              ? "Fotoğraf yükleniyor…"
+              : "Kaydediliyor…"
+            : "Profili Güncelle"}
       </Button>
     </form>
   );

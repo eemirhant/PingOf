@@ -87,7 +87,7 @@ Manifest: `/manifest.webmanifest` · ikonlar: `/icons/*` · FCM SW: `/firebase-m
 
 Ayrıntılı adımlar: [STAGING.md](STAGING.md). Özet: Neon `DATABASE_URL` + Vercel env (`AUTH_SECRET`, `AUTH_URL`, Firebase) + `npm run vercel-build`.
 
-**Not:** `public/uploads` dosya sistemi Vercel’de kalıcı değildir.
+**Not:** Profil fotoğrafı / logo yüklemeleri Vercel Blob’a yazılır (`BLOB_READ_WRITE_TOKEN`). Token yoksa yükleme kullanılamaz.
 
 ## v1 / Faz 4 durum (PRD §13)
 
