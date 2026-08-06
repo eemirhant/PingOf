@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { getPublicAppUrl } from "@/lib/dev/public-url";
 import { hasMatchClockTime } from "@/domain/match-status";
 import { allowsInApp, allowsPush } from "@/domain/notification-preferences";
 import { RealtimeEventType } from "@/domain/realtime";
@@ -11,7 +12,7 @@ import {
   startNotificationTrace,
   updateTrace,
 } from "@/lib/notifications/diagnostics/store";
-import { sendOneSignalPushToUsers } from "@/lib/notifications/onesignal";
+import { sendPushToUsers } from "@/lib/notifications/push";
 import { getResolvedNotificationSettingsForUsers } from "@/lib/notifications/preferences";
 import { pushDebug, pushDebugError } from "@/lib/notifications/push-debug";
 import { publishOrgEvent } from "@/lib/realtime/publish";
@@ -22,7 +23,22 @@ export type CreateNotificationInput = {
   title: string;
   body: string;
   linkUrl?: string | null;
+  entityId?: string | null;
+  organizationId?: string | null;
+  image?: string | null;
 };
+
+function toAbsoluteAppUrl(pathOrUrl: string | null | undefined): string {
+  const base = getPublicAppUrl();
+  const raw = (pathOrUrl ?? "/notifications").trim() || "/notifications";
+  try {
+    if (/^https?:\/\//i.test(raw)) return raw;
+    const path = raw.startsWith("/") ? raw : `/${raw}`;
+    return new URL(path, `${base}/`).toString();
+  } catch {
+    return `${base}/notifications`;
+  }
+}
 
 /**
  * Time-based match reminders (e.g. "starts in 30 minutes") require a real clock time.
@@ -39,7 +55,7 @@ export function canCreateMatchTimeReminder(
  * 1) Preference filter (in-app / push + DND)
  * 2) Persist in-app Notification rows
  * 3) Publish realtime NOTIFICATION event (badge / list refresh)
- * 4) Deliver push via OneSignal (awaited so Vercel logs capture API response)
+ * 4) Deliver push via abstracted provider (FCM)
  *
  * Diagnostic steps are recorded in development (or when a debug ALS context exists).
  */
@@ -55,7 +71,6 @@ export async function createNotificationsForUsers(
     linkUrl: input.linkUrl ?? null,
     requestedUserIds: input.userIds,
     uniqueTargetUserIds: uniqueIds,
-    // OneSignal external_id === PingOf user.id
     targetExternalIds: uniqueIds,
   });
 
@@ -169,6 +184,8 @@ export async function createNotificationsForUsers(
     }
 
     let count = 0;
+    let resolvedOrganizationId = input.organizationId ?? null;
+
     if (inAppRecipients.length > 0) {
       const result = await prisma.notification.createMany({
         data: inAppRecipients.map((userId) => ({
@@ -206,6 +223,8 @@ export async function createNotificationsForUsers(
         select: { organizationId: true },
       });
       if (firstUser) {
+        resolvedOrganizationId =
+          resolvedOrganizationId ?? firstUser.organizationId;
         if (traceId) {
           updateTrace(traceId, { organizationId: firstUser.organizationId });
         }
@@ -213,7 +232,7 @@ export async function createNotificationsForUsers(
           firstUser.organizationId,
           RealtimeEventType.NOTIFICATION,
           {
-            entityId: inAppRecipients[0],
+            entityId: input.entityId ?? inAppRecipients[0],
           },
         );
       }
@@ -232,37 +251,69 @@ export async function createNotificationsForUsers(
       }
     }
 
+    if (
+      !resolvedOrganizationId &&
+      (pushRecipients[0] ?? uniqueIds[0])
+    ) {
+      const orgUser = await prisma.user.findFirst({
+        where: { id: pushRecipients[0] ?? uniqueIds[0] },
+        select: { organizationId: true },
+      });
+      resolvedOrganizationId = orgUser?.organizationId ?? null;
+    }
+
     if (pushRecipients.length > 0) {
-      pushDebug("OneSignal API isteği gönderilecek", {
+      const absoluteUrl = toAbsoluteAppUrl(input.linkUrl);
+      const absoluteIcon = toAbsoluteAppUrl("/icons/icon-192.png");
+      const absoluteImage = input.image
+        ? toAbsoluteAppUrl(input.image)
+        : undefined;
+
+      pushDebug("Push gönderimi çağrılacak", {
         type: input.type,
         targetUserIds: pushRecipients,
         targetExternalIds: pushRecipients,
         title: input.title,
         body: input.body,
-        url: input.linkUrl ?? "/notifications",
+        url: absoluteUrl,
         tag: `pingof-${input.type}`,
       });
 
       try {
-        const pushResult = await sendOneSignalPushToUsers(pushRecipients, {
+        const pushResult = await sendPushToUsers(pushRecipients, {
           title: input.title,
           body: input.body,
-          url: input.linkUrl ?? "/notifications",
+          url: absoluteUrl,
           tag: `pingof-${input.type}`,
+          notificationType: input.type,
+          icon: absoluteIcon,
+          badge: absoluteIcon,
+          image: absoluteImage,
+          entityId: input.entityId ?? null,
+          organizationId: resolvedOrganizationId,
+          priority: "high",
         });
 
-        pushDebug("OneSignal gönderim tamamlandı", {
+        pushDebug("Push gönderim tamamlandı", {
           type: input.type,
           targetUserIds: pushRecipients,
           targetExternalIds: pushRecipients,
           sentBatches: pushResult.sentBatches,
           skipped: pushResult.skipped,
-          lastApiStatusCode: pushResult.lastApi?.statusCode ?? null,
-          lastApiNotificationId: pushResult.lastApi?.notificationId ?? null,
-          lastApiErrorMessage: pushResult.lastApi?.errorMessage ?? null,
         });
 
         if (traceId) {
+          appendDiagStep(traceId, {
+            name: "push_sent",
+            status: pushResult.skipped ? "skip" : "ok",
+            message: pushResult.skipped
+              ? "Push altyapısı henüz yapılandırılmamış (FCM bekleniyor)"
+              : `Push gönderildi (${pushResult.sentBatches} batch)`,
+            detail: {
+              sentBatches: pushResult.sentBatches,
+              skipped: pushResult.skipped,
+            },
+          });
           updateTrace(traceId, {
             pushSent: pushResult.sentBatches > 0 && !pushResult.skipped,
             success:
@@ -270,18 +321,18 @@ export async function createNotificationsForUsers(
           });
         }
       } catch (error) {
-        pushDebugError("OneSignal gönderim hatası", error, {
+        pushDebugError("Push gönderim hatası", error, {
           type: input.type,
           targetUserIds: pushRecipients,
           targetExternalIds: pushRecipients,
         });
-        console.error("[onesignal] batch send error", error);
+        console.error("[push] batch send error", error);
         if (traceId) {
           appendDiagStep(traceId, {
             name: "push_sent",
             status: "fail",
-            message: "OneSignal gönderim hatası",
-            reasonCode: "OneSignal API hatası",
+            message: "Push gönderim hatası",
+            reasonCode: "Push API hatası",
             detail: {
               error: error instanceof Error ? error.message : String(error),
               stack: error instanceof Error ? error.stack : null,
@@ -290,7 +341,7 @@ export async function createNotificationsForUsers(
         }
       }
     } else {
-      pushDebug("OneSignal API isteği gönderilmedi — push alıcı yok", {
+      pushDebug("Push gönderilmedi — push alıcı yok", {
         type: input.type,
         skippedPush,
         reason: "preference_or_empty",
@@ -299,7 +350,7 @@ export async function createNotificationsForUsers(
         appendDiagStep(traceId, {
           name: "push_sent",
           status: "skip",
-          message: "Push alıcı yok — OneSignal çağrılmadı",
+          message: "Push alıcı yok — gönderici çağrılmadı",
           reasonCode: "Kullanıcının bildirimi kapalı",
         });
         updateTrace(traceId, {

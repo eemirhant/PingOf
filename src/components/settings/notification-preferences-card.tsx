@@ -1,8 +1,7 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useState, useTransition } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
 
-import { optInOneSignalPush } from "@/components/onesignal/onesignal-provider";
 import {
   updateNotificationPreferencesAction,
   type NotificationPreferencesActionState,
@@ -13,7 +12,8 @@ import {
   type NotificationPreferenceKey,
   type NotificationPreferencesMap,
 } from "@/domain/notification-preferences";
-import { ONESIGNAL_APP_ID } from "@/lib/onesignal/config";
+import { isFirebaseWebConfigured } from "@/lib/firebase/config";
+import { enableWebPush } from "@/lib/firebase/messaging-client";
 
 const initialState: NotificationPreferencesActionState = {};
 
@@ -24,13 +24,9 @@ type Props = {
 export function NotificationPreferencesCard({ initialPreferences }: Props) {
   const [preferences, setPreferences] =
     useState<NotificationPreferencesMap>(initialPreferences);
-  const [pushHint, setPushHint] = useState<string | null>(null);
-  const [permission, setPermission] = useState<
-    NotificationPermission | "unsupported"
-  >("default");
   const [isDesktop, setIsDesktop] = useState(false);
   const [openCategoryId, setOpenCategoryId] = useState<string>("challenges");
-  const [, startPushTransition] = useTransition();
+  const [pushHint, setPushHint] = useState<string | null>(null);
   const [state, formAction, pending] = useActionState(
     updateNotificationPreferencesAction,
     initialState,
@@ -39,14 +35,6 @@ export function NotificationPreferencesCard({ initialPreferences }: Props) {
   useEffect(() => {
     setPreferences(initialPreferences);
   }, [initialPreferences]);
-
-  useEffect(() => {
-    if (typeof window === "undefined" || !("Notification" in window)) {
-      setPermission("unsupported");
-      return;
-    }
-    setPermission(Notification.permission);
-  }, []);
 
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 640px)");
@@ -71,56 +59,16 @@ export function NotificationPreferencesCard({ initialPreferences }: Props) {
       [key]: { ...prev[key], [channel]: value },
     }));
 
-    if (channel === "push" && value) {
-      void ensurePushPermission();
+    if (channel === "push" && value && isFirebaseWebConfigured()) {
+      void enableWebPush().then((result) => {
+        if (!result.ok) setPushHint(result.error);
+        else setPushHint(null);
+      });
     }
   }
 
   function toggleCategory(id: string) {
     setOpenCategoryId((prev) => (prev === id ? "" : id));
-  }
-
-  async function ensurePushPermission() {
-    if (!ONESIGNAL_APP_ID) {
-      setPushHint("OneSignal yapılandırılmamış.");
-      return;
-    }
-
-    if (
-      typeof Notification !== "undefined" &&
-      Notification.permission === "denied"
-    ) {
-      setPermission("denied");
-      setPushHint(
-        "Tarayıcı bildirimi reddedildi. İzni tarayıcı ayarlarından açıp tekrar deneyebilirsin.",
-      );
-      return;
-    }
-
-    if (
-      typeof Notification !== "undefined" &&
-      Notification.permission !== "granted"
-    ) {
-      setPushHint(
-        'Push için tarayıcı izni gerekir. OneSignal doğrulama diyalogundaki "Got it" ile izin verin.',
-      );
-      return;
-    }
-
-    startPushTransition(() => {
-      void (async () => {
-        const result = await optInOneSignalPush();
-        if (!result.ok) {
-          setPushHint(result.error ?? "Push izni alınamadı.");
-          if (typeof Notification !== "undefined") {
-            setPermission(Notification.permission);
-          }
-          return;
-        }
-        setPermission("granted");
-        setPushHint(null);
-      })();
-    });
   }
 
   return (
@@ -129,6 +77,10 @@ export function NotificationPreferencesCard({ initialPreferences }: Props) {
         <h2 className="text-lg font-semibold text-text-primary">
           Bildirim Tercihleri
         </h2>
+        <p className="mt-1 text-sm text-text-secondary">
+          Uygulama ve push kanallarını ayrı yönetebilirsin. Push tercihi, tarayıcı
+          bildirimi açıkken Firebase üzerinden uygulanır.
+        </p>
       </div>
 
       {NOTIFICATION_PREFERENCE_CATEGORIES.map((category) => {
@@ -206,18 +158,9 @@ export function NotificationPreferencesCard({ initialPreferences }: Props) {
         );
       })}
 
-      {permission === "denied" || pushHint ? (
+      {pushHint ? (
         <div className="rounded-lg border border-orange/30 bg-orange/5 p-3 text-sm text-text-secondary">
           {pushHint}
-          {permission === "denied" ? (
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm mt-2 min-h-11"
-              onClick={() => void ensurePushPermission()}
-            >
-              Push iznini tekrar dene
-            </button>
-          ) : null}
         </div>
       ) : null}
 

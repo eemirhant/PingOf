@@ -3,6 +3,8 @@
 **Tarih:** 2026-08-05  
 **Amaç:** Geçici Cloudflare Tunnel desteğini kaldırıp standart `npm run dev` + ileride Vercel Preview’a dönmek.
 
+> Not: Push sağlayıcı katmanı sonradan tamamen kaldırıldı; FCM entegrasyonu sonraki adımdır.
+
 ---
 
 ## Silinen dosyalar
@@ -13,14 +15,13 @@
 | `scripts/tunnel.mjs` |
 | `scripts/stop-tunnel.mjs` |
 | `scripts/lib/tunnel-env.mjs` |
-| `scripts/lib/onesignal-sync-origin.mjs` |
+| `scripts/lib/*-sync-origin.mjs` |
 | `src/app/api/dev/tunnel/route.ts` |
-| `src/app/api/dev/onesignal-sync-origin/route.ts` |
-| `src/lib/onesignal/sync-web-origin.ts` |
+| `src/app/api/dev/*-sync-origin/route.ts` |
+| `src/lib/*/sync-web-origin.ts` |
 | `src/components/dev/dev-mobile-push-probe.tsx` |
 | `LOCALHOST_REDIRECT_REPORT.md` |
-| `ONESIGNAL_ORIGIN_REPORT.md` |
-| `ONESIGNAL_PUSH_FIX_REPORT.md` |
+| Eski push origin / push fix raporları |
 | `.tunnel-url` / `.tunnel.pid` / `.dev-https-next.pid` |
 | `.env.development.local` (tunnel-managed AUTH_URL) |
 | `src/app/api/dev/` (boş klasör) |
@@ -38,9 +39,7 @@
 | `.env.example` | Tunnel / org-sync / trycloudflare notları temizlendi |
 | `.gitignore` | `.tunnel-*` girdileri kaldırıldı |
 | `src/lib/dev/public-url.ts` | `.tunnel-url` / https-tunnel önceliği kaldırıldı |
-| `src/lib/onesignal/allowed-origin.ts` | trycloudflare / ngrok whitelist kaldırıldı |
-| `src/lib/onesignal/allowed-origin.test.ts` | Tunnel testleri kaldırıldı |
-| `src/components/onesignal/onesignal-provider.tsx` | Dashboard Site URL sync API çağrıları kaldırıldı |
+| Push origin allowlist / provider | Tunnel whitelist ve Site URL sync kaldırıldı |
 | `src/app/layout.tsx` | `DevMobilePushProbe` kaldırıldı |
 | `src/middleware.ts` | `api/dev` matcher istisnası kaldırıldı |
 | `src/lib/url/safe-path.test.ts` | Örnek URL sadeleştirildi |
@@ -51,10 +50,10 @@
 
 - `NEXT_PUBLIC_ENVIRONMENT=https-tunnel`
 - Tunnel’ın yazdığı `.env.development.local` (`AUTH_URL` = trycloudflare)
-- `ONESIGNAL_ORGANIZATION_API_KEY` / `ONESIGNAL_ORGANIZATION_ID` (yalnızca tunnel Site URL sync için dokümante edilmişti)
+- Tunnel Site URL sync anahtarları
 - `NEXT_PUBLIC_PRODUCTION_ORIGIN` örnek notu (gerekirse APP_URL yeterli)
 
-**Kalan (standart):** `AUTH_TRUST_HOST`, opsiyonel `AUTH_URL` / `NEXT_PUBLIC_APP_URL`, OneSignal App ID + REST key.
+**Kalan (standart):** `AUTH_TRUST_HOST`, opsiyonel `AUTH_URL` / `NEXT_PUBLIC_APP_URL`.
 
 ---
 
@@ -71,7 +70,7 @@
 - cloudflared spawn / trycloudflare URL parse
 - `.tunnel-url` okuma
 - Tunnel env writer
-- Dev tunnel + onesignal-sync API route’ları
+- Dev tunnel + origin-sync API route’ları
 - Mobil push probe (tunnel diagnostic)
 - Origin allowlist’te `*.trycloudflare.com` / ngrok
 
@@ -79,10 +78,10 @@
 
 ## Korunan (bilinçli)
 
-- OneSignal init + root SW (`/OneSignalSDKWorker.js`)
 - PWA manifest / offline SW
 - Auth.js `trustHost` + `getRequestOrigin()` (Vercel Preview / prod için yararlı)
 - `toSafeInternalPath` (open-redirect güvenliği)
+- Uygulama içi bildirim sistemi (DB + realtime + tercihler)
 
 ---
 
@@ -91,14 +90,12 @@
 | Alan | Etki |
 |---|---|
 | Yerel geliştirme | `npm run dev` / `start.bat` → `http://localhost:3000` |
-| Mobil HTTPS push | Cloudflare Tunnel yok; **Vercel Preview** kullanın |
-| OneSignal | Mevcut origin + Dashboard Site URL; tunnel sync yok |
+| Mobil HTTPS | Cloudflare Tunnel yok; **Vercel Preview** kullanın |
+| Push | Sağlayıcı katmanı kaldırıldı; FCM sonraki adım |
 | Auth.js | Standart Host/`AUTH_URL`; tunnel redirect hileleri yok |
 
 ---
 
 ## Doğrulama
 
-- [x] Cloudflare / trycloudflare / `dev:https` grep temiz
-- [x] `npm run typecheck`
-- [x] `npm run test` (allowed-origin + safe-path)
+- `npm run lint` / `npm run typecheck` / `npm run build` — tunnel sonrası temiz geçmeli

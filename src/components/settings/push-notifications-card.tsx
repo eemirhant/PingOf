@@ -1,81 +1,67 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import OneSignal from "react-onesignal";
 
+import { isFirebaseWebConfigured } from "@/lib/firebase/config";
 import {
-  getOneSignalPushStatus,
-  optInOneSignalPush,
-  optOutOneSignalPush,
-  waitForOneSignalReady,
-} from "@/components/onesignal/onesignal-provider";
-import { ONESIGNAL_APP_ID } from "@/lib/onesignal/config";
+  disableWebPush,
+  enableWebPush,
+  getStoredFcmToken,
+} from "@/lib/firebase/messaging-client";
 
 export function PushNotificationsCard() {
-  const [configured] = useState(Boolean(ONESIGNAL_APP_ID));
-  const [optedIn, setOptedIn] = useState(false);
-  const [permission, setPermission] = useState<NotificationPermission | "unknown">(
-    "unknown",
-  );
+  const configured = isFirebaseWebConfigured();
+  const [permission, setPermission] = useState<
+    NotificationPermission | "unsupported" | "unknown"
+  >("unknown");
+  const [enabled, setEnabled] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
-    if (typeof window !== "undefined" && "Notification" in window) {
-      setPermission(Notification.permission);
+    if (typeof window === "undefined") return;
+    if (!("Notification" in window)) {
+      setPermission("unsupported");
+      return;
     }
-
-    void (async () => {
-      try {
-        // Provider owns init — only wait here.
-        const ready = await waitForOneSignalReady();
-        if (!ready) return;
-        const status = getOneSignalPushStatus();
-        setOptedIn(status.optedIn);
-        if (typeof Notification !== "undefined") {
-          setPermission(Notification.permission);
-        }
-        OneSignal.User.PushSubscription.addEventListener("change", () => {
-          setOptedIn(Boolean(OneSignal.User.PushSubscription.optedIn));
-        });
-      } catch {
-        // SDK may still be loading
-      }
-    })();
+    setPermission(Notification.permission);
+    setEnabled(
+      Notification.permission === "granted" && Boolean(getStoredFcmToken()),
+    );
   }, []);
 
-  function enablePush() {
+  function enable() {
     setMessage(null);
     setError(null);
     startTransition(() => {
       void (async () => {
-        const result = await optInOneSignalPush();
+        const result = await enableWebPush();
         if (!result.ok) {
-          setError(result.error ?? "Push açılamadı.");
+          setError(result.error);
           if (typeof Notification !== "undefined") {
             setPermission(Notification.permission);
           }
           return;
         }
-        setOptedIn(true);
+        setEnabled(true);
         setPermission("granted");
-        setMessage("Tarayıcı bildirimleri açıldı (OneSignal).");
+        setMessage("Tarayıcı bildirimleri açıldı.");
       })();
     });
   }
 
-  function disablePush() {
+  function disable() {
     setMessage(null);
     setError(null);
     startTransition(() => {
       void (async () => {
-        const result = await optOutOneSignalPush();
+        const result = await disableWebPush();
         if (!result.ok) {
-          setError(result.error ?? "Bildirimler kapatılırken bir hata oluştu.");
+          setError(result.error ?? "Bildirimler kapatılamadı.");
           return;
         }
-        setOptedIn(false);
+        setEnabled(false);
         setMessage("Tarayıcı bildirimleri kapatıldı.");
       })();
     });
@@ -85,24 +71,28 @@ export function PushNotificationsCard() {
     <div className="card mb-4">
       <div className="card-title">Tarayıcı Bildirimleri</div>
       <p className="text-text-secondary mb-3 text-sm">
-        Uygulama kapalıyken de bildirim almak için tarayıcı iznini açın. Push gönderimi
-        OneSignal üzerinden yapılır; uygulama içi bildirim merkezi ayrı çalışır. İzin,
-        OneSignal doğrulama diyalogundaki &quot;Got it&quot; ile istenir.
+        Uygulama kapalıyken de bildirim almak için tarayıcı iznini açın. Push
+        gönderimi Firebase Cloud Messaging üzerinden yapılır; uygulama içi
+        bildirim merkezi ayrı çalışır.
       </p>
 
       {!configured ? (
         <p className="text-sm text-amber-300">
-          OneSignal henüz yapılandırılmamış. Yönetici App ID ve{" "}
-          <code className="text-xs">ONESIGNAL_REST_API_KEY</code> değerlerini eklemeli.
+          Push bildirimleri henüz yapılandırılmamış. Yönetici Firebase ortam
+          değişkenlerini eklemelidir.
+        </p>
+      ) : permission === "unsupported" ? (
+        <p className="text-sm text-amber-300">
+          Bu tarayıcı bildirimleri desteklemiyor. Android Chrome PWA önerilir.
         </p>
       ) : (
         <div className="flex flex-wrap items-center gap-2">
-          {optedIn && permission === "granted" ? (
+          {enabled ? (
             <button
               type="button"
               className="btn btn-secondary min-h-11 min-w-11"
               disabled={pending}
-              onClick={disablePush}
+              onClick={disable}
             >
               {pending ? "İşleniyor…" : "Bildirimleri kapat"}
             </button>
@@ -111,7 +101,7 @@ export function PushNotificationsCard() {
               type="button"
               className="btn btn-primary min-h-11 min-w-11"
               disabled={pending}
-              onClick={enablePush}
+              onClick={enable}
             >
               {pending ? "İşleniyor…" : "Bildirimleri aç"}
             </button>
@@ -120,7 +110,7 @@ export function PushNotificationsCard() {
             Durum:{" "}
             {permission === "denied"
               ? "İzin reddedildi"
-              : optedIn
+              : enabled
                 ? "Açık"
                 : "Kapalı"}
           </span>

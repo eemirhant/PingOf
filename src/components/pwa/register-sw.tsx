@@ -2,20 +2,19 @@
 
 import { useEffect } from "react";
 
-import { ONESIGNAL_APP_ID } from "@/lib/onesignal/config";
+import { isFirebaseWebConfigured } from "@/lib/firebase/config";
 
 /**
- * Offline shell SW at root scope — only when OneSignal is not active.
- * With OneSignal configured, push uses root-scoped
- * `/OneSignalSDKWorker.js` (localhost ve Vercel Preview HTTPS dahil).
+ * Offline shell SW at root scope — only when FCM is not configured.
+ * With Firebase configured, `/firebase-messaging-sw.js` owns root scope for push.
  */
 export function RegisterServiceWorker() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (!("serviceWorker" in navigator) || !navigator.serviceWorker) return;
 
-    // OneSignal owns root scope for push when configured.
-    if (ONESIGNAL_APP_ID) return;
+    // FCM messaging SW owns root scope when Firebase web config is present.
+    if (isFirebaseWebConfigured()) return;
 
     const force =
       new URLSearchParams(window.location.search).get("sw") === "1" ||

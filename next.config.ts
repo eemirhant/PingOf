@@ -9,8 +9,7 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        // Root OneSignal SW must be JS and allowed to control `/`.
-        source: "/OneSignalSDKWorker.js",
+        source: "/sw.js",
         headers: [
           {
             key: "Content-Type",
@@ -21,19 +20,7 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        source: "/OneSignalSDKUpdaterWorker.js",
-        headers: [
-          {
-            key: "Content-Type",
-            value: "application/javascript; charset=utf-8",
-          },
-          { key: "Service-Worker-Allowed", value: "/" },
-          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
-        ],
-      },
-      {
-        // Legacy path — still served, but new installs use root worker.
-        source: "/push/onesignal/OneSignalSDKWorker.js",
+        source: "/firebase-messaging-sw.js",
         headers: [
           {
             key: "Content-Type",

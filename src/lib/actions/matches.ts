@@ -314,12 +314,6 @@ export async function enterPlannedMatchResultAction(
   _prevState: MatchActionState,
   formData: FormData,
 ): Promise<MatchActionState> {
-  console.log("[Runtime Info]", {
-    runtime: process.env.NEXT_RUNTIME,
-    nodeEnv: process.env.NODE_ENV,
-    apiKeyExists: !!process.env.ONESIGNAL_REST_API_KEY,
-  });
-
   const session = await auth();
 
   if (!session?.user) {

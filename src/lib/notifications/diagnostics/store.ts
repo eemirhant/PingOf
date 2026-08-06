@@ -2,7 +2,6 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { randomUUID } from "node:crypto";
 
 import type {
-  ClientSubscriptionReport,
   NotificationDiagEvent,
   NotificationDiagStep,
   NotificationDiagTrace,
@@ -10,18 +9,16 @@ import type {
 
 const MAX_TRACES = 50;
 const MAX_EVENTS = 100;
-const MAX_CLIENT_REPORTS = 30;
 
 type AlsContext = {
   traceId: string;
-  /** When true, createNotifications awaits OneSignal (debug tests only). */
+  /** When true, createNotifications awaits push delivery (debug tests only). */
   awaitPush?: boolean;
 };
 
 type GlobalDiagState = {
   traces: NotificationDiagTrace[];
   events: NotificationDiagEvent[];
-  clientReports: ClientSubscriptionReport[];
 };
 
 const g = globalThis as typeof globalThis & {
@@ -33,7 +30,6 @@ function state(): GlobalDiagState {
     g.__pingofNotificationDiag = {
       traces: [],
       events: [],
-      clientReports: [],
     };
   }
   return g.__pingofNotificationDiag;
@@ -42,10 +38,6 @@ function state(): GlobalDiagState {
 export const notificationDiagAls = new AsyncLocalStorage<AlsContext>();
 
 export function isNotificationDiagVerbose(): boolean {
-  return process.env.NODE_ENV === "development";
-}
-
-export function isNotificationDebugUiEnabled(): boolean {
   return process.env.NODE_ENV === "development";
 }
 
@@ -173,7 +165,6 @@ export function updateTrace(
       | "pushSent"
       | "success"
       | "organizationId"
-      | "onesignal"
       | "failureReasons"
     >
   >,
@@ -212,26 +203,6 @@ export function recordDiagEvent(
 
 export function getRecentEvents(limit = 50): NotificationDiagEvent[] {
   return state().events.slice(0, limit);
-}
-
-export function recordClientSubscriptionReport(
-  report: ClientSubscriptionReport,
-): void {
-  const s = state();
-  s.clientReports = s.clientReports.filter((r) => r.userId !== report.userId);
-  s.clientReports.unshift(report);
-  if (s.clientReports.length > MAX_CLIENT_REPORTS) {
-    s.clientReports.length = MAX_CLIENT_REPORTS;
-  }
-  consoleDiag(
-    report.issues.length > 0 ? "warn" : "info",
-    `client subscription report user=${report.userId}`,
-    { issues: report.issues, optedIn: report.optedIn },
-  );
-}
-
-export function getClientReports(): ClientSubscriptionReport[] {
-  return state().clientReports;
 }
 
 export async function runWithNotificationTrace<T>(

@@ -1,6 +1,5 @@
 /* PingOf offline shell (root scope).
- * Used only when OneSignal is not configured.
- * With OneSignal, push uses /push/onesignal/OneSignalSDKWorker.js (scoped).
+ * Push (FCM) handlers will be added in a later step.
  */
 const CACHE_NAME = "pingof-shell-v3";
 const OFFLINE_URL = "/offline.html";

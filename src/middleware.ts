@@ -186,6 +186,6 @@ export const config = {
      * Skip auth for static/PWA assets — otherwise browsers get HTML login
      * pages for manifest/sw/icons (Manifest: Syntax error).
      */
-    "/((?!api/auth|_next/static|_next/image|favicon.ico|icon.svg|uploads|icons/|sw\\.js|OneSignalSDKWorker\\.js|OneSignalSDKUpdaterWorker\\.js|offline\\.html|manifest\\.webmanifest|push/onesignal/).*)",
+    "/((?!api/auth|_next/static|_next/image|favicon.ico|icon.svg|uploads|icons/|sw\\.js|firebase-messaging-sw\\.js|offline\\.html|manifest\\.webmanifest).*)",
   ],
 };

@@ -1,5 +1,5 @@
 /**
- * Resolve the public origin for absolute links (invite, OneSignal click URL, emails).
+ * Resolve the public origin for absolute links (invite, notification URLs, emails).
  *
  * Priority:
  * 1. Request Host / x-forwarded-* (via getRequestOrigin)

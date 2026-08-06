@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import { AppHeader, MobileBottomNav } from "@/components/layout/app-header";
-import { OneSignalProvider } from "@/components/onesignal/onesignal-provider";
+import { FcmProvider } from "@/components/push/fcm-provider";
 import { RealtimeProvider } from "@/components/realtime/realtime-provider";
 import { countPendingIncoming } from "@/lib/challenges/service";
 import { countUnreadNotifications } from "@/lib/notifications/service";
@@ -40,7 +40,7 @@ export default async function ProtectedLayout({
       initialPendingChallenges={pendingCount}
       initialUnreadNotifications={unreadNotifications}
     >
-      <OneSignalProvider userId={session?.user?.id ?? null} />
+      <FcmProvider enabled={Boolean(session?.user)} />
       <div className="min-h-screen bg-bg-900">
         <AppHeader
           user={user}

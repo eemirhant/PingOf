@@ -27,13 +27,14 @@
     "@hookform/resolvers": "^5.0.1",
     "@prisma/client": "^6.9.0",
     "bcryptjs": "^3.0.2",
+    "firebase": "^12.17.1",
+    "firebase-admin": "^14.2.0",
     "lucide-react": "^1.28.0",
     "next": "^15.3.3",
     "next-auth": "^5.0.0-beta.28",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-hook-form": "^7.57.0",
-    "react-onesignal": "^3.4.0",
     "zod": "^3.25.51"
   },
   "devDependencies": {

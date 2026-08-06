@@ -10,10 +10,7 @@ export type DiagStepName =
   | "notification_created"
   | "preferences_checked"
   | "db_saved"
-  | "onesignal_user_lookup"
   | "push_subscription_lookup"
-  | "onesignal_api_called"
-  | "onesignal_api_response"
   | "push_sent";
 
 export type NotificationDiagStep = {
@@ -41,14 +38,6 @@ export type NotificationDiagTrace = {
   pushSent: boolean;
   success: boolean;
   failureReasons: string[];
-  onesignal?: {
-    statusCode?: number;
-    requestBody?: unknown;
-    responseBody?: unknown;
-    errorMessage?: string | null;
-    durationMs?: number;
-    notificationId?: string | null;
-  };
 };
 
 export type NotificationDiagEvent = {
@@ -62,19 +51,4 @@ export type NotificationDiagEvent = {
   pushSent: boolean | null;
   traceId?: string | null;
   meta?: unknown;
-};
-
-export type ClientSubscriptionReport = {
-  at: string;
-  userId: string;
-  organizationId: string;
-  externalId: string;
-  onesignalUserId?: string | null;
-  subscriptionId?: string | null;
-  pushToken?: string | null;
-  permission?: string | null;
-  optedIn?: boolean | null;
-  sdkInitialized?: boolean;
-  serviceWorkerRegistered?: boolean;
-  issues: string[];
 };

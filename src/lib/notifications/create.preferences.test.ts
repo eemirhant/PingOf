@@ -28,8 +28,8 @@ vi.mock("@/lib/notifications/preferences", () => ({
   getResolvedNotificationSettingsForUsers: getSettingsMock,
 }));
 
-vi.mock("@/lib/notifications/onesignal", () => ({
-  sendOneSignalPushToUsers: sendPushMock,
+vi.mock("@/lib/notifications/push", () => ({
+  sendPushToUsers: sendPushMock,
 }));
 
 vi.mock("@/lib/realtime/publish", () => ({

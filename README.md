@@ -39,10 +39,10 @@ cp .env.example .env
 | `AUTH_URL` | Opsiyonel kanonik URL (production / Vercel Preview’da HTTPS origin) |
 | `NEXT_PUBLIC_APP_URL` | Absolute linkler için genel uygulama URL’si |
 | `NEXT_PUBLIC_ENVIRONMENT` | `development` \| `production` |
-| `NEXT_PUBLIC_ONESIGNAL_APP_ID` | OneSignal App ID (istemci) |
-| `ONESIGNAL_REST_API_KEY` | OneSignal REST API Key (sunucu) |
+| `NEXT_PUBLIC_FIREBASE_*` | Firebase web app config + VAPID key |
+| `FIREBASE_PROJECT_ID` / `FIREBASE_CLIENT_EMAIL` / `FIREBASE_PRIVATE_KEY` | Firebase Admin (sunucu push) |
 
-OneSignal: Web platformunu **Custom Code** olarak yapılandırın; Dashboard **Site URL** açtığınız origin ile birebir eşleşmeli. `NEXT_PUBLIC_ONESIGNAL_APP_ID` + `ONESIGNAL_REST_API_KEY` ekleyin. İlk girişte doğrulama diyalogundaki **Got it** ile izin istenir; `external_id` = PingOf `user.id`.
+Push: Firebase Cloud Messaging. Ayarlar → Tarayıcı Bildirimleri ile izin + cihaz kaydı.
 
 3. Prisma client + migration:
 
@@ -76,22 +76,16 @@ Adres: `http://localhost:3000`
 
 ## Mobil Push / PWA testi
 
-OneSignal Web SDK v16, mobil tarayıcılarda **yalnızca HTTPS** (veya `localhost`) üzerinde push izni verir. Yerel `http://192.168.x.x:3000` ile telefonda test çalışmaz.
+1. Firebase env değişkenlerini doldurun (bkz. `.env.example`)
+2. HTTPS veya `localhost` üzerinde uygulamayı açın
+3. Ayarlar → Bildirimleri aç → izin verin
+4. Android Chrome’da “Ana ekrana ekle” ile PWA kurun; arka plan bildirimi desteklenir
 
-Mobil HTTPS testleri için **Vercel Preview** (veya production deploy) kullanın:
-
-1. PR / branch’i Vercel’e deploy edin  
-2. Preview URL’yi OneSignal Dashboard → **Site URL** olarak ayarlayın  
-3. Telefonda Chrome ile Preview URL’yi açın → giriş → Ana ekrana ekle  
-4. Bildirim izni verin (Got it / Ayarlar)  
-
-Manifest: `/manifest.webmanifest` · ikonlar: `/icons/*` · SW: `/OneSignalSDKWorker.js`.
-
-Yerel geliştirmede push için `http://localhost:3000` + OneSignal localhost ayarı yeterlidir (Chromium).
+Manifest: `/manifest.webmanifest` · ikonlar: `/icons/*` · FCM SW: `/firebase-messaging-sw.js`.
 
 ## Staging deploy (Vercel + Neon)
 
-Ayrıntılı adımlar: [STAGING.md](STAGING.md). Özet: Neon `DATABASE_URL` + Vercel env (`AUTH_SECRET`, `AUTH_URL`, OneSignal) + `npm run vercel-build`.
+Ayrıntılı adımlar: [STAGING.md](STAGING.md). Özet: Neon `DATABASE_URL` + Vercel env (`AUTH_SECRET`, `AUTH_URL`, Firebase) + `npm run vercel-build`.
 
 **Not:** `public/uploads` dosya sistemi Vercel’de kalıcı değildir.
 
@@ -103,7 +97,7 @@ Ayrıntılı adımlar: [STAGING.md](STAGING.md). Özet: Neon `DATABASE_URL` + Ve
 - [x] Turnuvalar (tek eleme + lig)
 - [x] PWA (manifest, SW, offline)
 - [x] İddia notu (US-16)
-- [x] Web Push (OneSignal + Ayarlar aboneliği)
+- [x] Web Push (Firebase Cloud Messaging + çoklu cihaz)
 - DoD kalite kapısı: [DOD.md](DOD.md)
 
 ## Referans

@@ -6,7 +6,6 @@
 
 import {
   NotificationType,
-  type NotificationTypeValue,
 } from "@/domain/notification";
 
 export const NotificationChannel = {

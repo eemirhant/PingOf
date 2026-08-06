@@ -8,7 +8,7 @@ import type { NotificationTypeValue } from "@/domain/notification";
  * Event-driven entry for notifications.
  * Call sites should prefer this over ad-hoc push sends.
  *
- * Flow: Event → preference filter → DB (in-app) → realtime → OneSignal push
+ * Flow: Event → preference filter → DB (in-app) → realtime → push provider (FCM)
  */
 export type NotificationEvent = {
   type: NotificationTypeValue | string;

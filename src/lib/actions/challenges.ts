@@ -29,12 +29,6 @@ export async function createChallengeAction(
   _prevState: ChallengeActionState,
   formData: FormData,
 ): Promise<ChallengeActionState> {
-  console.log("[Runtime Info]", {
-    runtime: process.env.NEXT_RUNTIME,
-    nodeEnv: process.env.NODE_ENV,
-    apiKeyExists: !!process.env.ONESIGNAL_REST_API_KEY,
-  });
-
   const session = await auth();
   if (!session?.user) {
     return { error: "Oturum bulunamadı" };
@@ -76,12 +70,6 @@ export async function acceptChallengeAction(
   _prevState: ChallengeActionState,
   formData: FormData,
 ): Promise<ChallengeActionState> {
-  console.log("[Runtime Info]", {
-    runtime: process.env.NEXT_RUNTIME,
-    nodeEnv: process.env.NODE_ENV,
-    apiKeyExists: !!process.env.ONESIGNAL_REST_API_KEY,
-  });
-
   const session = await auth();
   if (!session?.user) {
     return { error: "Oturum bulunamadı" };
@@ -112,12 +100,6 @@ export async function declineChallengeAction(
   _prevState: ChallengeActionState,
   formData: FormData,
 ): Promise<ChallengeActionState> {
-  console.log("[Runtime Info]", {
-    runtime: process.env.NEXT_RUNTIME,
-    nodeEnv: process.env.NODE_ENV,
-    apiKeyExists: !!process.env.ONESIGNAL_REST_API_KEY,
-  });
-
   const session = await auth();
   if (!session?.user) {
     return { error: "Oturum bulunamadı" };
