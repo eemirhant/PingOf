@@ -75,6 +75,7 @@ export async function saveUploadedImage(
 ): Promise<string> {
   void _key;
 
+  console.log("[TRACE] saveUploadedImage entered");
   console.log("[UPLOAD] START");
 
   const mimeType = file instanceof File ? file.type : "";
@@ -142,16 +143,25 @@ export async function saveUploadedImage(
   const objectPath = `${folder}/${filename}`;
 
   console.log("[UPLOAD] BEFORE PUT");
+  console.log("[TRACE] before blob.put");
   try {
     const blob = await put(objectPath, buffer, {
       access: "public",
       contentType: mime,
       addRandomSuffix: false,
     });
+    console.log("[TRACE] blob.put success");
     console.log("[UPLOAD] AFTER PUT");
     console.log("[UPLOAD] RETURN:", "success", blob.url);
     return blob.url;
   } catch (error) {
+    console.error("[TRACE] blob.put failed", error);
+    console.error(error);
+    if (error instanceof Error) {
+      console.error("[TRACE] error.name", error.name);
+      console.error("[TRACE] error.message", error.message);
+      console.error("[TRACE] error.stack", error.stack);
+    }
     console.error("[UPLOAD] THROW", error);
     if (error instanceof Error) {
       console.error(

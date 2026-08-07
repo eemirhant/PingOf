@@ -49,9 +49,27 @@ export async function updateProfileAction(
   _prevState: ProfileActionState,
   formData: FormData,
 ): Promise<ProfileActionState> {
+  console.log("[TRACE] updateProfileAction entered");
+  console.log("[ACTION] updateProfileAction entered");
+
+  for (const [k, v] of formData.entries()) {
+    if (v instanceof File) {
+      console.log("[TRACE] formData entry", k, {
+        constructor: v.constructor?.name,
+        type: v.type,
+        size: v.size,
+        name: v.name,
+      });
+    } else {
+      console.log("[TRACE]", k, v);
+    }
+  }
+
   const session = await auth();
 
   if (!session?.user) {
+    console.log("[ACTION] RETURN: no session — skipping upload");
+    console.log("[TRACE] RETURN early: no session");
     return { error: "Oturum bulunamadı" };
   }
 
@@ -63,22 +81,86 @@ export async function updateProfileAction(
   const parsed = updateProfileSchema.safeParse(raw);
 
   if (!parsed.success) {
+    console.log("[ACTION] RETURN: zod validation failed — skipping upload", {
+      fieldErrors: zodFieldErrors(parsed.error),
+    });
+    console.log("[TRACE] RETURN early: zod failed");
     return { fieldErrors: zodFieldErrors(parsed.error) };
   }
 
   const removePhoto = String(formData.get("removePhoto") ?? "") === "1";
   const photo = formData.get("photo");
 
+  console.log("[TRACE] photo raw value", photo);
+  console.log("[TRACE] photo instanceof File =", photo instanceof File);
+  if (photo && typeof photo === "object") {
+    const p = photo as File;
+    console.log("[TRACE] photo.constructor.name =", p.constructor?.name);
+    console.log("[TRACE] photo.size =", "size" in p ? p.size : undefined);
+    console.log("[TRACE] photo.type =", "type" in p ? p.type : undefined);
+    console.log("[TRACE] photo.name =", "name" in p ? p.name : undefined);
+    console.log({
+      constructor: p.constructor?.name,
+      type: "type" in p ? p.type : undefined,
+      size: "size" in p ? p.size : undefined,
+      name: "name" in p ? p.name : undefined,
+    });
+  }
+
+  console.log("[ACTION] formData.get('photo') raw", {
+    isNull: photo === null,
+    typeofPhoto: typeof photo,
+    isString: typeof photo === "string",
+    isFile: photo instanceof File,
+    isBlob: typeof Blob !== "undefined" && photo instanceof Blob,
+    constructor: photo && typeof photo === "object" ? (photo as { constructor?: { name?: string } }).constructor?.name : undefined,
+    type: photo && typeof photo === "object" && "type" in photo ? (photo as File).type : undefined,
+    size: photo && typeof photo === "object" && "size" in photo ? (photo as File).size : undefined,
+    name: photo && typeof photo === "object" && "name" in photo ? (photo as File).name : undefined,
+  });
+
+  console.log("[ACTION] photo instanceof File =", photo instanceof File);
+  if (photo instanceof File) {
+    console.log("[ACTION] photo.size =", photo.size);
+    console.log("[ACTION] photo.size > 0 =", photo.size > 0);
+  } else if (photo === null) {
+    console.log("[ACTION] photo is null (formData.get returned null)");
+  } else if (typeof photo === "string") {
+    console.log("[ACTION] photo is string =", photo.slice(0, 80));
+  } else {
+    console.log("[ACTION] photo is unexpected type", {
+      typeofPhoto: typeof photo,
+      constructor: photo && typeof photo === "object" ? (photo as { constructor?: { name?: string } }).constructor?.name : undefined,
+    });
+  }
+
+  const gate = photo instanceof File && photo.size > 0;
+  console.log("[ACTION] removePhoto =", removePhoto);
+  console.log("[ACTION] upload gate: photo instanceof File && photo.size > 0 =", gate);
+  console.log("[TRACE] gate photo instanceof File && photo.size > 0 =", gate);
+  if (!gate) {
+    console.log("[TRACE] gate false because", {
+      photoIsNull: photo === null,
+      photoIsString: typeof photo === "string",
+      photoIsFile: photo instanceof File,
+      photoSize: photo instanceof File ? photo.size : null,
+      sizeGtZero: photo instanceof File ? photo.size > 0 : false,
+    });
+  }
+
   let photoDataUrl: string | null = null;
   if (photo instanceof File && photo.size > 0) {
+    console.log("[ACTION] calling saveUploadedImage");
     console.log("[Avatar Upload Action] starting saveUploadedImage", {
       photoName: photo.name,
       photoType: photo.type,
       photoSize: photo.size,
     });
     try {
+      console.log("[TRACE] before saveUploadedImage");
       console.log("[ACTION] before saveUploadedImage");
       photoDataUrl = await saveUploadedImage(photo, "avatars", session.user.id);
+      console.log("[TRACE] after saveUploadedImage");
       console.log("[ACTION] after saveUploadedImage");
       console.log("[Avatar Upload Action] saveUploadedImage returned", photoDataUrl);
     } catch (error) {
@@ -93,15 +175,30 @@ export async function updateProfileAction(
         });
       }
       if (error instanceof ImageUploadError) {
+        console.log("[ACTION] RETURN: ImageUploadError from saveUploadedImage", error.message);
         return { fieldErrors: { photo: [error.message] } };
       }
       console.error("[profile] photo upload failed", error);
+      console.log("[ACTION] RETURN: unexpected upload error");
       return { error: "Fotoğraf yüklenirken bir hata oluştu." };
     }
   } else {
+    let skipReason = "unknown";
+    if (photo === null) {
+      skipReason = "formData.get('photo') === null";
+    } else if (typeof photo === "string") {
+      skipReason = "typeof photo === 'string'";
+    } else if (!(photo instanceof File)) {
+      skipReason = "!(photo instanceof File)";
+    } else if (photo.size <= 0) {
+      skipReason = "photo.size <= 0 (empty File)";
+    }
+    console.log("[ACTION] skipping upload because", skipReason);
+    console.log("[TRACE] skipping upload because", skipReason);
     console.log("[Avatar Upload Action] no photo file in formData", {
       isFile: photo instanceof File,
       size: photo instanceof File ? photo.size : null,
+      skipReason,
     });
   }
 
@@ -121,6 +218,11 @@ export async function updateProfileAction(
 
     revalidateProfileSurfaces(session.user.id);
 
+    console.log("[ACTION] RETURN: profile update success", {
+      hadUpload: Boolean(photoDataUrl),
+      avatarUrl: updated.avatarUrl,
+    });
+
     return {
       success: "Profil güncellendi.",
       avatarUrl: updated.avatarUrl,
@@ -130,11 +232,14 @@ export async function updateProfileAction(
   } catch (error) {
     if (error instanceof ProfileError) {
       if (error.field) {
+        console.log("[ACTION] RETURN: ProfileError field", error.field, error.message);
         return { fieldErrors: { [error.field]: [error.message] } };
       }
+      console.log("[ACTION] RETURN: ProfileError", error.message);
       return { error: error.message };
     }
     console.error("[profile] update failed", error);
+    console.log("[ACTION] RETURN: unexpected profile update error");
     return { error: "Profil güncellenirken bir hata oluştu." };
   }
 }

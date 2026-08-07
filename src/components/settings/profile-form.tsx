@@ -141,10 +141,19 @@ export function ProfileForm({
   }
 
   function submitAction(formData: FormData) {
+    console.log("[TRACE] client submitAction", {
+      hasPendingFile: Boolean(pendingFileRef.current),
+      pendingName: pendingFileRef.current?.name,
+      pendingSize: pendingFileRef.current?.size,
+      pendingType: pendingFileRef.current?.type,
+      inputFilesLength: fileRef.current?.files?.length ?? 0,
+    });
     if (pendingFileRef.current) {
       formData.set("photo", pendingFileRef.current);
+      console.log("[TRACE] client set photo from pendingFileRef");
     } else {
       formData.delete("photo");
+      console.log("[TRACE] client deleted photo — pendingFileRef empty");
     }
     formAction(formData);
   }
