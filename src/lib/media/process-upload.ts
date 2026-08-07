@@ -144,6 +144,20 @@ export async function saveUploadedImage(
 
   console.log("[UPLOAD] BEFORE PUT");
   console.log("[TRACE] before blob.put");
+  const tokenForDiag = process.env.BLOB_READ_WRITE_TOKEN;
+  console.log({
+    hasToken: !!tokenForDiag,
+    tokenPrefix: tokenForDiag?.slice(0, 20),
+    vercelEnv: process.env.VERCEL_ENV,
+    nodeEnv: process.env.NODE_ENV,
+    vercel: process.env.VERCEL,
+  });
+  console.log("[TRACE] token typeof", typeof tokenForDiag);
+  console.log("[TRACE] token is undefined", tokenForDiag === undefined);
+  console.log("[TRACE] token is null", tokenForDiag === null);
+  console.log("[TRACE] token is empty string", tokenForDiag === "");
+  console.log("[TRACE] token length", tokenForDiag?.length ?? null);
+  console.log("[TRACE] token trimmed empty", tokenForDiag?.trim() === "");
   try {
     const blob = await put(objectPath, buffer, {
       access: "public",
