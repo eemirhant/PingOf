@@ -57,7 +57,10 @@ export async function createChallengeAction(
 
   try {
     await createChallenge(session.user.organizationId, session.user.id, parsed.data);
-    redirect("/challenges?tab=outgoing");
+    revalidatePath("/challenges");
+    revalidatePath("/");
+    revalidatePath("/", "layout");
+    return { success: "Gönderildi" };
   } catch (error) {
     if (isRedirectError(error)) throw error;
     if (error instanceof ChallengeError) {
@@ -87,6 +90,11 @@ export async function acceptChallengeAction(
       session.user.id,
       challengeId,
     );
+    revalidatePath("/challenges");
+    revalidatePath(`/matches/${result.matchId}`);
+    revalidatePath("/matches");
+    revalidatePath("/");
+    revalidatePath("/", "layout");
     redirect(`/matches/${result.matchId}`);
   } catch (error) {
     if (isRedirectError(error)) throw error;
@@ -118,6 +126,8 @@ export async function declineChallengeAction(
       challengeId,
     );
     revalidatePath("/challenges");
+    revalidatePath("/");
+    revalidatePath("/", "layout");
     return { success: "Teklif reddedildi" };
   } catch (error) {
     if (error instanceof ChallengeError) {
@@ -148,6 +158,7 @@ export async function cancelChallengeAction(
       challengeId,
     );
     revalidatePath("/challenges");
+    revalidatePath("/");
     revalidatePath("/", "layout");
     return { success: "Meydan okuma iptal edildi." };
   } catch (error) {

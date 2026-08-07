@@ -91,6 +91,9 @@ export async function createTournamentAction(
       session.user.id,
       parsed.data,
     );
+    revalidatePath(`/tournaments/${tournament.id}`);
+    revalidatePath("/tournaments");
+    revalidatePath("/");
     redirect(`/tournaments/${tournament.id}`);
   } catch (error) {
     if (isRedirectError(error)) throw error;

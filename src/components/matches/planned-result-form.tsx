@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +16,12 @@ import {
   enterPlannedMatchResultAction,
   type MatchActionState,
 } from "@/lib/actions/matches";
+import { buildCelebrationPayload } from "@/lib/celebration/build";
+import {
+  clearMatchCelebration,
+  queueMatchCelebration,
+} from "@/lib/celebration/storage";
+import type { CelebrationPlayer } from "@/lib/celebration/types";
 
 const initialState: MatchActionState = {};
 
@@ -23,12 +29,22 @@ type PlannedResultFormProps = {
   matchId: string;
   team1Label: string;
   team2Label: string;
+  currentUserId: string;
+  myTeam: 1 | 2;
+  currentUser: CelebrationPlayer;
+  isTournamentFinal?: boolean;
+  tournamentName?: string | null;
 };
 
 export function PlannedResultForm({
   matchId,
   team1Label,
   team2Label,
+  currentUserId,
+  myTeam,
+  currentUser,
+  isTournamentFinal = false,
+  tournamentName = null,
 }: PlannedResultFormProps) {
   const [state, formAction, isPending] = useActionState(
     enterPlannedMatchResultAction,
@@ -41,6 +57,10 @@ export function PlannedResultForm({
   const team2SetsWon = progress.ok ? progress.team2SetsWon : 0;
   const canSubmit = progress.ok && progress.complete;
 
+  useEffect(() => {
+    if (state.error) clearMatchCelebration();
+  }, [state.error]);
+
   function updateSet(index: number, side: "team1Score" | "team2Score", value: string) {
     const sanitized = sanitizeScoreInput(value);
     setSets((prev) => {
@@ -51,8 +71,28 @@ export function PlannedResultForm({
     });
   }
 
+  function onSubmit() {
+    if (!progress.ok || !progress.complete || progress.winnerTeam == null) return;
+    const payload = buildCelebrationPayload({
+      matchId,
+      myTeam,
+      winnerTeam: progress.winnerTeam,
+      team1SetsWon: progress.team1SetsWon,
+      team2SetsWon: progress.team2SetsWon,
+      isTournamentFinal,
+      tournamentName,
+      player: {
+        id: currentUserId,
+        fullName: currentUser.fullName,
+        avatarUrl: currentUser.avatarUrl,
+        avatarColor: currentUser.avatarColor,
+      },
+    });
+    if (payload) queueMatchCelebration(payload);
+  }
+
   return (
-    <form action={formAction} className="mx-auto max-w-[680px] space-y-4">
+    <form action={formAction} onSubmit={onSubmit} className="mx-auto max-w-[680px] space-y-4">
       <input type="hidden" name="matchId" value={matchId} />
       <input type="hidden" name="sets" value={JSON.stringify(toSetInputs(sets))} />
 
@@ -123,9 +163,9 @@ export function PlannedResultForm({
                   style={
                     w2
                       ? {
-                          color: "var(--color-green)",
-                          borderColor: "rgba(16,185,129,0.3)",
-                          background: "rgba(16,185,129,0.06)",
+                          color: "var(--color-red)",
+                          borderColor: "rgba(244,63,94,0.3)",
+                          background: "rgba(244,63,94,0.06)",
                         }
                       : undefined
                   }
@@ -155,6 +195,7 @@ export function PlannedResultForm({
           className="flex-1"
           size="lg"
           disabled={isPending || !canSubmit}
+          loading={isPending}
         >
           {isPending ? "Kaydediliyor…" : "Sonucu Kaydet"}
         </Button>

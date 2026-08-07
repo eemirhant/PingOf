@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   tournamentStatusLabel,
   tournamentTypeLabel,
@@ -44,15 +45,14 @@ export default async function TournamentsPage() {
       </div>
 
       {tournaments.length === 0 ? (
-        <div className="card empty-state mt-6">
-          <div className="empty-title">Henüz turnuva yok</div>
-          <p className="empty-desc">
-            Organizasyonunda ilk turnuvayı oluşturarak eşleşmeleri başlat.
-          </p>
-          <Link href="/tournaments/new" className="btn btn-primary">
-            Turnuva Oluştur
-          </Link>
-        </div>
+        <EmptyState
+          className="mt-6"
+          icon="🏆"
+          title="Henüz turnuva yok"
+          description="Organizasyonunda ilk turnuvayı oluşturarak eşleşmeleri başlat."
+          actionHref="/tournaments/new"
+          actionLabel="Turnuva Oluştur"
+        />
       ) : (
         <ul className="mt-6 space-y-3">
           {tournaments.map((t) => {

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  memo,
   useCallback,
   useEffect,
   useMemo,
@@ -8,7 +9,6 @@ import {
   useState,
   useTransition,
 } from "react";
-import { useRouter } from "next/navigation";
 import { Bell, CheckCheck, MoreHorizontal, Trash2 } from "lucide-react";
 
 import {
@@ -16,10 +16,13 @@ import {
   type NotificationListItem,
 } from "@/components/notifications/notification-swipe-item";
 import { useRealtime } from "@/components/realtime/realtime-provider";
+import { useLiveEvents } from "@/hooks/use-live-events";
+import { RealtimeEventType } from "@/domain/realtime";
 import {
   clearAllNotificationsAction,
   deleteNotificationAction,
   deleteReadNotificationsAction,
+  fetchNotificationsFeedAction,
   markAllNotificationsReadAction,
   openNotificationAction,
 } from "@/lib/actions/notifications";
@@ -50,26 +53,73 @@ const GROUP_ORDER: NotificationDateGroupId[] = [
   "older",
 ];
 
+const MemoSwipeItem = memo(NotificationSwipeItem);
+
 export function NotificationCenter({
   initialItems,
   initialUnreadCount,
-  total,
+  total: initialTotal,
 }: NotificationCenterProps) {
-  const router = useRouter();
   const { setUnreadNotificationsOptimistic } = useRealtime();
   const [items, setItems] = useState(initialItems);
+  const [total, setTotal] = useState(initialTotal);
   const [filter, setFilter] = useState<NotificationFilterId>("all");
   const [exitingIds, setExitingIds] = useState<Set<string>>(new Set());
+  const [enteringIds, setEnteringIds] = useState<Set<string>>(new Set());
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmClearAll, setConfirmClearAll] = useState(false);
   const [busy, startTransition] = useTransition();
   const menuRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
 
   useEffect(() => {
-    setItems(initialItems);
-  }, [initialItems]);
+    setItems((prev) => {
+      const prevIds = new Set(prev.map((i) => i.id));
+      const incoming = initialItems.filter((i) => !prevIds.has(i.id));
+      if (incoming.length === 0 && prev.length === initialItems.length) {
+        // Prefer server truth for read flags when lengths match.
+        const map = new Map(initialItems.map((i) => [i.id, i]));
+        return prev.map((p) => map.get(p.id) ?? p);
+      }
+      if (incoming.length > 0) {
+        setEnteringIds(new Set(incoming.map((i) => i.id)));
+        window.setTimeout(() => setEnteringIds(new Set()), 200);
+      }
+      return initialItems;
+    });
+    setTotal(initialTotal);
+  }, [initialItems, initialTotal]);
+
+  const mergeFeed = useCallback(async () => {
+    const feed = await fetchNotificationsFeedAction();
+    if (!feed) return;
+
+    setItems((prev) => {
+      const known = new Set(prev.map((i) => i.id));
+      const fresh = feed.items.filter((i) => !known.has(i.id));
+      if (fresh.length === 0) {
+        const map = new Map(feed.items.map((i) => [i.id, i]));
+        return prev.map((p) => map.get(p.id) ?? p);
+      }
+      setEnteringIds(new Set(fresh.map((i) => i.id)));
+      window.setTimeout(() => setEnteringIds(new Set()), 200);
+      return [...fresh, ...prev].sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
+    });
+    setTotal(feed.total);
+    setUnreadNotificationsOptimistic(feed.unreadCount);
+  }, [setUnreadNotificationsOptimistic]);
+
+  const liveTypes = useMemo(() => [RealtimeEventType.NOTIFICATION], []);
+  const onLive = useCallback(() => {
+    void mergeFeed();
+  }, [mergeFeed]);
+  useLiveEvents(liveTypes, onLive);
 
   useEffect(() => {
     return () => {
@@ -116,15 +166,11 @@ export function NotificationCenter({
 
   const unreadInView = items.filter((i) => !i.isRead).length;
 
-  const commitDelete = useCallback(
-    async (item: NotificationListItem) => {
-      const fd = new FormData();
-      fd.set("notificationId", item.id);
-      await deleteNotificationAction({}, fd);
-      startTransition(() => router.refresh());
-    },
-    [router],
-  );
+  const commitDelete = useCallback(async (item: NotificationListItem) => {
+    const fd = new FormData();
+    fd.set("notificationId", item.id);
+    await deleteNotificationAction({}, fd);
+  }, []);
 
   const requestDelete = useCallback(
     (item: NotificationListItem) => {
@@ -132,6 +178,7 @@ export function NotificationCenter({
 
       window.setTimeout(() => {
         setItems((prev) => prev.filter((n) => n.id !== item.id));
+        setTotal((t) => Math.max(0, t - 1));
         setExitingIds((prev) => {
           const next = new Set(prev);
           next.delete(item.id);
@@ -153,7 +200,7 @@ export function NotificationCenter({
         }, 5000);
 
         setPendingDelete({ item, timeoutId });
-      }, 280);
+      }, 150);
     },
     [commitDelete, pendingDelete, setUnreadNotificationsOptimistic],
   );
@@ -170,6 +217,7 @@ export function NotificationCenter({
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       );
     });
+    setTotal((t) => t + 1);
     if (!restored.isRead) {
       setUnreadNotificationsOptimistic((n) => n + 1);
     }
@@ -191,33 +239,53 @@ export function NotificationCenter({
   }
 
   function markAllRead() {
+    const snapshot = itemsRef.current;
     setItems((prev) => prev.map((n) => ({ ...n, isRead: true })));
     setUnreadNotificationsOptimistic(0);
     const fd = new FormData();
     startTransition(async () => {
-      await markAllNotificationsReadAction({}, fd);
-      router.refresh();
+      const result = await markAllNotificationsReadAction({}, fd);
+      if (result.error) {
+        setItems(snapshot);
+        setUnreadNotificationsOptimistic(
+          snapshot.filter((n) => !n.isRead).length,
+        );
+      }
     });
   }
 
   function clearRead() {
     setMenuOpen(false);
-    setItems((prev) => prev.filter((n) => !n.isRead));
+    const snapshot = itemsRef.current;
+    const next = snapshot.filter((n) => !n.isRead);
+    setItems(next);
+    setTotal(next.length);
     const fd = new FormData();
     startTransition(async () => {
-      await deleteReadNotificationsAction({}, fd);
-      router.refresh();
+      const result = await deleteReadNotificationsAction({}, fd);
+      if (result.error) {
+        setItems(snapshot);
+        setTotal(snapshot.length);
+      }
     });
   }
 
   function clearAll() {
     setConfirmClearAll(false);
+    const snapshot = itemsRef.current;
     setItems([]);
+    setTotal(0);
     setUnreadNotificationsOptimistic(0);
     const fd = new FormData();
     startTransition(async () => {
-      await clearAllNotificationsAction({}, fd);
-      router.refresh();
+      const result = await clearAllNotificationsAction({}, fd);
+      if (result.error) {
+        setItems(snapshot);
+        setTotal(snapshot.length);
+        setUnreadNotificationsOptimistic(
+          snapshot.filter((n) => !n.isRead).length,
+        );
+      }
     });
   }
 
@@ -306,16 +374,18 @@ export function NotificationCenter({
       </div>
 
       {filtered.length === 0 ? (
-        <div className="nc-empty" role="status">
+        <div className="nc-empty ui-empty-nc" role="status">
           <div className="nc-empty-art" aria-hidden>
             <Bell size={40} strokeWidth={1.5} />
             <span className="nc-empty-ring" />
           </div>
-          <h2 className="nc-empty-title">Bildirimin bulunmuyor.</h2>
+          <h2 className="nc-empty-title">
+            {filter === "all" ? "Bildirimin bulunmuyor" : "Sonuç bulunamadı"}
+          </h2>
           <p className="nc-empty-desc">
             {filter === "all"
               ? "Maç, teklif ve turnuva olayları burada görünür."
-              : "Bu filtrede gösterilecek bildirim yok."}
+              : "Bu filtrede gösterilecek bildirim yok. Filtreyi değiştirmeyi dene."}
           </p>
         </div>
       ) : (
@@ -330,10 +400,10 @@ export function NotificationCenter({
                   <li
                     key={item.id}
                     role="listitem"
-                    className="nc-row"
+                    className={`nc-row ${enteringIds.has(item.id) ? "live-card--enter" : ""} ${exitingIds.has(item.id) ? "live-card--exit" : ""}`}
                     style={{ contentVisibility: "auto", containIntrinsicSize: "0 76px" }}
                   >
-                    <NotificationSwipeItem
+                    <MemoSwipeItem
                       item={item}
                       exiting={exitingIds.has(item.id)}
                       onOpen={openItem}

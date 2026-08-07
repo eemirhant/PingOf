@@ -8,6 +8,9 @@ import {
   type PlayerStats,
   type StatsMatch,
 } from "@/domain/player-stats";
+import type { AchievementProgress } from "@/domain/achievements";
+import { evaluateAchievements } from "@/domain/achievements";
+import { loadTournamentAchievementHints } from "@/lib/achievements/service";
 import { prisma } from "@/lib/db";
 import { withOrgScope } from "@/lib/org-scope";
 
@@ -161,6 +164,7 @@ export type PlayerProfilePayload = {
   };
   stats: PlayerStats;
   rank: number | null;
+  achievements: AchievementProgress[];
   history: {
     rows: MatchHistoryRow[];
     total: number;
@@ -188,12 +192,14 @@ export async function getPlayerProfileStats(
 
   if (!user) return null;
 
-  const [matches, players] = await Promise.all([
+  const [matches, players, tournamentHints] = await Promise.all([
     loadCompletedMatchesForOrg(organizationId),
     loadOrgPlayers(organizationId),
+    loadTournamentAchievementHints(organizationId),
   ]);
 
   const stats = computePlayerStats(playerId, matches);
+  const achievements = evaluateAchievements(playerId, matches, tournamentHints);
   const rank = findPlayerRank(
     playerId,
     players.map((p) => ({ id: p.id, fullName: p.fullName })),
@@ -212,6 +218,7 @@ export async function getPlayerProfileStats(
     user,
     stats,
     rank,
+    achievements,
     history: {
       rows,
       total,

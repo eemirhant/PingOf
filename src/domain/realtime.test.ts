@@ -18,6 +18,7 @@ describe("eventTypesForPath", () => {
     const types = eventTypesForPath("/");
     expect(types).toContain(RealtimeEventType.MATCH_RESULT);
     expect(types).toContain(RealtimeEventType.NOTIFICATION);
+    expect(types).toContain(RealtimeEventType.PROFILE_UPDATED);
   });
 
   it("maps tournament and leaderboard", () => {
@@ -46,7 +47,7 @@ describe("eventsMatchPath", () => {
 
   it("returns false when none match", () => {
     expect(
-      eventsMatchPath([RealtimeEventType.PROFILE_UPDATED], "/challenges"),
+      eventsMatchPath([RealtimeEventType.PROFILE_UPDATED], "/notifications"),
     ).toBe(false);
   });
 });

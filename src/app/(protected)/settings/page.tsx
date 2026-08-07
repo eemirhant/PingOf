@@ -49,7 +49,7 @@ export default async function SettingsPage() {
   );
 
   return (
-    <div className="mx-auto max-w-[720px] px-6 py-8">
+    <div className="mx-auto max-w-[720px] px-6 py-8 ui-page-enter">
       <div className="mb-6">
         <Link href="/" className="text-text-muted hover:text-text-secondary text-sm">
           ← Ana sayfa
@@ -57,7 +57,7 @@ export default async function SettingsPage() {
         <h1 className="mt-2 text-xl font-bold text-text-primary">Ayarlar</h1>
       </div>
 
-      <div className="card mb-4">
+      <div className="card card-static mb-4">
         <ProfileForm
           userId={profile.id}
           fullName={profile.fullName}
@@ -71,7 +71,7 @@ export default async function SettingsPage() {
 
       {isOwner ? (
         <div
-          className="card mb-4"
+          className="card card-static mb-4"
           style={{ borderColor: "rgba(234,179,8,0.2)" }}
         >
           <OrganizationLogoForm
@@ -81,7 +81,7 @@ export default async function SettingsPage() {
         </div>
       ) : null}
 
-      <div className="card mb-4">
+      <div className="card card-static mb-4">
         <ChangePasswordForm />
       </div>
 

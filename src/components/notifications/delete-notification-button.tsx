@@ -1,7 +1,6 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useActionState } from "react";
 
 import {
   deleteNotificationAction,
@@ -15,17 +14,10 @@ export function DeleteNotificationButton({
 }: {
   notificationId: string;
 }) {
-  const router = useRouter();
   const [state, action, pending] = useActionState(
     deleteNotificationAction,
     initialState,
   );
-
-  useEffect(() => {
-    if (state.success) {
-      router.refresh();
-    }
-  }, [state.success, router]);
 
   return (
     <form

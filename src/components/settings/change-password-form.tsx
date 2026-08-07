@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { InlineSuccess } from "@/components/ui/inline-success";
 import { PasswordField } from "@/components/ui/password-field";
 import { changePasswordAction, type ProfileActionState } from "@/lib/actions/profile";
 
@@ -56,19 +57,10 @@ export function ChangePasswordForm() {
       ) : null}
 
       {state.success ? (
-        <p
-          className="mb-4 rounded-md border px-3 py-2 text-sm text-green"
-          style={{
-            background: "rgba(16,185,129,0.08)",
-            borderColor: "rgba(16,185,129,0.2)",
-          }}
-          role="status"
-        >
-          ✅ {state.success}
-        </p>
+        <InlineSuccess trigger={state.success} message={state.success} />
       ) : null}
 
-      <Button type="submit" variant="secondary" size="sm" disabled={isPending}>
+      <Button type="submit" variant="secondary" size="sm" loading={isPending}>
         {isPending ? "Güncelleniyor…" : "Şifreyi Güncelle"}
       </Button>
     </form>

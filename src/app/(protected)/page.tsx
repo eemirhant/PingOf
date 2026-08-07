@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { DashboardLeaderboardSection } from "@/components/dashboard/dashboard-leaderboard-section";
 import { UpcomingMatchesSection } from "@/components/dashboard/upcoming-matches-section";
+import { EmptyState } from "@/components/ui/empty-state";
 import { FormBadges } from "@/components/players/form-badges";
 import {
   canEnterResult,
@@ -221,14 +222,13 @@ export default async function HomePage() {
       </div>
 
       {recentMatches.length === 0 ? (
-        <div className="card text-center">
-          <p className="text-text-secondary text-sm">
-            Henüz geçmiş maç yok. İlk maçını ekleyerek başla.
-          </p>
-          <Link href="/matches/new" className="btn btn-primary btn-sm mt-4">
-            Maç Ekle
-          </Link>
-        </div>
+        <EmptyState
+          icon="🏓"
+          title="Henüz geçmiş maç yok"
+          description="İlk maçını ekleyerek sıralamaya ve istatistiklere başla."
+          actionHref="/matches/new"
+          actionLabel="Maç Ekle"
+        />
       ) : (
         <div className="space-y-3">
           {recentMatches.map((match) => {

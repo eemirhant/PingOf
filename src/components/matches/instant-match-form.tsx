@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { DarkSelect } from "@/components/ui/dark-select";
@@ -19,6 +19,14 @@ import {
   updateInstantMatchAction,
   type MatchActionState,
 } from "@/lib/actions/matches";
+import {
+  buildCelebrationPayload,
+  resolveMyTeam,
+} from "@/lib/celebration/build";
+import {
+  clearMatchCelebration,
+  queueMatchCelebration,
+} from "@/lib/celebration/storage";
 import type { OrgPlayerOption } from "@/lib/matches/service";
 import { UserAvatar } from "@/components/ui/user-avatar";
 
@@ -82,6 +90,10 @@ export function InstantMatchForm({
   const [stakeNote, setStakeNote] = useState(initialValues?.stakeNote ?? "");
   const [team1Name, setTeam1Name] = useState(initialValues?.team1Name ?? "");
   const [team2Name, setTeam2Name] = useState(initialValues?.team2Name ?? "");
+
+  useEffect(() => {
+    if (state.error) clearMatchCelebration();
+  }, [state.error]);
 
   const team1PlayerIds =
     format === "SINGLES"
@@ -163,8 +175,27 @@ export function InstantMatchForm({
 
   const cancelHref = isEdit && matchId ? `/matches/${matchId}` : "/matches";
 
+  function onSubmit() {
+    if (!progress.ok || !progress.complete || progress.winnerTeam == null) return;
+    const myTeam = resolveMyTeam(currentUserId, team1PlayerIds, team2PlayerIds);
+    const payload = buildCelebrationPayload({
+      matchId: matchId ?? "pending",
+      myTeam,
+      winnerTeam: progress.winnerTeam,
+      team1SetsWon: progress.team1SetsWon,
+      team2SetsWon: progress.team2SetsWon,
+      player: {
+        id: currentUserId,
+        fullName: currentUserName,
+        avatarUrl: currentUserAvatarUrl,
+        avatarColor: currentUserAvatarColor,
+      },
+    });
+    if (payload) queueMatchCelebration(payload);
+  }
+
   return (
-    <form action={formAction} className="mx-auto max-w-[680px] space-y-4">
+    <form action={formAction} onSubmit={onSubmit} className="mx-auto max-w-[680px] space-y-4">
       {isEdit && matchId ? <input type="hidden" name="matchId" value={matchId} /> : null}
       <input type="hidden" name="format" value={format} />
       <input type="hidden" name="team1PlayerIds" value={JSON.stringify(team1PlayerIds)} />

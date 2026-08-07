@@ -32,7 +32,11 @@ export function filterEventsSince<T extends { createdAt: string }>(
 /** Pathname → event types that should trigger a soft router.refresh. */
 export function eventTypesForPath(pathname: string): RealtimeEventTypeValue[] {
   if (pathname.startsWith("/challenges")) {
-    return [RealtimeEventType.CHALLENGE_UPDATED, RealtimeEventType.MATCH_UPSERTED];
+    return [
+      RealtimeEventType.CHALLENGE_UPDATED,
+      RealtimeEventType.MATCH_UPSERTED,
+      RealtimeEventType.NOTIFICATION,
+    ];
   }
   if (pathname.startsWith("/notifications")) {
     return [RealtimeEventType.NOTIFICATION];
@@ -42,6 +46,8 @@ export function eventTypesForPath(pathname: string): RealtimeEventTypeValue[] {
       RealtimeEventType.MATCH_UPSERTED,
       RealtimeEventType.MATCH_RESULT,
       RealtimeEventType.CHALLENGE_UPDATED,
+      RealtimeEventType.TOURNAMENT_UPDATED,
+      RealtimeEventType.LEADERBOARD_DIRTY,
     ];
   }
   if (pathname.startsWith("/tournaments")) {
@@ -49,10 +55,15 @@ export function eventTypesForPath(pathname: string): RealtimeEventTypeValue[] {
       RealtimeEventType.TOURNAMENT_UPDATED,
       RealtimeEventType.MATCH_RESULT,
       RealtimeEventType.MATCH_UPSERTED,
+      RealtimeEventType.PROFILE_UPDATED,
     ];
   }
   if (pathname.startsWith("/leaderboard")) {
-    return [RealtimeEventType.LEADERBOARD_DIRTY, RealtimeEventType.MATCH_RESULT];
+    return [
+      RealtimeEventType.LEADERBOARD_DIRTY,
+      RealtimeEventType.MATCH_RESULT,
+      RealtimeEventType.PROFILE_UPDATED,
+    ];
   }
   if (pathname.startsWith("/players")) {
     return [
@@ -60,6 +71,7 @@ export function eventTypesForPath(pathname: string): RealtimeEventTypeValue[] {
       RealtimeEventType.PROFILE_UPDATED,
       RealtimeEventType.MATCH_RESULT,
       RealtimeEventType.LEADERBOARD_DIRTY,
+      RealtimeEventType.MATCH_UPSERTED,
     ];
   }
   if (pathname === "/" || pathname === "") {
@@ -71,6 +83,7 @@ export function eventTypesForPath(pathname: string): RealtimeEventTypeValue[] {
       RealtimeEventType.TOURNAMENT_UPDATED,
       RealtimeEventType.LEADERBOARD_DIRTY,
       RealtimeEventType.MEMBER_JOINED,
+      RealtimeEventType.PROFILE_UPDATED,
     ];
   }
   if (pathname.startsWith("/settings")) {

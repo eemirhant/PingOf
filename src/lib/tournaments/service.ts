@@ -278,6 +278,10 @@ export async function shuffleTournamentSeeds(
     ),
   );
 
+  await publishOrgEvent(organizationId, RealtimeEventType.TOURNAMENT_UPDATED, {
+    entityId: tournamentId,
+  });
+
   return { id: tournamentId };
 }
 

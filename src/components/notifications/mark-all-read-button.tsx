@@ -20,13 +20,11 @@ export function MarkAllReadButton({ disabled }: { disabled?: boolean }) {
   );
 
   useEffect(() => {
-    if (state.success) {
-      router.refresh();
-    }
+    // Success: revalidatePath in the action refreshes RSC. Error: rollback optimistic badge.
     if (state.error) {
       router.refresh();
     }
-  }, [state.success, state.error, router]);
+  }, [state.error, router]);
 
   return (
     <form

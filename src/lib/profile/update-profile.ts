@@ -188,11 +188,18 @@ export async function updateOrganizationLogo(
     throw new ProfileError("Organizasyon logosunu yalnızca kurucu yükleyebilir", "permission");
   }
 
-  return prisma.organization.update({
+  const updated = await prisma.organization.update({
     where: { id: organizationId },
     data: { logoUrl: logoDataUrl },
     select: { id: true, name: true, logoUrl: true },
   });
+
+  await publishOrgEvent(organizationId, RealtimeEventType.PROFILE_UPDATED, {
+    entityId: organizationId,
+    actorUserId: actorUserId,
+  });
+
+  return updated;
 }
 
 export async function getOrganizationBrand(organizationId: string) {

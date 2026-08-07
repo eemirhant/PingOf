@@ -1,9 +1,9 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
+import { InlineSuccess } from "@/components/ui/inline-success";
 import {
   updateOrganizationLogoAction,
   type ProfileActionState,
@@ -22,7 +22,6 @@ export function OrganizationLogoForm({
   organizationName,
   logoUrl,
 }: OrganizationLogoFormProps) {
-  const router = useRouter();
   const [state, formAction, isPending] = useActionState(
     updateOrganizationLogoAction,
     initialState,
@@ -48,8 +47,8 @@ export function OrganizationLogoForm({
     if (!state.success) return;
     pendingFileRef.current = null;
     if (fileRef.current) fileRef.current.value = "";
-    router.refresh();
-  }, [state.success, router]);
+    // Brand sync: revalidatePath + PROFILE_UPDATED event (no duplicate refresh).
+  }, [state.success]);
 
   useEffect(() => {
     return () => {
@@ -191,19 +190,16 @@ export function OrganizationLogoForm({
       ) : null}
 
       {state.success ? (
-        <p
-          className="mb-4 rounded-md border px-3 py-2 text-sm text-green"
-          style={{
-            background: "rgba(16,185,129,0.08)",
-            borderColor: "rgba(16,185,129,0.2)",
-          }}
-          role="status"
-        >
-          ✅ {state.success}
-        </p>
+        <InlineSuccess trigger={state.success} message={state.success} />
       ) : null}
 
-      <Button type="submit" variant="primary" size="sm" disabled={isPending || compressing}>
+      <Button
+        type="submit"
+        variant="primary"
+        size="sm"
+        loading={isPending || compressing}
+        disabled={isPending || compressing}
+      >
         {compressing ? "Logo hazırlanıyor…" : isPending ? "Kaydediliyor…" : "Logoyu Kaydet"}
       </Button>
     </form>

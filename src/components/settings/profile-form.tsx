@@ -1,9 +1,9 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
+import { InlineSuccess } from "@/components/ui/inline-success";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { updateProfileAction, type ProfileActionState } from "@/lib/actions/profile";
 import { avatarColors } from "@/lib/design-tokens";
@@ -31,7 +31,6 @@ export function ProfileForm({
   avatarColor,
   avatarUrl,
 }: ProfileFormProps) {
-  const router = useRouter();
   const [state, formAction, isPending] = useActionState(updateProfileAction, initialState);
   const [selectedColor, setSelectedColor] = useState(avatarColor);
   const [namePreview, setNamePreview] = useState(fullName);
@@ -41,6 +40,7 @@ export function ProfileForm({
   const [removePhoto, setRemovePhoto] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const [hasPendingPhoto, setHasPendingPhoto] = useState(false);
+  const [avatarHighlight, setAvatarHighlight] = useState(false);
   const [compressing, startCompress] = useTransition();
   const fileRef = useRef<HTMLInputElement>(null);
   /** Compressed file kept in memory — do not rely on input.files = DataTransfer (fragile on mobile). */
@@ -80,8 +80,11 @@ export function ProfileForm({
       setRemovePhoto(false);
     }
 
-    router.refresh();
-  }, [state, router]);
+    // Header/list sync: revalidateProfileSurfaces + PROFILE_UPDATED event.
+    setAvatarHighlight(true);
+    const t = window.setTimeout(() => setAvatarHighlight(false), 900);
+    return () => window.clearTimeout(t);
+  }, [state]);
 
   useEffect(() => {
     if (state.error) {
@@ -180,7 +183,7 @@ export function ProfileForm({
                     : avatarImageSrc(previewUrl!)
                 }
                 alt={namePreview || fullName}
-                className="avatar avatar-xl object-cover"
+                className={`avatar avatar-xl object-cover ${avatarHighlight ? "avatar--highlight" : ""}`.trim()}
               />
             ) : (
               <UserAvatar
@@ -189,6 +192,7 @@ export function ProfileForm({
                 avatarUrl={null}
                 avatarColor={selectedColor}
                 size="xl"
+                highlight={avatarHighlight}
               />
             )}
             <span className="profile-avatar-edit-overlay">
@@ -262,7 +266,7 @@ export function ProfileForm({
           placeholder="Ahmet Yılmaz"
           autoComplete="name"
           defaultValue={fullName}
-          className={`form-input ${state.fieldErrors?.fullName ? "error" : ""}`}
+          className={`form-input ${state.fieldErrors?.fullName ? "error" : state.success ? "success" : ""}`}
           onChange={(event) => setNamePreview(event.target.value)}
           aria-invalid={Boolean(state.fieldErrors?.fullName)}
         />
@@ -305,19 +309,16 @@ export function ProfileForm({
       ) : null}
 
       {state.success ? (
-        <p
-          className="mb-4 rounded-md border px-3 py-2 text-sm text-green"
-          style={{
-            background: "rgba(16,185,129,0.08)",
-            borderColor: "rgba(16,185,129,0.2)",
-          }}
-          role="status"
-        >
-          ✅ {state.success}
-        </p>
+        <InlineSuccess trigger={state.success} message={state.success} />
       ) : null}
 
-      <Button type="submit" variant="primary" size="sm" disabled={isPending || compressing}>
+      <Button
+        type="submit"
+        variant="primary"
+        size="sm"
+        loading={isPending || compressing}
+        disabled={isPending || compressing}
+      >
         {compressing
           ? "Fotoğraf hazırlanıyor…"
           : isPending

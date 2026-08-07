@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
+import { EmptyState } from "@/components/ui/empty-state";
 import { MIN_MATCHES_FOR_RANKING } from "@/domain/constants";
 import { getLeaderboard, parseLeaderboardTab } from "@/lib/stats/service";
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -155,10 +156,14 @@ export default async function LeaderboardPage({
       </div>
 
       {board.ranked.length === 0 && board.unranked.length === 0 ? (
-        <div className="card empty-state mt-6">
-          <div className="empty-title">Henüz oyuncu yok</div>
-          <p className="empty-desc">Organizasyona üye ekleyerek başla.</p>
-        </div>
+        <EmptyState
+          className="mt-6"
+          icon="📊"
+          title="Henüz oyuncu yok"
+          description="Organizasyona üye ekleyerek başla."
+          actionHref="/settings"
+          actionLabel="Ayarlar"
+        />
       ) : null}
 
       {board.ranked.length === 0 && board.unranked.length > 0 ? (

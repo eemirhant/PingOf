@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 
 import { ChallengeDuelAnimation } from "@/components/challenges/challenge-duel-animation";
 import { ChallengeForm } from "@/components/challenges/challenge-form";
+import { EmptyState } from "@/components/ui/empty-state";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import type { OrgPlayerOption } from "@/lib/matches/service";
 
@@ -77,11 +78,20 @@ export function NewChallengePanel({
           />
 
           {filtered.length === 0 ? (
-            <p className="text-text-muted text-sm">
-              {opponents.length === 0
-                ? "Organizasyonda meydan okuyabileceğin başka oyuncu yok."
-                : "Aramaya uyan oyuncu bulunamadı."}
-            </p>
+            <EmptyState
+              className="card-static mt-1"
+              icon="🔍"
+              title={
+                opponents.length === 0
+                  ? "Oyuncu yok"
+                  : "Arama sonucu yok"
+              }
+              description={
+                opponents.length === 0
+                  ? "Organizasyonda meydan okuyabileceğin başka oyuncu yok."
+                  : "Aramaya uyan oyuncu bulunamadı. Farklı bir isim dene."
+              }
+            />
           ) : (
             <ul className="max-h-72 space-y-2 overflow-y-auto">
               {filtered.map((player) => (

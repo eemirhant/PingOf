@@ -14,11 +14,15 @@ const initialState: ChallengeActionState = {};
 
 type ChallengeRespondButtonsProps = {
   challengeId: string;
+  onOutcome?: (outcome: "accepted" | "declined") => void;
 };
 
 type LocalOutcome = "accepted" | "declined" | null;
 
-export function ChallengeRespondButtons({ challengeId }: ChallengeRespondButtonsProps) {
+export function ChallengeRespondButtons({
+  challengeId,
+  onOutcome,
+}: ChallengeRespondButtonsProps) {
   const router = useRouter();
   const { setPendingChallengesOptimistic } = useRealtime();
   const [outcome, setOutcome] = useState<LocalOutcome>(null);
@@ -48,20 +52,13 @@ export function ChallengeRespondButtons({ challengeId }: ChallengeRespondButtons
     setPendingChallengesOptimistic,
   ]);
 
-  useEffect(() => {
-    if (declineState.success || acceptState.success) {
-      startTransition(() => {
-        router.refresh();
-      });
-    }
-  }, [declineState.success, acceptState.success, router]);
-
   const pending = acceptPending || declinePending;
   const error = acceptState.error ?? declineState.error;
+  const locked = pending || outcome != null;
 
   if (outcome === "accepted") {
     return (
-      <span className="badge badge-win" role="status">
+      <span className="badge badge-win live-card--pulse" role="status">
         Kabul edildi
       </span>
     );
@@ -69,8 +66,8 @@ export function ChallengeRespondButtons({ challengeId }: ChallengeRespondButtons
 
   if (outcome === "declined") {
     return (
-      <span className="badge badge-loss" role="status">
-        Reddedildi
+      <span className="badge badge-loss live-card--pulse" role="status">
+        Kabul edilmedi
       </span>
     );
   }
@@ -81,11 +78,16 @@ export function ChallengeRespondButtons({ challengeId }: ChallengeRespondButtons
         action={(fd) => {
           setOutcome("accepted");
           setPendingChallengesOptimistic((n) => Math.max(0, n - 1));
+          onOutcome?.("accepted");
           acceptAction(fd);
         }}
       >
         <input type="hidden" name="challengeId" value={challengeId} />
-        <button type="submit" className="btn btn-primary btn-sm" disabled={pending}>
+        <button
+          type="submit"
+          className="btn btn-primary btn-sm"
+          disabled={locked}
+        >
           {acceptPending ? "Kabul…" : "Kabul Et"}
         </button>
       </form>
@@ -93,11 +95,16 @@ export function ChallengeRespondButtons({ challengeId }: ChallengeRespondButtons
         action={(fd) => {
           setOutcome("declined");
           setPendingChallengesOptimistic((n) => Math.max(0, n - 1));
+          onOutcome?.("declined");
           declineAction(fd);
         }}
       >
         <input type="hidden" name="challengeId" value={challengeId} />
-        <button type="submit" className="btn btn-danger btn-sm" disabled={pending}>
+        <button
+          type="submit"
+          className="btn btn-danger btn-sm"
+          disabled={locked}
+        >
           {declinePending ? "Red…" : "Reddet"}
         </button>
       </form>

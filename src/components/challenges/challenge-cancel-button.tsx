@@ -12,9 +12,13 @@ const initialState: ChallengeActionState = {};
 
 type ChallengeCancelButtonProps = {
   challengeId: string;
+  onCancelled?: () => void;
 };
 
-export function ChallengeCancelButton({ challengeId }: ChallengeCancelButtonProps) {
+export function ChallengeCancelButton({
+  challengeId,
+  onCancelled,
+}: ChallengeCancelButtonProps) {
   const router = useRouter();
   const [showConfirm, setShowConfirm] = useState(false);
   const [cancelled, setCancelled] = useState(false);
@@ -38,16 +42,14 @@ export function ChallengeCancelButton({ challengeId }: ChallengeCancelButtonProp
     if (state.success) {
       setCancelled(true);
       setShowConfirm(false);
-      startTransition(() => {
-        router.refresh();
-      });
+      onCancelled?.();
     }
-  }, [state.success, router]);
+  }, [state.success, onCancelled]);
 
   if (cancelled || state.success) {
     return (
       <div className="flex flex-col items-end gap-1">
-        <span className="badge badge-loss" role="status">
+        <span className="badge badge-loss live-card--pulse" role="status">
           İptal edildi
         </span>
         {state.success ? (
@@ -93,6 +95,7 @@ export function ChallengeCancelButton({ challengeId }: ChallengeCancelButtonProp
       <form
         action={(fd) => {
           setCancelled(true);
+          onCancelled?.();
           formAction(fd);
         }}
         className="flex gap-2"

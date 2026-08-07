@@ -1,12 +1,20 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { MatchStatus, TournamentStatus } from "@prisma/client";
+import { TournamentStatus } from "@prisma/client";
 
 import { auth } from "@/auth";
 import {
   TournamentCancelButton,
   TournamentDraftActions,
 } from "@/components/tournaments/tournament-actions";
+import {
+  resolveTournamentChampion,
+  TournamentBracket,
+} from "@/components/tournaments/bracket/tournament-bracket";
+import { TournamentHeroChampion } from "@/components/tournaments/tournament-hero-champion";
+import { TournamentProgressBar } from "@/components/tournaments/tournament-progress-bar";
+import { TournamentStatsCard } from "@/components/tournaments/tournament-stats-card";
+import { TournamentSummaryCard } from "@/components/tournaments/tournament-summary-card";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import {
   canEnterResult,
@@ -15,12 +23,16 @@ import {
   type MatchStatusValue,
 } from "@/domain/match-status";
 import {
-  knockoutRoundLabel,
   tournamentStatusLabel,
   tournamentTypeLabel,
   type TournamentStatusValue,
   type TournamentTypeValue,
 } from "@/domain/tournament";
+import {
+  computeTournamentDashboardStats,
+  computeTournamentSummary,
+  type TournamentDashboardMatch,
+} from "@/domain/tournament-dashboard";
 import { formatTeamLabel } from "@/lib/matches/display";
 import {
   canCancelTournament,
@@ -41,15 +53,68 @@ export default async function TournamentDetailPage({
 
   const { tournament, entries, standings, championLabels } = detail;
   const status = tournament.status as TournamentStatusValue;
+  const isKnockout = tournament.type === "KNOCKOUT";
   const canCancel = canCancelTournament(
     { id: session.user.id, role: session.user.role },
     tournament,
   );
 
-  const maxRound = tournament.matches.reduce(
-    (max, m) => Math.max(max, m.tournamentRound ?? 0),
-    0,
+  const dashboardMatches: TournamentDashboardMatch[] = tournament.matches.map(
+    (match) => ({
+      id: match.id,
+      status: match.status,
+      winnerTeam: match.winnerTeam,
+      scheduledAt: match.scheduledAt,
+      playedAt: match.playedAt,
+      createdAt: match.createdAt,
+      updatedAt: match.updatedAt,
+      participants: match.participants.map((p) => ({
+        userId: p.user.id,
+        team: p.team,
+        fullName: p.user.fullName,
+        avatarUrl: p.user.avatarUrl,
+        avatarColor: p.user.avatarColor,
+      })),
+      sets: match.sets.map((s) => ({
+        team1Score: s.team1Score,
+        team2Score: s.team2Score,
+      })),
+    }),
   );
+
+  const summary = computeTournamentSummary({
+    participantCount: tournament.participants.length,
+    startedAt: tournament.startsAt,
+    matches: dashboardMatches,
+    championLabels,
+  });
+  const dashboardStats = computeTournamentDashboardStats(dashboardMatches);
+
+  const seedByUserId = Object.fromEntries(
+    tournament.participants.map((p) => [p.userId, p.seed]),
+  );
+
+  const knockoutChampion = isKnockout
+    ? resolveTournamentChampion({
+        matches: tournament.matches,
+        seedByUserId,
+        championLabels,
+      })
+    : championLabels.length > 0
+      ? {
+          name: championLabels.join(" / "),
+          players: tournament.participants
+            .filter((p) => championLabels.includes(p.user.fullName))
+            .map((p) => ({
+              userId: p.user.id,
+              fullName: p.user.fullName,
+              avatarUrl: p.user.avatarUrl,
+              avatarColor: p.user.avatarColor,
+            })),
+          finalScore: null as string | null,
+          seedLabel: null as string | null,
+        }
+      : null;
 
   const entryLabel = (entryId: string) => {
     const entry = entries.find((e) => e.entryId === entryId);
@@ -63,8 +128,12 @@ export default async function TournamentDetailPage({
       .join(" / ");
   };
 
+  const showDashboard =
+    tournament.status !== TournamentStatus.DRAFT &&
+    tournament.matches.length > 0;
+
   return (
-    <div className="mx-auto max-w-4xl px-6 py-8">
+    <div className={`mx-auto px-6 py-8 ${isKnockout ? "max-w-[1400px]" : "max-w-4xl"}`}>
       <Link
         href="/tournaments"
         className="text-text-muted hover:text-text-secondary text-sm"
@@ -91,14 +160,22 @@ export default async function TournamentDetailPage({
         </span>
       </div>
 
-      {championLabels.length > 0 ? (
-        <div className="card mt-4 border border-emerald-500/30">
-          <div className="text-text-muted text-xs font-bold uppercase">
-            Şampiyon
-          </div>
-          <p className="mt-1 text-lg font-bold text-emerald-400">
-            {championLabels.join(" / ")}
-          </p>
+      {showDashboard ? (
+        <div className="mt-5 space-y-3">
+          <TournamentSummaryCard summary={summary} />
+          <TournamentProgressBar
+            percent={summary.progressPercent}
+            completed={summary.completedMatches}
+            remaining={summary.remainingMatches}
+          />
+          {knockoutChampion ? (
+            <TournamentHeroChampion
+              name={knockoutChampion.name}
+              finalScore={knockoutChampion.finalScore}
+              players={knockoutChampion.players}
+            />
+          ) : null}
+          <TournamentStatsCard stats={dashboardStats} />
         </div>
       ) : null}
 
@@ -209,11 +286,21 @@ export default async function TournamentDetailPage({
       ) : null}
 
       <section className="mt-8">
-        <h2 className="text-lg font-bold text-text-primary">Maçlar</h2>
+        <h2 className="text-lg font-bold text-text-primary">
+          {isKnockout ? "Turnuva Fikstürü" : "Maçlar"}
+        </h2>
         {tournament.matches.length === 0 ? (
           <p className="text-text-secondary mt-3 text-sm">
             Turnuva başlatılınca eşleşmeler burada görünür.
           </p>
+        ) : isKnockout ? (
+          <div className="mt-4">
+            <TournamentBracket
+              matches={tournament.matches}
+              championLabels={championLabels}
+              seedByUserId={seedByUserId}
+            />
+          </div>
         ) : (
           <ul className="mt-3 space-y-3">
             {tournament.matches.map((match) => {
@@ -231,26 +318,11 @@ export default async function TournamentDetailPage({
               const isParticipant = match.participants.some(
                 (p) => p.userId === session.user!.id,
               );
-              const roundLabel =
-                match.tournamentRound != null && maxRound > 0
-                  ? knockoutRoundLabel(match.tournamentRound, maxRound)
-                  : null;
-              const isBye =
-                match.status === MatchStatus.COMPLETED &&
-                (team1.length === 0 || team2.length === 0);
 
               return (
                 <li key={match.id} className="card">
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div>
-                      {roundLabel ? (
-                        <div className="text-text-muted text-xs font-bold uppercase">
-                          {roundLabel}
-                          {match.bracketSlot != null
-                            ? ` · Maç ${match.bracketSlot + 1}`
-                            : ""}
-                        </div>
-                      ) : null}
                       <p className="mt-1 text-sm font-semibold text-text-primary">
                         {team1.length
                           ? formatTeamLabel(
@@ -274,13 +346,11 @@ export default async function TournamentDetailPage({
                             )
                           : "BAY / Bekleniyor"}
                       </p>
-                      {match.status === MatchStatus.COMPLETED &&
+                      {match.status === "COMPLETED" &&
                       match.team1SetsWon != null &&
                       match.team2SetsWon != null ? (
                         <p className="text-text-secondary mt-1 text-sm">
-                          {isBye
-                            ? "BAY ile otomatik geçiş"
-                            : `Set: ${match.team1SetsWon}–${match.team2SetsWon}`}
+                          Set: {match.team1SetsWon}–{match.team2SetsWon}
                         </p>
                       ) : null}
                     </div>

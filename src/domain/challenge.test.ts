@@ -103,4 +103,8 @@ describe("canCancelChallenge", () => {
   it("labels cancelled challenges in Turkish", () => {
     expect(challengeStatusLabel("CANCELLED")).toBe("İptal edildi");
   });
+
+  it("labels declined challenges as Kabul edilmedi", () => {
+    expect(challengeStatusLabel("DECLINED")).toBe("Kabul edilmedi");
+  });
 });

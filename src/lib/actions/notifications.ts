@@ -10,6 +10,7 @@ import {
   clearAllNotifications,
   deleteNotification,
   deleteReadNotifications,
+  listNotificationsForUser,
   markAllNotificationsRead,
   markNotificationRead,
 } from "@/lib/notifications/service";
@@ -20,9 +21,48 @@ export type NotificationActionState = {
   success?: string;
 };
 
+export type NotificationFeedItem = {
+  id: string;
+  type: string;
+  title: string;
+  body: string;
+  linkUrl: string | null;
+  isRead: boolean;
+  createdAt: string;
+};
+
 function revalidateNotificationPaths() {
   revalidatePath("/notifications");
   revalidatePath("/", "layout");
+}
+
+/** Soft feed for NotificationCenter live merge (no full page reload required). */
+export async function fetchNotificationsFeedAction(): Promise<{
+  items: NotificationFeedItem[];
+  total: number;
+  unreadCount: number;
+} | null> {
+  const session = await auth();
+  if (!session?.user) return null;
+
+  const { notifications, total, unreadCount } = await listNotificationsForUser(
+    session.user.id,
+    { page: 1, pageSize: 100 },
+  );
+
+  return {
+    items: notifications.map((n) => ({
+      id: n.id,
+      type: n.type,
+      title: n.title,
+      body: n.body,
+      linkUrl: n.linkUrl,
+      isRead: n.isRead,
+      createdAt: n.createdAt.toISOString(),
+    })),
+    total,
+    unreadCount,
+  };
 }
 
 export async function markNotificationReadAction(

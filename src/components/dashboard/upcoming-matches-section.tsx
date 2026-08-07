@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   isRosterFull,
   matchStatusLabel,
@@ -226,27 +227,15 @@ export function UpcomingMatchesSection({
       </div>
 
       {matches.length === 0 ? (
-        <>
-          <div className="upcoming-mobile-empty sm:hidden">
-            <div className="upcoming-mobile-empty-icon" aria-hidden>
-              🏓
-            </div>
-            <p className="upcoming-mobile-empty-title">
-              Henüz yaklaşan maçın bulunmuyor.
-            </p>
-            <p className="upcoming-mobile-empty-desc">
-              Yeni bir maç planlayarak başlayabilirsin.
-            </p>
-          </div>
-          <div className="card hidden text-center sm:block">
-            <p className="text-text-secondary text-sm">
-              Yaklaşan maçın yok. İleri tarihli bir maç planlayabilirsin.
-            </p>
-            <Link href="/matches/new?type=planned" className="btn btn-secondary btn-sm mt-3">
-              Maç Planla
-            </Link>
-          </div>
-        </>
+        <EmptyState
+          icon="📅"
+          title="Henüz yaklaşan maçın yok"
+          description="İleri tarihli bir maç planlayarak başlayabilirsin."
+          actionHref="/matches/new?type=planned"
+          actionLabel="Maç Planla"
+          secondaryHref="/matches/new?type=challenge"
+          secondaryLabel="Meydan Oku"
+        />
       ) : (
         <>
           <MobileUpcomingCards currentUserId={currentUserId} matches={matches} />

@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 
 import { MatchDeepLinkFocus } from "@/components/matches/match-deep-link-focus";
 import { MatchListCard } from "@/components/matches/match-list-card";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   resolveMatchStatus,
   type MatchStatusValue,
@@ -300,40 +300,29 @@ export function MatchesScopeList({
         aria-busy={isPending}
       >
         {active.matches.length === 0 ? (
-          <div className="card empty-state">
-            <div className="empty-icon">🏓</div>
-            <div className="empty-title">
-              {scope === "mine"
+          <EmptyState
+            icon="🏓"
+            title={
+              scope === "mine"
                 ? "Bu filtrede maçın yok"
                 : scope === "tournament"
                   ? "Bu turnuva filtresinde maç yok"
-                  : "Bu filtrede maç yok"}
-            </div>
-            <p className="empty-desc">
-              {scope === "tournament"
+                  : "Bu filtrede maç yok"
+            }
+            description={
+              scope === "tournament"
                 ? "Başka bir turnuva seç veya zaman/durum filtresini değiştir."
-                : "Zaman veya durum filtresini değiştir, ya da yeni maç ekle."}
-            </p>
-            <div className="flex flex-wrap justify-center gap-2">
-              <Link href="/matches" className="btn btn-secondary">
-                Filtreleri temizle
-              </Link>
-              {scope === "tournament" ? (
-                <Link href="/tournaments" className="btn btn-primary">
-                  Turnuvalar
-                </Link>
-              ) : (
-                <>
-                  <Link href="/matches/new?type=challenge" className="btn btn-secondary">
-                    Meydan Oku
-                  </Link>
-                  <Link href="/matches/new" className="btn btn-primary">
-                    Maç Ekle
-                  </Link>
-                </>
-              )}
-            </div>
-          </div>
+                : "Zaman veya durum filtresini değiştir, ya da yeni maç ekle."
+            }
+            actionHref="/matches"
+            actionLabel="Filtreleri temizle"
+            secondaryHref={
+              scope === "tournament" ? "/tournaments" : "/matches/new"
+            }
+            secondaryLabel={
+              scope === "tournament" ? "Turnuvalar" : "Maç Ekle"
+            }
+          />
         ) : (
           <div className="space-y-3">
             {active.matches.map((match) => {

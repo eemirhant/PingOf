@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
+import { EmptyState } from "@/components/ui/empty-state";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { listOrgPlayersForChallenge } from "@/lib/challenges/service";
 
@@ -29,13 +30,14 @@ export default async function PlayersPage() {
       </div>
 
       {players.length === 0 ? (
-        <div className="card empty-state mt-6">
-          <div className="empty-title">Henüz oyuncu yok</div>
-          <p className="empty-desc">Ayarlardan üye ekle veya davet linki paylaş.</p>
-          <Link href="/settings" className="btn btn-primary">
-            Ayarlar
-          </Link>
-        </div>
+        <EmptyState
+          className="mt-6"
+          icon="👥"
+          title="Henüz oyuncu yok"
+          description="Ayarlardan üye ekle veya davet linki paylaş."
+          actionHref="/settings"
+          actionLabel="Ayarlar"
+        />
       ) : (
         <ul className="mt-6 space-y-2">
           {players.map((player) => {

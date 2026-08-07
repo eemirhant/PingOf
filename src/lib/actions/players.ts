@@ -48,6 +48,9 @@ export async function addPlayerAction(
     );
 
     revalidatePath("/settings");
+    revalidatePath("/players");
+    revalidatePath("/");
+    revalidatePath("/", "layout");
 
     return {
       success: `${player.fullName} organizasyona eklendi. Bu e-posta ve geçici şifre ile giriş yapabilir.`,

@@ -1,7 +1,6 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useActionState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -25,17 +24,10 @@ export function StakeSettleControls({
   stakeSettled,
   canSettle,
 }: StakeSettleControlsProps) {
-  const router = useRouter();
   const [state, action, pending] = useActionState(
     setStakeSettledAction,
     initialState,
   );
-
-  useEffect(() => {
-    if (state.success) {
-      router.refresh();
-    }
-  }, [state.success, router]);
 
   return (
     <div className="card mt-4 space-y-3 border border-orange/25">

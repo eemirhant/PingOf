@@ -381,6 +381,11 @@ export async function joinPlannedMatch(
     data: { matchId, userId: actorUserId, team },
   });
 
+  await publishOrgEvent(organizationId, RealtimeEventType.MATCH_UPSERTED, {
+    entityId: matchId,
+    actorUserId: actorUserId,
+  });
+
   return { id: matchId, team };
 }
 
@@ -582,7 +587,7 @@ export async function enterPlannedMatchResult(
     });
   }
 
-  return { id: matchId };
+  return { id: matchId, tournamentId: match.tournamentId };
 }
 
 export async function updateInstantMatch(

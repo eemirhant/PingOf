@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { CancelMatchButton } from "@/components/matches/cancel-match-button";
 import { DeleteMatchButton } from "@/components/matches/delete-match-button";
-import { JoinMatchButton } from "@/components/matches/join-match-button";
+import { MatchOpenSlot } from "@/components/matches/match-open-slot";
 import {
   StakeNoteBadge,
   StakeSettleControls,
@@ -238,15 +238,12 @@ export default async function MatchDetailPage({
               );
             })}
             {Array.from({ length: Math.max(0, perTeam - team1.length) }).map((_, i) => (
-              <div
+              <MatchOpenSlot
                 key={`open-1-${i}`}
-                className="mb-2 flex flex-col items-center gap-2 rounded-md border border-dashed border-border px-2 py-3"
-              >
-                <div className="text-text-muted text-sm">Açık slot</div>
-                {canJoin ? (
-                  <JoinMatchButton matchId={match.id} team={1} label="Bu tarafa katıl" />
-                ) : null}
-              </div>
+                matchId={match.id}
+                team={1}
+                canJoin={canJoin}
+              />
             ))}
           </div>
 
@@ -309,15 +306,12 @@ export default async function MatchDetailPage({
               );
             })}
             {Array.from({ length: Math.max(0, perTeam - team2.length) }).map((_, i) => (
-              <div
+              <MatchOpenSlot
                 key={`open-2-${i}`}
-                className="mb-2 flex flex-col items-center gap-2 rounded-md border border-dashed border-border px-2 py-3"
-              >
-                <div className="text-text-muted text-sm">Açık slot</div>
-                {canJoin ? (
-                  <JoinMatchButton matchId={match.id} team={2} label="Bu tarafa katıl" />
-                ) : null}
-              </div>
+                matchId={match.id}
+                team={2}
+                canJoin={canJoin}
+              />
             ))}
           </div>
         </div>

@@ -66,7 +66,7 @@ export function challengeStatusLabel(status: ChallengeStatusValue): string {
     case "ACCEPTED":
       return "Kabul edildi";
     case "DECLINED":
-      return "Reddedildi";
+      return "Kabul edilmedi";
     case "EXPIRED":
       return "Süresi doldu";
     case "CANCELLED":

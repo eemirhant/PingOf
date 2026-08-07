@@ -76,6 +76,30 @@ function parseInstantMatchForm(formData: FormData):
   return { ok: true, data: parsed.data };
 }
 
+function revalidateMatchListSurfaces() {
+  revalidatePath("/matches");
+  revalidatePath("/");
+}
+
+function revalidateMatchDetailSurfaces(
+  matchId: string,
+  options?: {
+    tournamentId?: string | null;
+    includeLeaderboard?: boolean;
+  },
+) {
+  revalidatePath(`/matches/${matchId}`);
+  revalidateMatchListSurfaces();
+  if (options?.includeLeaderboard) {
+    revalidatePath("/leaderboard");
+    revalidatePath("/players");
+  }
+  if (options?.tournamentId) {
+    revalidatePath(`/tournaments/${options.tournamentId}`);
+    revalidatePath("/tournaments");
+  }
+}
+
 export async function createInstantMatchAction(
   _prevState: MatchActionState,
   formData: FormData,
@@ -95,6 +119,7 @@ export async function createInstantMatchAction(
       session.user.id,
       parsed.data,
     );
+    revalidateMatchDetailSurfaces(match.id, { includeLeaderboard: true });
     redirect(`/matches/${match.id}`);
   } catch (error) {
     if (isRedirectError(error)) {
@@ -158,6 +183,7 @@ export async function createPlannedMatchAction(
       session.user.id,
       parsed.data,
     );
+    revalidateMatchDetailSurfaces(match.id);
     redirect(`/matches/${match.id}`);
   } catch (error) {
     if (isRedirectError(error)) {
@@ -196,6 +222,7 @@ export async function updateInstantMatchAction(
       matchId,
       parsed.data,
     );
+    revalidateMatchDetailSurfaces(matchId, { includeLeaderboard: true });
     redirect(`/matches/${matchId}`);
   } catch (error) {
     if (isRedirectError(error)) {
@@ -229,6 +256,9 @@ export async function deleteMatchAction(
       { id: session.user.id, role: session.user.role },
       matchId,
     );
+    revalidateMatchListSurfaces();
+    revalidatePath("/leaderboard");
+    revalidatePath(`/matches/${matchId}`);
     redirect("/matches");
   } catch (error) {
     if (isRedirectError(error)) {
@@ -262,6 +292,7 @@ export async function cancelMatchAction(
       { id: session.user.id, role: session.user.role },
       matchId,
     );
+    revalidateMatchDetailSurfaces(matchId);
     redirect(`/matches/${matchId}`);
   } catch (error) {
     if (isRedirectError(error)) {
@@ -300,7 +331,8 @@ export async function joinPlannedMatchAction(
       matchId,
       preferredTeam,
     );
-    revalidatePath(`/matches/${matchId}`);
+    revalidateMatchDetailSurfaces(matchId);
+    revalidatePath("/", "layout");
     return { success: "Maça katıldın" };
   } catch (error) {
     if (error instanceof MatchError) {
@@ -338,12 +370,16 @@ export async function enterPlannedMatchResultAction(
   }
 
   try {
-    await enterPlannedMatchResult(
+    const result = await enterPlannedMatchResult(
       session.user.organizationId,
       session.user.id,
       matchId,
       parsed.data,
     );
+    revalidateMatchDetailSurfaces(matchId, {
+      tournamentId: result.tournamentId,
+      includeLeaderboard: true,
+    });
     redirect(`/matches/${matchId}`);
   } catch (error) {
     if (isRedirectError(error)) {

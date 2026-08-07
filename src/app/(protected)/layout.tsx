@@ -2,6 +2,7 @@ import { Suspense } from "react";
 
 import { auth } from "@/auth";
 import { AppHeader, MobileBottomNav } from "@/components/layout/app-header";
+import { MatchCelebrationHost } from "@/components/celebration/match-celebration-host";
 import { EntityMissingToast } from "@/components/notifications/entity-missing-toast";
 import { NotificationDeepLinkListener } from "@/components/notifications/notification-deep-link-listener";
 import { FcmProvider } from "@/components/push/fcm-provider";
@@ -50,6 +51,7 @@ export default async function ProtectedLayout({
       <Suspense fallback={null}>
         <EntityMissingToast />
       </Suspense>
+      <MatchCelebrationHost />
       <div className="min-h-screen bg-bg-900">
         <AppHeader
           user={user}

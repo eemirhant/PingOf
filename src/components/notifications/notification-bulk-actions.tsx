@@ -1,7 +1,6 @@
 "use client";
 
 import { useActionState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 
 import {
   clearAllNotificationsAction,
@@ -13,7 +12,6 @@ import { useRealtime } from "@/components/realtime/realtime-provider";
 const initialState: NotificationActionState = {};
 
 export function NotificationBulkActions({ hasItems }: { hasItems: boolean }) {
-  const router = useRouter();
   const { setUnreadNotificationsOptimistic } = useRealtime();
   const [clearReadState, clearReadAction, clearReadPending] = useActionState(
     deleteReadNotificationsAction,
@@ -29,12 +27,11 @@ export function NotificationBulkActions({ hasItems }: { hasItems: boolean }) {
       if (clearAllState.success) {
         setUnreadNotificationsOptimistic(0);
       }
-      router.refresh();
+      // List sync via revalidatePath in notification actions (no duplicate refresh).
     }
   }, [
     clearReadState.success,
     clearAllState.success,
-    router,
     setUnreadNotificationsOptimistic,
   ]);
 

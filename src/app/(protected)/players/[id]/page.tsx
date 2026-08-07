@@ -1,10 +1,14 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { Suspense } from "react";
 
 import { auth } from "@/auth";
+import { PlayerProfileTabs } from "@/components/achievements/player-profile-tabs";
 import { FormBadges } from "@/components/players/form-badges";
 import { HistoryFilters } from "@/components/players/history-filters";
 import { MatchHistoryList } from "@/components/players/match-history-list";
+import { EmptyState } from "@/components/ui/empty-state";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { MIN_MATCHES_FOR_RANKING } from "@/domain/constants";
 import type { RecordStats } from "@/domain/player-stats";
 import { formatTeamLabel } from "@/lib/matches/display";
@@ -13,7 +17,6 @@ import {
   getPlayerProfileStats,
   parseHistoryFormat,
 } from "@/lib/stats/service";
-import { UserAvatar } from "@/components/ui/user-avatar";
 
 function StatBlock({
   title,
@@ -61,6 +64,7 @@ export default async function PlayerProfilePage({
     from?: string;
     to?: string;
     page?: string;
+    tab?: string;
   }>;
 }) {
   const session = await auth();
@@ -86,7 +90,7 @@ export default async function PlayerProfilePage({
     id,
   );
 
-  const { user, stats, rank, history } = profile;
+  const { user, stats, rank, history, achievements } = profile;
   const isSelf = session.user.id === user.id;
 
   function pageHref(nextPage: number) {
@@ -99,66 +103,8 @@ export default async function PlayerProfilePage({
     return `/players/${user.id}${q ? `?${q}` : ""}`;
   }
 
-  return (
-    <div className="mx-auto max-w-4xl px-6 py-8">
-      <Link href="/players" className="text-text-muted hover:text-text-secondary text-sm">
-        ← Oyuncular
-      </Link>
-
-      <div className="card mt-4">
-        <div className="flex flex-wrap items-start gap-4">
-          <UserAvatar
-            userId={user.id}
-            fullName={user.fullName}
-            avatarUrl={user.avatarUrl}
-            avatarColor={user.avatarColor}
-            size="lg"
-          />
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-xl font-bold text-text-primary">{user.fullName}</h1>
-              {isSelf ? <span className="badge badge-planned">Sen</span> : null}
-              {rank != null ? (
-                <span className="badge badge-win">Sıra #{rank}</span>
-              ) : (
-                <span className="badge">Henüz sıralanmadı</span>
-              )}
-            </div>
-            <p className="text-text-secondary mt-1 text-sm">
-              Katılım:{" "}
-              {new Intl.DateTimeFormat("tr-TR", { dateStyle: "long" }).format(user.createdAt)}
-            </p>
-            {!isSelf ? (
-              <Link
-                href={`/players/${user.id}/challenge`}
-                className="btn btn-primary btn-sm mt-3"
-              >
-                Meydan Oku
-              </Link>
-            ) : null}
-            <div className="mt-3 flex flex-wrap items-center gap-4">
-              <div>
-                <div className="text-text-muted mb-1 text-[0.65rem] font-bold uppercase">
-                  Son 5 form
-                </div>
-                <FormBadges form={stats.recentForm} />
-              </div>
-              {stats.currentStreak ? (
-                <div>
-                  <div className="text-text-muted mb-1 text-[0.65rem] font-bold uppercase">
-                    Seri
-                  </div>
-                  <p className="text-sm font-semibold">
-                    {stats.currentStreak.count}{" "}
-                    {stats.currentStreak.type === "W" ? "galibiyet" : "mağlubiyet"}
-                  </p>
-                </div>
-              ) : null}
-            </div>
-          </div>
-        </div>
-      </div>
-
+  const overview = (
+    <>
       {unpaidStakes.length > 0 ? (
         <div className="card mt-4 border border-orange/30">
           <h2 className="text-sm font-bold uppercase tracking-wider text-text-secondary">
@@ -191,19 +137,18 @@ export default async function PlayerProfilePage({
       ) : null}
 
       {stats.overall.played === 0 ? (
-        <div className="card empty-state mt-4">
-          <div className="empty-title">Henüz maç yok</div>
-          <p className="empty-desc">
-            {isSelf
+        <EmptyState
+          className="mt-4"
+          icon="🏓"
+          title="Henüz maç yok"
+          description={
+            isSelf
               ? "İlk maçını kaydederek istatistiklerini doldurmaya başla."
-              : "Bu oyuncunun henüz tamamlanmış maçı yok."}
-          </p>
-          {isSelf ? (
-            <Link href="/matches/new" className="btn btn-primary">
-              Maç Ekle
-            </Link>
-          ) : null}
-        </div>
+              : "Bu oyuncunun henüz tamamlanmış maçı yok."
+          }
+          actionHref={isSelf ? "/matches/new" : undefined}
+          actionLabel={isSelf ? "Maç Ekle" : undefined}
+        />
       ) : (
         <>
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
@@ -324,6 +269,80 @@ export default async function PlayerProfilePage({
           </div>
         </>
       )}
+    </>
+  );
+
+  return (
+    <div className="mx-auto max-w-4xl px-6 py-8">
+      <Link href="/players" className="text-text-muted hover:text-text-secondary text-sm">
+        ← Oyuncular
+      </Link>
+
+      <div className="card mt-4">
+        <div className="flex flex-wrap items-start gap-4">
+          <UserAvatar
+            userId={user.id}
+            fullName={user.fullName}
+            avatarUrl={user.avatarUrl}
+            avatarColor={user.avatarColor}
+            size="lg"
+          />
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-xl font-bold text-text-primary">{user.fullName}</h1>
+              {isSelf ? <span className="badge badge-planned">Sen</span> : null}
+              {rank != null ? (
+                <span className="badge badge-win">Sıra #{rank}</span>
+              ) : (
+                <span className="badge">Henüz sıralanmadı</span>
+              )}
+              <span className="badge badge-1v1">
+                {achievements.filter((a) => a.unlocked).length}/{achievements.length} başarı
+              </span>
+            </div>
+            <p className="text-text-secondary mt-1 text-sm">
+              Katılım:{" "}
+              {new Intl.DateTimeFormat("tr-TR", { dateStyle: "long" }).format(user.createdAt)}
+            </p>
+            {!isSelf ? (
+              <Link
+                href={`/players/${user.id}/challenge`}
+                className="btn btn-primary btn-sm mt-3"
+              >
+                Meydan Oku
+              </Link>
+            ) : null}
+            <div className="mt-3 flex flex-wrap items-center gap-4">
+              <div>
+                <div className="text-text-muted mb-1 text-[0.65rem] font-bold uppercase">
+                  Son 5 form
+                </div>
+                <FormBadges form={stats.recentForm} />
+              </div>
+              {stats.currentStreak ? (
+                <div>
+                  <div className="text-text-muted mb-1 text-[0.65rem] font-bold uppercase">
+                    Seri
+                  </div>
+                  <p className="text-sm font-semibold">
+                    {stats.currentStreak.count}{" "}
+                    {stats.currentStreak.type === "W" ? "galibiyet" : "mağlubiyet"}
+                  </p>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <Suspense fallback={null}>
+        <PlayerProfileTabs
+          playerId={user.id}
+          isSelf={isSelf}
+          achievements={achievements}
+          overview={overview}
+        />
+      </Suspense>
     </div>
   );
 }

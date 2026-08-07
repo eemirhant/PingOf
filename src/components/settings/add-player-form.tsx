@@ -5,6 +5,7 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { EmailField } from "@/components/ui/email-field";
 import { FormField } from "@/components/ui/form-field";
+import { InlineSuccess } from "@/components/ui/inline-success";
 import { PasswordField } from "@/components/ui/password-field";
 import { addPlayerAction, type AddPlayerActionState } from "@/lib/actions/players";
 
@@ -74,19 +75,10 @@ export function AddPlayerForm() {
           ) : null}
 
           {state.success ? (
-            <p
-              className="mb-4 rounded-md border px-3 py-2 text-sm text-green"
-              style={{
-                background: "rgba(16,185,129,0.08)",
-                borderColor: "rgba(16,185,129,0.2)",
-              }}
-              role="status"
-            >
-              ✅ {state.success}
-            </p>
+            <InlineSuccess trigger={state.success} message={state.success} />
           ) : null}
 
-          <Button type="submit" variant="primary" size="sm" disabled={isPending}>
+          <Button type="submit" variant="primary" size="sm" loading={isPending}>
             {isPending ? "Ekleniyor…" : "Oyuncuyu Ekle"}
           </Button>
         </form>

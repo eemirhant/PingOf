@@ -1,4 +1,6 @@
-import type { CSSProperties } from "react";
+"use client";
+
+import { useEffect, useState, type CSSProperties } from "react";
 
 import {
   avatarColorForUser,
@@ -25,6 +27,8 @@ type UserAvatarProps = {
   size?: AvatarSize;
   className?: string;
   style?: CSSProperties;
+  /** Brief highlight after upload/success. */
+  highlight?: boolean;
 };
 
 export function UserAvatar({
@@ -35,30 +39,39 @@ export function UserAvatar({
   size = "sm",
   className = "",
   style,
+  highlight = false,
 }: UserAvatarProps) {
   const sizeClass = SIZE_CLASS[size];
-  const classes = `avatar ${sizeClass} ${className}`.trim();
+  const classes =
+    `avatar ${sizeClass} ${highlight ? "avatar--highlight" : ""} ${className}`.trim();
   const color = avatarColorForUser(userId, avatarUrl, avatarColor);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    setLoaded(false);
+  }, [avatarUrl]);
 
   if (isImageAvatar(avatarUrl)) {
     return (
-      // eslint-disable-next-line @next/next/no-img-element -- user uploads / blob URLs
-      <img
-        key={avatarUrl}
-        src={avatarImageSrc(avatarUrl!)}
-        alt={fullName}
-        className={`${classes} object-cover`}
-        style={{ background: "transparent", ...style }}
-      />
+      <span className={`avatar-wrap ${sizeClass}`}>
+        {!loaded ? (
+          <span className="avatar-progress ui-skeleton" aria-hidden />
+        ) : null}
+        {/* eslint-disable-next-line @next/next/no-img-element -- user uploads / blob URLs */}
+        <img
+          key={avatarUrl}
+          src={avatarImageSrc(avatarUrl!)}
+          alt={fullName}
+          className={`${classes} object-cover avatar--image ${loaded ? "avatar--loaded" : "avatar--loading"}`}
+          style={{ background: "transparent", ...style }}
+          onLoad={() => setLoaded(true)}
+        />
+      </span>
     );
   }
 
   return (
-    <div
-      className={classes}
-      style={{ background: color, ...style }}
-      aria-hidden
-    >
+    <div className={classes} style={{ background: color, ...style }} aria-hidden>
       {getInitials(fullName)}
     </div>
   );
