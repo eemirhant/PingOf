@@ -75,6 +75,8 @@ export async function saveUploadedImage(
 ): Promise<string> {
   void _key;
 
+  console.log("[UPLOAD] START");
+
   const mimeType = file instanceof File ? file.type : "";
   const extension = EXT_BY_MIME[mimeType] ?? (mimeType ? "unsupported" : "unknown");
   const fileName = file instanceof File ? file.name : "(invalid)";
@@ -93,103 +95,72 @@ export async function saveUploadedImage(
   });
 
   if (!(file instanceof File) || file.size <= 0) {
-    console.error("[Blob Debug] file missing or empty", {
-      isFile: file instanceof File,
-      fileSize: file instanceof File ? file.size : null,
-    });
-    throw new ImageUploadError("Dosya seçilmedi");
+    const error = new ImageUploadError("Dosya seçilmedi");
+    console.error("[UPLOAD] THROW", error);
+    throw error;
   }
 
+  console.log("[UPLOAD] mime ok");
   const mime = file.type;
   if (!ALLOWED_MIME.has(mime)) {
-    console.error("[Blob Debug] mime validation failed / unsupported extension", {
-      mimeType: mime,
-      extension: EXT_BY_MIME[mime] ?? "unsupported",
-    });
-    throw new ImageUploadError("Sadece JPG, PNG, WebP veya AVIF yükleyebilirsin");
+    const error = new ImageUploadError("Sadece JPG, PNG, WebP veya AVIF yükleyebilirsin");
+    console.error("[UPLOAD] THROW", error);
+    throw error;
   }
 
+  console.log("[UPLOAD] size ok");
   if (file.size > MAX_RAW_BYTES) {
-    console.error("[Blob Debug] file too large", {
-      fileSize: file.size,
-      maxBytes: MAX_RAW_BYTES,
-    });
-    throw new ImageUploadError("Dosya en fazla 2 MB olabilir");
+    const error = new ImageUploadError("Dosya en fazla 2 MB olabilir");
+    console.error("[UPLOAD] THROW", error);
+    throw error;
   }
 
   let buffer: Buffer;
   try {
     buffer = Buffer.from(await file.arrayBuffer());
   } catch (error) {
-    console.error("[Blob Debug] buffer conversion failed", error);
-    if (error instanceof Error) {
-      console.error("[Blob Debug] buffer conversion failed details", {
-        name: error.name,
-        message: error.message,
-        stack: error.stack,
-        cause: error.cause,
-        serialized: JSON.stringify(error, Object.getOwnPropertyNames(error)),
-      });
-    }
+    console.error("[UPLOAD] THROW", error);
     throw error;
   }
 
+  console.log("[UPLOAD] magic bytes ok");
   if (!looksLikeImage(buffer, mime)) {
-    console.error("[Blob Debug] magic byte validation failed", {
-      mimeType: mime,
-      bufferLength: buffer.length,
-    });
-    throw new ImageUploadError("Geçersiz görsel dosyası");
+    const error = new ImageUploadError("Geçersiz görsel dosyası");
+    console.error("[UPLOAD] THROW", error);
+    throw error;
   }
 
   if (!hasBlobToken) {
-    console.error("[Blob Debug] missing blob token before put()", {
-      hasBlobToken: false,
-      tokenLength: tokenRaw?.length ?? 0,
-    });
     console.error("[BLOB] Missing BLOB_READ_WRITE_TOKEN");
-    throw new ImageUploadError(USER_FACING_UNAVAILABLE);
+    const error = new ImageUploadError(USER_FACING_UNAVAILABLE);
+    console.error("[UPLOAD] THROW", error);
+    throw error;
   }
 
   const ext = EXT_BY_MIME[mime] ?? "jpg";
   const filename = `${randomUUID()}-${Date.now()}.${ext}`;
   const objectPath = `${folder}/${filename}`;
 
-  console.log("[Blob Debug] Calling put()", {
-    objectPath,
-    mimeType: mime,
-    bufferLength: buffer.length,
-  });
-
+  console.log("[UPLOAD] BEFORE PUT");
   try {
     const blob = await put(objectPath, buffer, {
       access: "public",
       contentType: mime,
       addRandomSuffix: false,
     });
-    console.log("[Blob Debug] Upload success", {
-      pathname: blob.pathname,
-      url: blob.url,
-    });
+    console.log("[UPLOAD] AFTER PUT");
+    console.log("[UPLOAD] RETURN:", "success", blob.url);
     return blob.url;
   } catch (error) {
-    console.error("[Blob Debug] put() failed — raw error", error);
+    console.error("[UPLOAD] THROW", error);
     if (error instanceof Error) {
-      console.error("[Blob Debug] put() failed — name", error.name);
-      console.error("[Blob Debug] put() failed — message", error.message);
-      console.error("[Blob Debug] put() failed — stack", error.stack);
-      console.error("[Blob Debug] put() failed — cause", error.cause);
       console.error(
         "[Blob Debug] put() failed — serialized",
         JSON.stringify(error, Object.getOwnPropertyNames(error)),
       );
-    } else {
-      console.error(
-        "[Blob Debug] put() failed — non-Error serialized",
-        JSON.stringify(error, error !== null && typeof error === "object" ? Object.getOwnPropertyNames(error) : undefined),
-      );
     }
-
-    throw new ImageUploadError("Fotoğraf depolanamadı. Lütfen tekrar dene.");
+    const userError = new ImageUploadError("Fotoğraf depolanamadı. Lütfen tekrar dene.");
+    console.error("[UPLOAD] THROW", userError);
+    throw userError;
   }
 }

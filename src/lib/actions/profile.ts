@@ -77,7 +77,9 @@ export async function updateProfileAction(
       photoSize: photo.size,
     });
     try {
+      console.log("[ACTION] before saveUploadedImage");
       photoDataUrl = await saveUploadedImage(photo, "avatars", session.user.id);
+      console.log("[ACTION] after saveUploadedImage");
       console.log("[Avatar Upload Action] saveUploadedImage returned", photoDataUrl);
     } catch (error) {
       console.error("[Avatar Upload Action] saveUploadedImage threw", error);
