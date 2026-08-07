@@ -60,6 +60,7 @@ describe("isImageAvatar / avatarImageSrc", () => {
   it("detects uploaded and remote images", () => {
     expect(isImageAvatar("/uploads/avatars/u-1.jpg")).toBe(true);
     expect(isImageAvatar("https://public.blob.vercel-storage.com/x.jpg")).toBe(true);
+    expect(isImageAvatar("blob:http://localhost:3000/abc")).toBe(true);
     expect(isImageAvatar("#6366f1")).toBe(false);
     expect(isImageAvatar(null)).toBe(false);
   });

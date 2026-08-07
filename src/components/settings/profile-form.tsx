@@ -8,7 +8,7 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { updateProfileAction, type ProfileActionState } from "@/lib/actions/profile";
 import { avatarColors } from "@/lib/design-tokens";
 import { compressImageForUpload } from "@/lib/media/compress-image";
-import { avatarImageSrc, isImageAvatar } from "@/lib/utils/avatar";
+import { isImageAvatar } from "@/lib/utils/avatar";
 
 const initialState: ProfileActionState = {};
 
@@ -175,15 +175,13 @@ export function ProfileForm({
             aria-label="Profil fotoğrafını değiştir"
           >
             {showPhoto ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={
-                  previewUrl!.startsWith("blob:")
-                    ? previewUrl!
-                    : avatarImageSrc(previewUrl!)
-                }
-                alt={namePreview || fullName}
-                className={`avatar avatar-xl object-cover ${avatarHighlight ? "avatar--highlight" : ""}`.trim()}
+              <UserAvatar
+                userId={userId}
+                fullName={namePreview || fullName}
+                avatarUrl={previewUrl}
+                avatarColor={selectedColor}
+                size="xl"
+                highlight={avatarHighlight}
               />
             ) : (
               <UserAvatar

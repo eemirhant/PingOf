@@ -1631,13 +1631,27 @@
     display: inline-flex;
     flex-shrink: 0;
     border-radius: 50%;
+    overflow: hidden;
   }
 
-  .avatar-wrap.avatar-xs,
-  .avatar-wrap.avatar-sm,
-  .avatar-wrap.avatar-lg,
+  .avatar-wrap.avatar-xs {
+    width: 28px;
+    height: 28px;
+  }
+
+  .avatar-wrap.avatar-sm {
+    width: 36px;
+    height: 36px;
+  }
+
+  .avatar-wrap.avatar-lg {
+    width: 64px;
+    height: 64px;
+  }
+
   .avatar-wrap.avatar-xl {
-    /* size comes from nested .avatar */
+    width: 96px;
+    height: 96px;
   }
 
   .avatar-progress {
@@ -1645,6 +1659,11 @@
     inset: 0;
     border-radius: 50%;
     z-index: 0;
+  }
+
+  .avatar-wrap .avatar--image {
+    width: 100%;
+    height: 100%;
   }
 
   .avatar--image.avatar--loading {
@@ -1656,6 +1675,11 @@
     transition: opacity 0.2s ease;
     position: relative;
     z-index: 1;
+  }
+
+  .avatar-fallback-icon {
+    font-size: 0.85em;
+    line-height: 1;
   }
 
   @media (hover: hover) and (pointer: fine) {

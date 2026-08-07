@@ -32,6 +32,7 @@ export function isImageAvatar(avatarUrl?: string | null): boolean {
   if (!avatarUrl) return false;
   return (
     avatarUrl.startsWith("data:image/") ||
+    avatarUrl.startsWith("blob:") ||
     avatarUrl.startsWith("/uploads/") ||
     avatarUrl.startsWith("http://") ||
     avatarUrl.startsWith("https://")

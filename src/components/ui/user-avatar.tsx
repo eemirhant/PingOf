@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties } from "react";
+import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 
 import {
   avatarColorForUser,
@@ -31,6 +31,14 @@ type UserAvatarProps = {
   highlight?: boolean;
 };
 
+type LoadState = "loading" | "loaded" | "error";
+
+/**
+ * Avatar render order:
+ * 1) image URL → <img>
+ * 2) load error → initials
+ * 3) no initials → default icon
+ */
 export function UserAvatar({
   userId,
   fullName,
@@ -45,34 +53,64 @@ export function UserAvatar({
   const classes =
     `avatar ${sizeClass} ${highlight ? "avatar--highlight" : ""} ${className}`.trim();
   const color = avatarColorForUser(userId, avatarUrl, avatarColor);
-  const [loaded, setLoaded] = useState(false);
+  const hasImageUrl = isImageAvatar(avatarUrl);
+  const [loadState, setLoadState] = useState<LoadState>("loading");
+  const imgRef = useRef<HTMLImageElement | null>(null);
+  const src = hasImageUrl ? avatarImageSrc(avatarUrl!) : null;
 
-  useEffect(() => {
-    setLoaded(false);
-  }, [avatarUrl]);
+  useLayoutEffect(() => {
+    if (!hasImageUrl) {
+      setLoadState("loading");
+      return;
+    }
+    setLoadState("loading");
+    const img = imgRef.current;
+    if (!img) return;
+    // Cached images often finish before onLoad is attached.
+    if (img.complete) {
+      if (img.naturalWidth > 0) setLoadState("loaded");
+      else setLoadState("error");
+    }
+  }, [hasImageUrl, src]);
 
-  if (isImageAvatar(avatarUrl)) {
+  if (hasImageUrl && loadState !== "error" && src) {
     return (
-      <span className={`avatar-wrap ${sizeClass}`}>
-        {!loaded ? (
+      <span className={`avatar-wrap ${sizeClass}`} title={fullName}>
+        {loadState === "loading" ? (
           <span className="avatar-progress ui-skeleton" aria-hidden />
         ) : null}
-        {/* eslint-disable-next-line @next/next/no-img-element -- user uploads / blob URLs */}
+        {/* eslint-disable-next-line @next/next/no-img-element -- Blob / upload URLs */}
         <img
-          key={avatarUrl}
-          src={avatarImageSrc(avatarUrl!)}
+          ref={imgRef}
+          key={src}
+          src={src}
           alt={fullName}
-          className={`${classes} object-cover avatar--image ${loaded ? "avatar--loaded" : "avatar--loading"}`}
+          className={`${classes} object-cover avatar--image ${loadState === "loaded" ? "avatar--loaded" : "avatar--loading"}`}
           style={{ background: "transparent", ...style }}
-          onLoad={() => setLoaded(true)}
+          onLoad={() => setLoadState("loaded")}
+          onError={() => setLoadState("error")}
+          decoding="async"
         />
       </span>
     );
   }
 
+  const initials = getInitials(fullName);
+
   return (
-    <div className={classes} style={{ background: color, ...style }} aria-hidden>
-      {getInitials(fullName)}
+    <div
+      className={classes}
+      style={{ background: color, ...style }}
+      aria-hidden
+      title={fullName}
+    >
+      {initials !== "?" ? (
+        initials
+      ) : (
+        <span className="avatar-fallback-icon" aria-hidden>
+          👤
+        </span>
+      )}
     </div>
   );
 }
