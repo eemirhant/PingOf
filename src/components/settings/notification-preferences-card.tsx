@@ -24,7 +24,7 @@ type Props = {
 export function NotificationPreferencesCard({ initialPreferences }: Props) {
   const [preferences, setPreferences] =
     useState<NotificationPreferencesMap>(initialPreferences);
-  const [isDesktop, setIsDesktop] = useState(false);
+  /** Exclusive accordion — persists until page refresh. */
   const [openCategoryId, setOpenCategoryId] = useState<string>("challenges");
   const [pushHint, setPushHint] = useState<string | null>(null);
   const [state, formAction, pending] = useActionState(
@@ -35,14 +35,6 @@ export function NotificationPreferencesCard({ initialPreferences }: Props) {
   useEffect(() => {
     setPreferences(initialPreferences);
   }, [initialPreferences]);
-
-  useEffect(() => {
-    const mq = window.matchMedia("(min-width: 640px)");
-    const sync = () => setIsDesktop(mq.matches);
-    sync();
-    mq.addEventListener("change", sync);
-    return () => mq.removeEventListener("change", sync);
-  }, []);
 
   const payload = useMemo(
     () => JSON.stringify({ preferences }),
@@ -84,76 +76,76 @@ export function NotificationPreferencesCard({ initialPreferences }: Props) {
       </div>
 
       {NOTIFICATION_PREFERENCE_CATEGORIES.map((category) => {
-        const open = !isDesktop || openCategoryId === category.id;
+        const open = openCategoryId === category.id;
 
         return (
           <section
             key={category.id}
-            className="overflow-hidden rounded-xl border border-border bg-bg-800/40"
+            className={`notif-pref-accordion ${open ? "is-open" : ""}`}
           >
-            {isDesktop ? (
-              <button
-                type="button"
-                className="flex min-h-11 w-full items-center justify-between gap-3 px-4 py-3 text-left"
-                onClick={() => toggleCategory(category.id)}
-                aria-expanded={open}
+            <button
+              type="button"
+              className="notif-pref-accordion__trigger"
+              onClick={() => toggleCategory(category.id)}
+              aria-expanded={open}
+              aria-controls={`notif-pref-panel-${category.id}`}
+              id={`notif-pref-trigger-${category.id}`}
+            >
+              <span className="notif-pref-accordion__title">{category.title}</span>
+              <span
+                className={`notif-pref-accordion__chevron ${open ? "is-open" : ""}`}
+                aria-hidden
               >
-                <span className="text-sm font-semibold text-text-primary">
-                  {category.title}
-                </span>
-                <span className="text-text-muted text-xs" aria-hidden>
-                  {open ? "▲" : "▼"}
-                </span>
-              </button>
-            ) : (
-              <h3 className="border-b border-border px-4 py-3 text-sm font-semibold text-text-primary">
-                {category.title}
-              </h3>
-            )}
+                ▶
+              </span>
+            </button>
 
-            {open ? (
-              <ul
-                className={`divide-y divide-border ${isDesktop ? "border-t border-border" : ""}`}
-              >
-                {category.items.map((item) => {
-                  const pref = preferences[item.key];
-                  return (
-                    <li
-                      key={item.key}
-                      className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
-                    >
-                      <div className="min-w-0 flex-1 text-sm text-text-primary">
-                        {item.label}
-                      </div>
-                      <div className="grid w-full grid-cols-2 gap-3 sm:w-auto sm:min-w-[220px]">
-                        <label className="flex min-h-11 items-center gap-2 text-sm text-text-secondary">
-                          <input
-                            type="checkbox"
-                            className="size-4 shrink-0 accent-[var(--color-accent)]"
-                            checked={pref.inApp}
-                            onChange={(e) =>
-                              setChannel(item.key, "inApp", e.target.checked)
-                            }
-                          />
-                          Uygulama
-                        </label>
-                        <label className="flex min-h-11 items-center gap-2 text-sm text-text-secondary">
-                          <input
-                            type="checkbox"
-                            className="size-4 shrink-0 accent-[var(--color-accent)]"
-                            checked={pref.push}
-                            onChange={(e) =>
-                              setChannel(item.key, "push", e.target.checked)
-                            }
-                          />
-                          Push
-                        </label>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            ) : null}
+            <div
+              id={`notif-pref-panel-${category.id}`}
+              role="region"
+              aria-labelledby={`notif-pref-trigger-${category.id}`}
+              className="notif-pref-accordion__panel"
+              aria-hidden={!open}
+            >
+              <div className="notif-pref-accordion__panel-inner">
+                <ul className="notif-pref-accordion__list">
+                  {category.items.map((item) => {
+                    const pref = preferences[item.key];
+                    return (
+                      <li key={item.key} className="notif-pref-accordion__item">
+                        <div className="notif-pref-accordion__label">
+                          {item.label}
+                        </div>
+                        <div className="notif-pref-accordion__channels">
+                          <label className="notif-pref-accordion__channel">
+                            <input
+                              type="checkbox"
+                              className="size-4 shrink-0 accent-[var(--color-accent)]"
+                              checked={pref.inApp}
+                              onChange={(e) =>
+                                setChannel(item.key, "inApp", e.target.checked)
+                              }
+                            />
+                            Uygulama
+                          </label>
+                          <label className="notif-pref-accordion__channel">
+                            <input
+                              type="checkbox"
+                              className="size-4 shrink-0 accent-[var(--color-accent)]"
+                              checked={pref.push}
+                              onChange={(e) =>
+                                setChannel(item.key, "push", e.target.checked)
+                              }
+                            />
+                            Push
+                          </label>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            </div>
           </section>
         );
       })}

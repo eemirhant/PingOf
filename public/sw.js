@@ -1,7 +1,7 @@
 /* PingOf offline shell (root scope).
  * Push (FCM) handlers will be added in a later step.
  */
-const CACHE_NAME = "pingof-shell-v3";
+const CACHE_NAME = "pingof-shell-v4";
 const OFFLINE_URL = "/offline.html";
 const PRECACHE = [OFFLINE_URL, "/icons/icon-192.png", "/icons/icon-512.png"];
 

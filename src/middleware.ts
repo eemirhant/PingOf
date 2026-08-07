@@ -201,6 +201,6 @@ export const config = {
      * Skip auth for static/PWA assets and public FCM endpoints —
      * otherwise browsers get HTML login pages (Manifest / SW / config).
      */
-    "/((?!api/auth|api/push/config|_next/static|_next/image|favicon.ico|icon.svg|uploads|icons/|sw\\.js|firebase-messaging-sw\\.js|offline\\.html|manifest\\.webmanifest).*)",
+    "/((?!api/auth|api/push/config|_next/static|_next/image|favicon.ico|icon\\.png|apple-icon\\.png|uploads|icons/|brand/|sw\\.js|firebase-messaging-sw\\.js|offline\\.html|manifest\\.webmanifest).*)",
   ],
 };

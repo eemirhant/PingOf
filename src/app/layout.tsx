@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 
 import { RegisterServiceWorker } from "@/components/pwa/register-sw";
+import iconVersion from "../../public/icons/icon-version.json";
 
 import "./globals.css";
 
@@ -11,12 +12,15 @@ const inter = Inter({
   display: "swap",
 });
 
+/** Bust browser/PWA icon caches when brand assets are regenerated. */
+const ICON_V = iconVersion.version;
+
 export const metadata: Metadata = {
   title: "PingOf — Ofis Masa Tenisi",
   description:
     "Ofis masa tenisi maçlarınızı, turnuvalarınızı ve istatistiklerinizi takip edin.",
   applicationName: "PingOf",
-  manifest: "/manifest.webmanifest",
+  manifest: `/manifest.webmanifest?v=${ICON_V}`,
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -24,12 +28,25 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/favicon.ico", sizes: "any" },
-      { url: "/icon.svg", type: "image/svg+xml" },
-      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
-      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+      { url: `/favicon.ico?v=${ICON_V}`, sizes: "any" },
+      {
+        url: `/icons/icon-192.png?v=${ICON_V}`,
+        sizes: "192x192",
+        type: "image/png",
+      },
+      {
+        url: `/icons/icon-512.png?v=${ICON_V}`,
+        sizes: "512x512",
+        type: "image/png",
+      },
     ],
-    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
+    apple: [
+      {
+        url: `/icons/apple-touch-icon.png?v=${ICON_V}`,
+        sizes: "180x180",
+        type: "image/png",
+      },
+    ],
   },
   formatDetection: {
     telephone: false,

@@ -3081,6 +3081,147 @@
     color: var(--color-text-secondary);
   }
 
+  /* Notification preferences accordion (mobile + desktop) */
+  .notif-pref-accordion {
+    overflow: hidden;
+    border-radius: 14px;
+    border: 1px solid var(--color-border);
+    background: rgb(15 17 23 / 0.4);
+  }
+
+  .notif-pref-accordion__trigger {
+    display: flex;
+    width: 100%;
+    min-height: 44px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 1rem 1.1rem;
+    text-align: left;
+    color: var(--color-text-primary);
+    transition: background 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .notif-pref-accordion__trigger:hover {
+    background: rgb(255 255 255 / 0.03);
+  }
+
+  .notif-pref-accordion__trigger:focus-visible {
+    outline: 2px solid var(--color-accent-light);
+    outline-offset: -2px;
+  }
+
+  .notif-pref-accordion__title {
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+
+  .notif-pref-accordion__chevron {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 1.25rem;
+    font-size: 0.65rem;
+    color: var(--color-text-muted);
+    transform: rotate(0deg);
+    transition: transform 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .notif-pref-accordion__chevron.is-open {
+    transform: rotate(90deg);
+  }
+
+  .notif-pref-accordion__panel {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .notif-pref-accordion.is-open .notif-pref-accordion__panel {
+    grid-template-rows: 1fr;
+  }
+
+  .notif-pref-accordion__panel-inner {
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  .notif-pref-accordion__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border-top: 1px solid var(--color-border);
+    opacity: 0;
+    transform: translateY(-6px);
+    transition:
+      opacity 200ms cubic-bezier(0.4, 0, 0.2, 1),
+      transform 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .notif-pref-accordion.is-open .notif-pref-accordion__list {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .notif-pref-accordion__item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0.85rem 1.1rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .notif-pref-accordion__item:last-child {
+    border-bottom: none;
+  }
+
+  .notif-pref-accordion__label {
+    min-width: 0;
+    flex: 1;
+    font-size: 0.875rem;
+    color: var(--color-text-primary);
+  }
+
+  .notif-pref-accordion__channels {
+    display: grid;
+    width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  .notif-pref-accordion__channel {
+    display: flex;
+    min-height: 44px;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+  }
+
+  @media (min-width: 640px) {
+    .notif-pref-accordion__item {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .notif-pref-accordion__channels {
+      width: auto;
+      min-width: 220px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .notif-pref-accordion__panel,
+    .notif-pref-accordion__list,
+    .notif-pref-accordion__chevron {
+      transition: none !important;
+    }
+  }
+
   /* ── Tournament bracket (single elimination UI) ── */
   .tournament-bracket-shell {
     --bracket-card-min-h: 8.75rem;
