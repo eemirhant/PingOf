@@ -7,9 +7,9 @@ import { recordNotificationOpenAction } from "@/lib/actions/notification-navigat
 import {
   NOTIFICATION_NAVIGATE_MESSAGE,
   parseNotificationDeepLink,
+  toNotificationNavPath,
   type NotificationNavigateMessage,
 } from "@/lib/notifications/deep-link";
-import { toSafeInternalPath } from "@/lib/url/safe-path";
 
 export type NavigateFromNotificationOptions = {
   source?: NotificationNavigateMessage["source"];
@@ -31,7 +31,7 @@ export function navigateFromNotificationUrl(
   options: NavigateFromNotificationOptions = {},
 ): void {
   if (typeof window === "undefined") return;
-  const path = toSafeInternalPath(rawUrl, "/notifications");
+  const path = toNotificationNavPath(rawUrl);
   const key = `pingof-nav:${path}`;
   const now = Date.now();
   try {
@@ -115,7 +115,7 @@ export function NotificationDeepLinkListener() {
     function onMessage(event: MessageEvent) {
       const data = event.data as NotificationNavigateMessage | null;
       if (!data || data.type !== NOTIFICATION_NAVIGATE_MESSAGE) return;
-      const path = toSafeInternalPath(data.url, "/notifications");
+      const path = toNotificationNavPath(data.url);
       go(path, {
         source: data.source ?? "sw",
         notificationType: data.notificationType,

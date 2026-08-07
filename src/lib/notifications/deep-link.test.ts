@@ -7,6 +7,7 @@ import {
   getListFallbackForNotificationType,
   getNotificationDestination,
   parseNotificationDeepLink,
+  toNotificationNavPath,
   withEntityMissingFlag,
 } from "@/lib/notifications/deep-link";
 
@@ -19,27 +20,29 @@ describe("getNotificationDestination", () => {
     ).toBe("/challenges?highlight=ch1&id=ch1&challengeId=ch1");
   });
 
-  it("routes challenge accepted to match detail when matchId present", () => {
+  it("routes challenge accepted to challenges highlight", () => {
     expect(
       getNotificationDestination(NotificationType.CHALLENGE_ACCEPTED, {
         matchId: "m1",
         challengeId: "ch1",
       }),
-    ).toBe("/matches/m1?highlight=m1");
+    ).toBe("/challenges?highlight=ch1&id=ch1&challengeId=ch1");
   });
 
-  it("routes match result to match detail", () => {
+  it("routes match created to matches list highlight", () => {
+    expect(
+      getNotificationDestination(NotificationType.MATCH_CREATED, {
+        entityId: "m9",
+      }),
+    ).toBe("/matches?highlight=m9");
+  });
+
+  it("routes match result to past matches with highlight", () => {
     expect(
       getNotificationDestination(NotificationType.MATCH_RESULT, {
         entityId: "m9",
       }),
-    ).toBe("/matches/m9?highlight=m9");
-  });
-
-  it("routes match result without id to past matches list", () => {
-    expect(getNotificationDestination(NotificationType.MATCH_RESULT, {})).toBe(
-      "/matches?time=PAST",
-    );
+    ).toBe("/matches?time=PAST&highlight=m9");
   });
 
   it("routes tournament notifications to tournament detail", () => {
@@ -48,24 +51,6 @@ describe("getNotificationDestination", () => {
         tournamentId: "t1",
       }),
     ).toBe("/tournaments/t1");
-  });
-
-  it("routes tournament match to tournament when only tournamentId/entityId present", () => {
-    expect(
-      getNotificationDestination(NotificationType.TOURNAMENT_MATCH_READY, {
-        entityId: "t1",
-        tournamentId: "t1",
-      }),
-    ).toBe("/tournaments/t1");
-  });
-
-  it("routes tournament match to match when matchId present", () => {
-    expect(
-      getNotificationDestination(NotificationType.TOURNAMENT_MATCH_CREATED, {
-        matchId: "m2",
-        tournamentId: "t1",
-      }),
-    ).toBe("/matches/m2?highlight=m2");
   });
 
   it("normalizes lowercase snake types", () => {
@@ -82,23 +67,37 @@ describe("getNotificationDestination", () => {
 });
 
 describe("buildNotificationDeepLink", () => {
-  it("rebuilds from legacy linkUrl match path", () => {
+  it("ignores stale /notifications linkUrl for challenge types", () => {
+    expect(
+      buildNotificationDeepLink({
+        type: NotificationType.CHALLENGE_RECEIVED,
+        linkUrl: "/notifications",
+        challengeId: "ch99",
+      }),
+    ).toBe("/challenges?highlight=ch99&id=ch99&challengeId=ch99");
+  });
+
+  it("rebuilds match created from match path", () => {
     expect(
       buildNotificationDeepLink({
         type: NotificationType.MATCH_CREATED,
         linkUrl: "/matches/abc",
       }),
-    ).toBe("/matches/abc?highlight=abc");
+    ).toBe("/matches?highlight=abc");
+  });
+});
+
+describe("toNotificationNavPath", () => {
+  it("keeps relative paths", () => {
+    expect(toNotificationNavPath("/challenges?highlight=x")).toBe(
+      "/challenges?highlight=x",
+    );
   });
 
-  it("prefers explicit challengeId over bare /challenges", () => {
+  it("strips origin from absolute urls", () => {
     expect(
-      buildNotificationDeepLink({
-        type: NotificationType.CHALLENGE_RECEIVED,
-        linkUrl: "/challenges",
-        challengeId: "ch99",
-      }),
-    ).toBe("/challenges?highlight=ch99&id=ch99&challengeId=ch99");
+      toNotificationNavPath("https://other.example/challenges?highlight=x"),
+    ).toBe("/challenges?highlight=x");
   });
 });
 

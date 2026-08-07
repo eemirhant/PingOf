@@ -291,7 +291,11 @@ export async function createNotificationsForUsers(
     }
 
     if (pushRecipients.length > 0) {
-      const absoluteUrl = toAbsoluteAppUrl(deepLinkPath);
+      // Relative path for SW/client (origin-safe). Absolute only for FCM webpush link.
+      const relativeUrl = deepLinkPath.startsWith("/")
+        ? deepLinkPath
+        : `/${deepLinkPath}`;
+      const absoluteUrl = toAbsoluteAppUrl(relativeUrl);
       const absoluteIcon = toAbsoluteAppUrl("/icons/icon-192.png");
       const absoluteImage = input.image
         ? toAbsoluteAppUrl(input.image)
@@ -301,6 +305,8 @@ export async function createNotificationsForUsers(
         type: input.type,
         pushRecipients,
         skippedPush,
+        relativeUrl,
+        absoluteUrl,
       });
 
       pushDebug("Push gönderimi çağrılacak", {
@@ -309,7 +315,8 @@ export async function createNotificationsForUsers(
         targetExternalIds: pushRecipients,
         title: input.title,
         body: input.body,
-        url: absoluteUrl,
+        url: relativeUrl,
+        absoluteUrl,
         tag: `pingof-${input.type}`,
         entityId: resolvedEntityId,
       });
@@ -318,7 +325,8 @@ export async function createNotificationsForUsers(
         const pushResult = await sendPushToUsers(pushRecipients, {
           title: input.title,
           body: input.body,
-          url: absoluteUrl,
+          url: relativeUrl,
+          absoluteUrl,
           tag: `pingof-${input.type}`,
           notificationType: input.type,
           icon: absoluteIcon,

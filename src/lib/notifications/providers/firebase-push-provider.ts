@@ -27,6 +27,23 @@ function tokenPreview(token: string): string {
   return `${token.slice(0, 8)}…${token.slice(-8)}`;
 }
 
+function toRelativePushPath(raw: string | undefined): string {
+  const value = (raw ?? "/notifications").trim() || "/notifications";
+  if (value.startsWith("/") && !value.startsWith("//")) return value;
+  try {
+    const u = new URL(value);
+    return `${u.pathname}${u.search}${u.hash}` || "/notifications";
+  } catch {
+    return "/notifications";
+  }
+}
+
+function toAbsolutePushUrl(relativePath: string, absoluteHint?: string): string {
+  if (absoluteHint && /^https?:\/\//i.test(absoluteHint)) return absoluteHint;
+  // Relative is enough for same-origin SW; FCM link prefers absolute when available.
+  return relativePath;
+}
+
 /**
  * Data-only FCM message so the service worker is the sole display path
  * (avoids duplicate OS notifications on Android Chrome PWA).
@@ -35,7 +52,11 @@ function buildMulticast(
   tokens: string[],
   notification: PushNotificationPayload,
 ): MulticastMessage {
-  const url = notification.url ?? "/notifications";
+  const relativeUrl = toRelativePushPath(notification.url);
+  const absoluteUrl = toAbsolutePushUrl(
+    relativeUrl,
+    notification.absoluteUrl ?? notification.url,
+  );
   const icon = notification.icon ?? "/icons/icon-192.png";
   const badge = notification.badge ?? "/icons/icon-192.png";
   const priority = notification.priority === "high" ? "high" : "normal";
@@ -45,7 +66,8 @@ function buildMulticast(
     data: {
       title: notification.title,
       body: notification.body,
-      url,
+      // Always relative — SW must not depend on APP_URL origin matching.
+      url: relativeUrl,
       icon,
       badge,
       image: notification.image ?? "",
@@ -66,7 +88,9 @@ function buildMulticast(
         TTL: "86400",
       },
       fcmOptions: {
-        link: url,
+        link: absoluteUrl.startsWith("http")
+          ? absoluteUrl
+          : relativeUrl,
       },
     },
     android: {

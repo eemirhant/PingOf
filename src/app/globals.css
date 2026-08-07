@@ -1582,15 +1582,16 @@
     border: 1px solid rgb(244 63 94 / 0.25);
   }
 
+  .deep-link-focus,
   .challenge-deep-link-focus {
     outline: 2px solid rgb(99 102 241 / 0.7);
     outline-offset: 4px;
     box-shadow: 0 0 0 6px rgb(99 102 241 / 0.12);
     background: rgb(99 102 241 / 0.14);
-    animation: challenge-deep-link-pulse 1.1s ease-in-out 3;
+    animation: deep-link-pulse 1.1s ease-in-out 3;
   }
 
-  @keyframes challenge-deep-link-pulse {
+  @keyframes deep-link-pulse {
     0%,
     100% {
       background: rgb(99 102 241 / 0.1);

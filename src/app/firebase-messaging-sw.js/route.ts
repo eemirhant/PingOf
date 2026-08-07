@@ -67,10 +67,23 @@ messaging.onBackgroundMessage((payload) => {
   const url =
     (payload.data && payload.data.url) ||
     (payload.fcmOptions && payload.fcmOptions.link) ||
-    '/notifications';
+    '';
   const tag =
     (payload.data && (payload.data.tag || payload.data.notificationType)) ||
     'pingof';
+
+  // Never invent routes in the SW — only open payload.url (path extracted).
+  function toNavPath(raw) {
+    const value = String(raw || '').trim();
+    if (!value) return '/notifications';
+    if (value.charAt(0) === '/' && value.charAt(1) !== '/') return value;
+    try {
+      const u = new URL(value, self.location.origin);
+      return (u.pathname + u.search + u.hash) || '/notifications';
+    } catch (_) {
+      return '/notifications';
+    }
+  }
 
   const options = {
     body: body,
@@ -78,7 +91,7 @@ messaging.onBackgroundMessage((payload) => {
     badge: badge,
     tag: tag,
     data: {
-      url: url,
+      url: toNavPath(url),
       notificationType: (payload.data && payload.data.notificationType) || '',
       entityId: (payload.data && payload.data.entityId) || '',
       organizationId: (payload.data && payload.data.organizationId) || '',
@@ -102,9 +115,13 @@ self.addEventListener('notificationclick', (event) => {
   const rawUrl = data.url || '/notifications';
   let targetUrl = '/notifications';
   try {
-    const u = new URL(rawUrl, self.location.origin);
-    if (u.origin === self.location.origin) {
-      targetUrl = u.pathname + u.search + u.hash;
+    const value = String(rawUrl || '').trim();
+    if (value.charAt(0) === '/' && value.charAt(1) !== '/') {
+      targetUrl = value;
+    } else {
+      const u = new URL(value, self.location.origin);
+      // Always use path+search even if absolute URL host differs (APP_URL mismatch).
+      targetUrl = (u.pathname + u.search + u.hash) || '/notifications';
     }
   } catch (_) {
     targetUrl = '/notifications';

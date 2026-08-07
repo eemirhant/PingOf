@@ -79,11 +79,20 @@ function challengesDestination(challengeId: string | null): string {
   });
 }
 
-function matchDestination(matchId: string | null, listFallback: string): string {
-  if (matchId) {
-    return withQuery(`/matches/${matchId}`, { highlight: matchId });
-  }
-  return listFallback;
+/** List + highlight (user-facing deep links for match pushes). */
+function matchesListDestination(matchId: string | null, extra?: Record<string, string | null>): string {
+  return withQuery("/matches", {
+    ...(extra ?? {}),
+    highlight: matchId,
+  });
+}
+
+function matchesHistoryDestination(matchId: string | null): string {
+  // No dedicated /matches/history route — PAST filter is the history list.
+  return withQuery("/matches", {
+    time: "PAST",
+    highlight: matchId,
+  });
 }
 
 /**
@@ -97,41 +106,34 @@ const DESTINATION_REGISTRY: Record<string, DestinationBuilder> = {
     challengesDestination(firstId(ids.challengeId, ids.entityId)),
   [NotificationType.CHALLENGE_CANCELLED]: (ids) =>
     challengesDestination(firstId(ids.challengeId, ids.entityId)),
-  [NotificationType.CHALLENGE_ACCEPTED]: (ids) => {
-    // Prefer match detail when a match was created; else challenges highlight.
-    const matchId = firstId(ids.matchId);
-    if (matchId) return matchDestination(matchId, "/matches");
-    return challengesDestination(firstId(ids.challengeId, ids.entityId));
-  },
+  [NotificationType.CHALLENGE_ACCEPTED]: (ids) =>
+    challengesDestination(firstId(ids.challengeId, ids.entityId)),
 
   [NotificationType.MATCH_CREATED]: (ids) =>
-    matchDestination(firstId(ids.matchId, ids.entityId), "/matches"),
+    matchesListDestination(firstId(ids.matchId, ids.entityId)),
   [NotificationType.MATCH_SCHEDULE_CHANGED]: (ids) =>
-    matchDestination(firstId(ids.matchId, ids.entityId), "/matches"),
+    matchesListDestination(firstId(ids.matchId, ids.entityId)),
   [NotificationType.MATCH_REMINDER]: (ids) =>
-    matchDestination(firstId(ids.matchId, ids.entityId), "/matches"),
+    matchesListDestination(firstId(ids.matchId, ids.entityId)),
   [NotificationType.MATCH_CANCELLED]: (ids) =>
-    matchDestination(firstId(ids.matchId, ids.entityId), "/matches"),
+    matchesListDestination(firstId(ids.matchId, ids.entityId)),
   [NotificationType.MATCH_RESULT]: (ids) =>
-    matchDestination(
-      firstId(ids.matchId, ids.entityId),
-      "/matches?time=PAST",
-    ),
+    matchesHistoryDestination(firstId(ids.matchId, ids.entityId)),
 
   [NotificationType.STAKE_CREATED]: (ids) =>
-    matchDestination(firstId(ids.matchId, ids.entityId), "/matches"),
+    matchesListDestination(firstId(ids.matchId, ids.entityId)),
   [NotificationType.STAKE_SETTLED]: (ids) =>
-    matchDestination(firstId(ids.matchId, ids.entityId), "/matches"),
+    matchesListDestination(firstId(ids.matchId, ids.entityId)),
 
   [NotificationType.TOURNAMENT_MATCH_READY]: (ids) => {
     const mid = firstId(ids.matchId);
-    if (mid) return matchDestination(mid, "/matches");
+    if (mid) return matchesListDestination(mid);
     const tid = firstId(ids.tournamentId, ids.entityId);
     return tid ? `/tournaments/${tid}` : "/tournaments";
   },
   [NotificationType.TOURNAMENT_MATCH_CREATED]: (ids) => {
     const mid = firstId(ids.matchId);
-    if (mid) return matchDestination(mid, "/matches");
+    if (mid) return matchesListDestination(mid);
     const tid = firstId(ids.tournamentId, ids.entityId);
     return tid ? `/tournaments/${tid}` : "/tournaments";
   },
@@ -280,7 +282,8 @@ export const resolveNotificationTarget = getNotificationDestination;
 
 /**
  * Canonicalize a notification link: merge explicit refs + parse old linkUrl,
- * then rebuild via getNotificationDestination when possible.
+ * then ALWAYS rebuild via registry when the type is known.
+ * Stale linkUrl values like "/notifications" must not win for challenge/match types.
  */
 export function buildNotificationDeepLink(input: {
   type: string;
@@ -302,6 +305,11 @@ export function buildNotificationDeepLink(input: {
     notificationId: firstId(input.notificationId, fromUrl.notificationId),
   };
 
+  const normalized = normalizeNotificationType(input.type);
+  if (DESTINATION_REGISTRY[normalized]) {
+    return getNotificationDestination(normalized, refs);
+  }
+
   const hasRefs = Boolean(
     refs.entityId ||
       refs.challengeId ||
@@ -316,6 +324,25 @@ export function buildNotificationDeepLink(input: {
   }
 
   return toSafeInternalPath(input.linkUrl, FALLBACK);
+}
+
+/** Extract pathname+search+hash for SW / client navigation (same-origin safe). */
+export function toNotificationNavPath(rawUrl: string | null | undefined): string {
+  const value = String(rawUrl ?? "").trim();
+  if (!value) return FALLBACK;
+
+  if (value.startsWith("/") && !value.startsWith("//")) {
+    return value;
+  }
+
+  try {
+    const u = new URL(value);
+    const path = `${u.pathname}${u.search}${u.hash}` || FALLBACK;
+    if (!path.startsWith("/") || path.startsWith("//")) return FALLBACK;
+    return path;
+  } catch {
+    return FALLBACK;
+  }
 }
 
 export function parseNotificationDeepLink(

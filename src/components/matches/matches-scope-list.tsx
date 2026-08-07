@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 
+import { MatchDeepLinkFocus } from "@/components/matches/match-deep-link-focus";
 import { MatchListCard } from "@/components/matches/match-list-card";
 import {
   resolveMatchStatus,
@@ -33,6 +34,7 @@ type MatchesScopeListProps = {
   allTotal: number;
   tournamentTotal: number;
   tournaments: MatchTournamentChip[];
+  highlightMatchId?: string | null;
 };
 
 function toCardMatch(match: MatchesListPayload["matches"][number]) {
@@ -86,6 +88,7 @@ export function MatchesScopeList({
   allTotal,
   tournamentTotal,
   tournaments,
+  highlightMatchId = null,
 }: MatchesScopeListProps) {
   const [scope, setScope] = useState<MatchesListScope>("mine");
   const [tournamentFilter, setTournamentFilter] = useState<string | null>(null);
@@ -225,6 +228,7 @@ export function MatchesScopeList({
 
   return (
     <div>
+      <MatchDeepLinkFocus matchId={highlightMatchId} />
       <div className="matches-scope mb-3" role="tablist" aria-label="Maç kapsamı">
         <button
           type="button"

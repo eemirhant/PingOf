@@ -42,7 +42,12 @@ function parseTime(value: string | undefined): MatchListTimeFilter {
 export default async function MatchesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; status?: string; time?: string }>;
+  searchParams: Promise<{
+    page?: string;
+    status?: string;
+    time?: string;
+    highlight?: string;
+  }>;
 }) {
   const session = await auth();
   if (!session?.user) redirect("/login");
@@ -51,6 +56,7 @@ export default async function MatchesPage({
   const page = Number(params.page ?? "1") || 1;
   const status = parseStatus(params.status);
   const time = parseTime(params.time);
+  const highlightMatchId = (params.highlight ?? "").trim() || null;
   const orgId = session.user.organizationId;
 
   const [mineResult, allResult, tournamentResult, tournaments] = await Promise.all([
@@ -181,6 +187,7 @@ export default async function MatchesPage({
         allTotal={allTotal}
         tournamentTotal={tournamentTotal}
         tournaments={tournaments}
+        highlightMatchId={highlightMatchId}
       />
     </div>
   );

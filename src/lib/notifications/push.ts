@@ -7,6 +7,7 @@ export type PushPayload = {
   title: string;
   body: string;
   url?: string;
+  absoluteUrl?: string;
   tag?: string;
   icon?: string;
   badge?: string;
@@ -44,6 +45,7 @@ export async function sendPushToUsers(
     title: payload.title,
     body: payload.body,
     url: payload.url,
+    absoluteUrl: payload.absoluteUrl,
     tag: payload.tag,
     icon: payload.icon ?? "/icons/icon-192.png",
     badge: payload.badge ?? "/icons/icon-192.png",

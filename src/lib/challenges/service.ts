@@ -222,11 +222,11 @@ export async function acceptChallenge(
     type: NotificationType.CHALLENGE_ACCEPTED,
     title: "Teklifin kabul edildi",
     body: `${challenge.toUser.fullName} meydan okumanı kabul etti.`,
-    linkUrl: `/matches/${match.id}`,
+    linkUrl: `/challenges?highlight=${challengeId}`,
     organizationId,
     matchId: match.id,
     challengeId,
-    entityId: match.id,
+    entityId: challengeId,
   });
 
   await publishOrgEvent(organizationId, RealtimeEventType.CHALLENGE_UPDATED, {

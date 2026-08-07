@@ -116,7 +116,11 @@ export function MatchListCard({
   const dateLabel = formatMatchDate(match);
 
   return (
-    <Link href={`/matches/${match.id}`} className="match-list-card">
+    <Link
+      id={`match-${match.id}`}
+      href={`/matches/${match.id}`}
+      className="match-list-card"
+    >
       <div className="match-list-card__format">
         <span
           className={`badge match-list-card__badge ${match.format === "SINGLES" ? "badge-1v1" : "badge-2v2"}`}

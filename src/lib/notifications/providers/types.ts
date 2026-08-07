@@ -11,7 +11,10 @@ export type PushNotificationPayload = {
   icon?: string;
   badge?: string;
   image?: string;
+  /** Prefer relative path for SW/client (e.g. /challenges?highlight=…). */
   url?: string;
+  /** Absolute URL for FCM webpush.fcmOptions.link only. */
+  absoluteUrl?: string;
   notificationType?: string;
   entityId?: string | null;
   organizationId?: string | null;

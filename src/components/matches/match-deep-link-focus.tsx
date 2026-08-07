@@ -2,19 +2,17 @@
 
 import { useEffect } from "react";
 
-type ChallengeDeepLinkFocusProps = {
-  challengeId: string | null;
+type MatchDeepLinkFocusProps = {
+  matchId: string | null;
 };
 
 /**
- * Scrolls to and highlights a challenge card opened via notification deep link.
+ * Scrolls to and highlights a match card opened via notification deep link.
  */
-export function ChallengeDeepLinkFocus({
-  challengeId,
-}: ChallengeDeepLinkFocusProps) {
+export function MatchDeepLinkFocus({ matchId }: MatchDeepLinkFocusProps) {
   useEffect(() => {
-    if (!challengeId) return;
-    const el = document.getElementById(`challenge-${challengeId}`);
+    if (!matchId) return;
+    const el = document.getElementById(`match-${matchId}`);
     if (!el) return;
     el.scrollIntoView({ behavior: "smooth", block: "center" });
     el.classList.add("deep-link-focus");
@@ -22,7 +20,7 @@ export function ChallengeDeepLinkFocus({
       el.classList.remove("deep-link-focus");
     }, 3200);
     return () => window.clearTimeout(timer);
-  }, [challengeId]);
+  }, [matchId]);
 
   return null;
 }

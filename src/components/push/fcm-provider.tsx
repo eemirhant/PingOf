@@ -8,7 +8,7 @@ import {
   syncWebPushToken,
 } from "@/lib/firebase/messaging-client";
 import { navigateFromNotificationUrl } from "@/components/notifications/notification-deep-link-listener";
-import { toSafeInternalPath } from "@/lib/url/safe-path";
+import { toNotificationNavPath } from "@/lib/notifications/deep-link";
 
 /**
  * After login: sync FCM token when permission already granted.
@@ -40,7 +40,7 @@ export function FcmProvider({ enabled }: { enabled: boolean }) {
         return;
       }
       try {
-        const path = toSafeInternalPath(payload.url, "/notifications");
+        const path = toNotificationNavPath(payload.url);
         const n = new Notification(payload.title, {
           body: payload.body,
           icon: "/icons/icon-192.png",
