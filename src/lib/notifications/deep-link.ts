@@ -1,6 +1,6 @@
 /**
  * Central notification deep-link mapping (type → destination).
- * Used by in-app open, FCM payload URL, SW click, and foreground click.
+ * Add new notification types here only — callers should not hardcode routes.
  */
 
 import { NotificationType } from "@/domain/notification";
@@ -24,11 +24,25 @@ export type ParsedNotificationDeepLink = {
   tournamentId: string | null;
   playerId: string | null;
   notificationId: string | null;
-  /** Generic ?id= used for challenge list focus */
+  /** Generic focus id (?id= or ?highlight=) */
   focusId: string | null;
+  highlightId: string | null;
+  entityMissing: boolean;
 };
 
 const FALLBACK = "/notifications";
+export const ENTITY_MISSING_QUERY = "entityMissing";
+
+type ResolvedIds = {
+  challengeId: string | null;
+  matchId: string | null;
+  tournamentId: string | null;
+  playerId: string | null;
+  notificationId: string | null;
+  entityId: string | null;
+};
+
+type DestinationBuilder = (ids: ResolvedIds) => string;
 
 function firstId(
   ...candidates: Array<string | null | undefined>
@@ -40,15 +54,151 @@ function firstId(
   return null;
 }
 
-function withQuery(
+export function withQuery(
   pathname: string,
-  params: Record<string, string | null>,
+  params: Record<string, string | null | undefined>,
 ): string {
   const q = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
     if (value) q.set(key, value);
   }
   const qs = q.toString();
+  return qs ? `${pathname}?${qs}` : pathname;
+}
+
+/** Normalize payload types (challenge_received → CHALLENGE_RECEIVED). */
+export function normalizeNotificationType(type: string): string {
+  return type.trim().replace(/-/g, "_").toUpperCase();
+}
+
+function challengesDestination(challengeId: string | null): string {
+  return withQuery("/challenges", {
+    highlight: challengeId,
+    id: challengeId,
+    challengeId,
+  });
+}
+
+function matchDestination(matchId: string | null, listFallback: string): string {
+  if (matchId) {
+    return withQuery(`/matches/${matchId}`, { highlight: matchId });
+  }
+  return listFallback;
+}
+
+/**
+ * Registry: one entry per notification type.
+ * Future types → add a row here only.
+ */
+const DESTINATION_REGISTRY: Record<string, DestinationBuilder> = {
+  [NotificationType.CHALLENGE_RECEIVED]: (ids) =>
+    challengesDestination(firstId(ids.challengeId, ids.entityId)),
+  [NotificationType.CHALLENGE_DECLINED]: (ids) =>
+    challengesDestination(firstId(ids.challengeId, ids.entityId)),
+  [NotificationType.CHALLENGE_CANCELLED]: (ids) =>
+    challengesDestination(firstId(ids.challengeId, ids.entityId)),
+  [NotificationType.CHALLENGE_ACCEPTED]: (ids) => {
+    // Prefer match detail when a match was created; else challenges highlight.
+    const matchId = firstId(ids.matchId);
+    if (matchId) return matchDestination(matchId, "/matches");
+    return challengesDestination(firstId(ids.challengeId, ids.entityId));
+  },
+
+  [NotificationType.MATCH_CREATED]: (ids) =>
+    matchDestination(firstId(ids.matchId, ids.entityId), "/matches"),
+  [NotificationType.MATCH_SCHEDULE_CHANGED]: (ids) =>
+    matchDestination(firstId(ids.matchId, ids.entityId), "/matches"),
+  [NotificationType.MATCH_REMINDER]: (ids) =>
+    matchDestination(firstId(ids.matchId, ids.entityId), "/matches"),
+  [NotificationType.MATCH_CANCELLED]: (ids) =>
+    matchDestination(firstId(ids.matchId, ids.entityId), "/matches"),
+  [NotificationType.MATCH_RESULT]: (ids) =>
+    matchDestination(
+      firstId(ids.matchId, ids.entityId),
+      "/matches?time=PAST",
+    ),
+
+  [NotificationType.STAKE_CREATED]: (ids) =>
+    matchDestination(firstId(ids.matchId, ids.entityId), "/matches"),
+  [NotificationType.STAKE_SETTLED]: (ids) =>
+    matchDestination(firstId(ids.matchId, ids.entityId), "/matches"),
+
+  [NotificationType.TOURNAMENT_MATCH_READY]: (ids) => {
+    const mid = firstId(ids.matchId);
+    if (mid) return matchDestination(mid, "/matches");
+    const tid = firstId(ids.tournamentId, ids.entityId);
+    return tid ? `/tournaments/${tid}` : "/tournaments";
+  },
+  [NotificationType.TOURNAMENT_MATCH_CREATED]: (ids) => {
+    const mid = firstId(ids.matchId);
+    if (mid) return matchDestination(mid, "/matches");
+    const tid = firstId(ids.tournamentId, ids.entityId);
+    return tid ? `/tournaments/${tid}` : "/tournaments";
+  },
+  [NotificationType.TOURNAMENT_CREATED]: (ids) => {
+    const tid = firstId(ids.tournamentId, ids.entityId);
+    return tid
+      ? withQuery(`/tournaments/${tid}`, { matchId: ids.matchId })
+      : "/tournaments";
+  },
+  [NotificationType.TOURNAMENT_ADDED]: (ids) => {
+    const tid = firstId(ids.tournamentId, ids.entityId);
+    return tid ? `/tournaments/${tid}` : "/tournaments";
+  },
+  [NotificationType.TOURNAMENT_STARTED]: (ids) => {
+    const tid = firstId(ids.tournamentId, ids.entityId);
+    return tid ? `/tournaments/${tid}` : "/tournaments";
+  },
+  [NotificationType.TOURNAMENT_COMPLETED]: (ids) => {
+    const tid = firstId(ids.tournamentId, ids.entityId);
+    return tid ? `/tournaments/${tid}` : "/tournaments";
+  },
+
+  [NotificationType.LEADERBOARD_RANK_CHANGED]: () => "/leaderboard",
+  [NotificationType.LEADERBOARD_TOP3]: () => "/leaderboard",
+  [NotificationType.LEADERBOARD_OVERTAKEN]: () => "/leaderboard",
+  [NotificationType.LEADERBOARD_STREAK]: (ids) => {
+    const pid = firstId(ids.playerId, ids.entityId);
+    return pid ? `/players/${pid}` : "/players";
+  },
+
+  [NotificationType.MEMBER_JOINED]: (ids) => {
+    const pid = firstId(ids.playerId, ids.entityId);
+    return pid ? `/players/${pid}` : "/players";
+  },
+
+  // Reserved future types (no dedicated screens yet)
+  ORGANIZATION: () => "/settings",
+  ANNOUNCEMENT: () => FALLBACK,
+  NOTIFICATION: (ids) => withQuery(FALLBACK, { id: ids.notificationId }),
+};
+
+/** List page when a deep-linked entity no longer exists (no hard 404). */
+export function getListFallbackForNotificationType(type: string): string {
+  const t = normalizeNotificationType(type);
+  if (t.startsWith("CHALLENGE_")) return "/challenges";
+  if (t === NotificationType.MATCH_RESULT) return "/matches?time=PAST";
+  if (t.startsWith("MATCH_") || t.startsWith("STAKE_")) return "/matches";
+  if (t.startsWith("TOURNAMENT_")) return "/tournaments";
+  if (t.startsWith("LEADERBOARD_")) return "/leaderboard";
+  if (t === NotificationType.MEMBER_JOINED || t === "ORGANIZATION") {
+    return t === "ORGANIZATION" ? "/settings" : "/players";
+  }
+  return FALLBACK;
+}
+
+export function withEntityMissingFlag(path: string): string {
+  const safe = toSafeInternalPath(path, FALLBACK);
+  let pathname = safe;
+  let search = "";
+  const qi = safe.indexOf("?");
+  if (qi >= 0) {
+    pathname = safe.slice(0, qi);
+    search = safe.slice(qi + 1);
+  }
+  const params = new URLSearchParams(search);
+  params.set(ENTITY_MISSING_QUERY, "1");
+  const qs = params.toString();
   return qs ? `${pathname}?${qs}` : pathname;
 }
 
@@ -70,7 +220,7 @@ export function extractRefsFromLinkUrl(
   }
 
   const params = new URLSearchParams(search);
-  const focusId = params.get("id");
+  const focusId = params.get("highlight") ?? params.get("id");
   const challengeId = params.get("challengeId");
   const matchId = params.get("matchId");
   const tournamentId = params.get("tournamentId");
@@ -100,6 +250,17 @@ export function extractRefsFromLinkUrl(
   };
 }
 
+function resolveIds(refs: NotificationDeepLinkRefs): ResolvedIds {
+  return {
+    challengeId: firstId(refs.challengeId),
+    matchId: firstId(refs.matchId),
+    tournamentId: firstId(refs.tournamentId),
+    playerId: firstId(refs.playerId),
+    notificationId: firstId(refs.notificationId),
+    entityId: firstId(refs.entityId),
+  };
+}
+
 /**
  * Single source of truth: notification type (+ refs) → internal path.
  */
@@ -107,76 +268,11 @@ export function getNotificationDestination(
   type: string,
   refs: NotificationDeepLinkRefs = {},
 ): string {
-  const matchId = firstId(refs.matchId, refs.entityId);
-  const tournamentId = firstId(refs.tournamentId, refs.entityId);
-  const playerId = firstId(refs.playerId, refs.entityId);
-  const notificationId = firstId(refs.notificationId);
-  const challengeFocus = firstId(refs.challengeId, refs.entityId);
-
-  switch (type) {
-    case NotificationType.CHALLENGE_RECEIVED:
-    case NotificationType.CHALLENGE_DECLINED:
-    case NotificationType.CHALLENGE_CANCELLED:
-      return withQuery("/challenges", {
-        id: challengeFocus,
-        challengeId: challengeFocus,
-      });
-
-    case NotificationType.CHALLENGE_ACCEPTED: {
-      const acceptedMatch = firstId(refs.matchId, refs.entityId);
-      if (acceptedMatch) return `/matches/${acceptedMatch}`;
-      return withQuery("/challenges", {
-        id: firstId(refs.challengeId),
-        challengeId: firstId(refs.challengeId),
-      });
-    }
-
-    case NotificationType.MATCH_CREATED:
-    case NotificationType.MATCH_SCHEDULE_CHANGED:
-    case NotificationType.MATCH_REMINDER:
-    case NotificationType.MATCH_CANCELLED:
-    case NotificationType.MATCH_RESULT:
-    case NotificationType.STAKE_CREATED:
-    case NotificationType.STAKE_SETTLED: {
-      const mid = firstId(refs.matchId, refs.entityId);
-      if (mid) return `/matches/${mid}`;
-      return FALLBACK;
-    }
-
-    case NotificationType.TOURNAMENT_MATCH_READY:
-    case NotificationType.TOURNAMENT_MATCH_CREATED: {
-      const mid = firstId(refs.matchId);
-      if (mid) return `/matches/${mid}`;
-      const tid = firstId(refs.tournamentId, refs.entityId);
-      if (tid) return `/tournaments/${tid}`;
-      return FALLBACK;
-    }
-
-    case NotificationType.TOURNAMENT_CREATED:
-    case NotificationType.TOURNAMENT_ADDED:
-    case NotificationType.TOURNAMENT_STARTED:
-    case NotificationType.TOURNAMENT_COMPLETED:
-      if (tournamentId) {
-        return withQuery(`/tournaments/${tournamentId}`, {
-          matchId: firstId(refs.matchId),
-        });
-      }
-      if (matchId) return `/matches/${matchId}`;
-      return "/tournaments";
-
-    case NotificationType.LEADERBOARD_RANK_CHANGED:
-    case NotificationType.LEADERBOARD_TOP3:
-    case NotificationType.LEADERBOARD_OVERTAKEN:
-      return "/leaderboard";
-
-    case NotificationType.LEADERBOARD_STREAK:
-    case NotificationType.MEMBER_JOINED:
-      if (playerId) return `/players/${playerId}`;
-      return "/players";
-
-    default:
-      return withQuery(FALLBACK, { id: notificationId });
-  }
+  const normalized = normalizeNotificationType(type);
+  const ids = resolveIds(refs);
+  const builder = DESTINATION_REGISTRY[normalized];
+  if (builder) return builder(ids);
+  return withQuery(FALLBACK, { id: ids.notificationId });
 }
 
 /** Alias kept for call-site clarity. */
@@ -238,6 +334,8 @@ export function parseNotificationDeepLink(
     search.startsWith("?") ? search.slice(1) : search,
   );
   const fromPath = extractRefsFromLinkUrl(path);
+  const highlightId = params.get("highlight");
+  const focusId = highlightId ?? params.get("id");
 
   return {
     pathname,
@@ -248,7 +346,9 @@ export function parseNotificationDeepLink(
     tournamentId: fromPath.tournamentId ?? null,
     playerId: fromPath.playerId ?? null,
     notificationId: fromPath.notificationId ?? null,
-    focusId: params.get("id"),
+    focusId,
+    highlightId,
+    entityMissing: params.get(ENTITY_MISSING_QUERY) === "1",
   };
 }
 
@@ -258,4 +358,12 @@ export const NOTIFICATION_NAVIGATE_MESSAGE = "PINGOF_NAVIGATE" as const;
 export type NotificationNavigateMessage = {
   type: typeof NOTIFICATION_NAVIGATE_MESSAGE;
   url: string;
+  notificationType?: string;
+  entityId?: string;
+  organizationId?: string;
+  challengeId?: string;
+  matchId?: string;
+  tournamentId?: string;
+  notificationId?: string;
+  source?: "push" | "foreground" | "in_app" | "sw";
 };

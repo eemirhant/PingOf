@@ -85,6 +85,7 @@ messaging.onBackgroundMessage((payload) => {
       challengeId: (payload.data && payload.data.challengeId) || '',
       matchId: (payload.data && payload.data.matchId) || '',
       tournamentId: (payload.data && payload.data.tournamentId) || '',
+      notificationId: (payload.data && payload.data.notificationId) || '',
     },
     renotify: true,
   };
@@ -122,11 +123,14 @@ self.addEventListener('notificationclick', (event) => {
             client.postMessage({
               type: 'PINGOF_NAVIGATE',
               url: targetUrl,
+              source: 'sw',
               notificationType: data.notificationType || '',
               entityId: data.entityId || '',
+              organizationId: data.organizationId || '',
               challengeId: data.challengeId || '',
               matchId: data.matchId || '',
               tournamentId: data.tournamentId || '',
+              notificationId: data.notificationId || '',
             });
           } catch (_) {
             if ('navigate' in client) {

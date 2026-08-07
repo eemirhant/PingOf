@@ -22,13 +22,19 @@ import { getUserProfile } from "@/lib/profile/update-profile";
 export default async function ChallengesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; id?: string; challengeId?: string }>;
+  searchParams: Promise<{
+    tab?: string;
+    id?: string;
+    challengeId?: string;
+    highlight?: string;
+  }>;
 }) {
   const session = await auth();
   if (!session?.user) redirect("/login");
 
   const params = await searchParams;
-  const focusChallengeId = (params.challengeId ?? params.id ?? "").trim() || null;
+  const focusChallengeId =
+    (params.highlight ?? params.challengeId ?? params.id ?? "").trim() || null;
 
   const [incoming, outgoing, me] = await Promise.all([
     listIncomingChallenges(session.user.organizationId, session.user.id),

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
+import { recordNotificationOpenAction } from "@/lib/actions/notification-navigation";
 import {
   NotificationError,
   clearAllNotifications,
@@ -95,6 +96,12 @@ export async function openNotificationAction(formData: FormData): Promise<void> 
       organizationId: session.user.organizationId,
       type: notification.type,
       linkUrl: notification.linkUrl,
+      notificationId: notification.id,
+    });
+    await recordNotificationOpenAction({
+      source: "in_app",
+      url: destination,
+      notificationType: notification.type,
       notificationId: notification.id,
     });
     revalidateNotificationPaths();

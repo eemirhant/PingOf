@@ -14,7 +14,6 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-import { LogoutButton } from "@/components/auth/logout-button";
 import { useRealtimeBadges } from "@/components/realtime/realtime-provider";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { isImageAvatar } from "@/lib/utils/avatar";
@@ -226,10 +225,6 @@ export function AppHeader({
               </span>
             </Link>
           ) : null}
-
-          <div className="hidden sm:block">
-            <LogoutButton />
-          </div>
         </div>
       </div>
     </header>

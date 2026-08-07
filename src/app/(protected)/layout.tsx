@@ -1,5 +1,8 @@
+import { Suspense } from "react";
+
 import { auth } from "@/auth";
 import { AppHeader, MobileBottomNav } from "@/components/layout/app-header";
+import { EntityMissingToast } from "@/components/notifications/entity-missing-toast";
 import { NotificationDeepLinkListener } from "@/components/notifications/notification-deep-link-listener";
 import { FcmProvider } from "@/components/push/fcm-provider";
 import { RealtimeProvider } from "@/components/realtime/realtime-provider";
@@ -44,6 +47,9 @@ export default async function ProtectedLayout({
     >
       <FcmProvider enabled={Boolean(session?.user)} />
       <NotificationDeepLinkListener />
+      <Suspense fallback={null}>
+        <EntityMissingToast />
+      </Suspense>
       <div className="min-h-screen bg-bg-900">
         <AppHeader
           user={user}

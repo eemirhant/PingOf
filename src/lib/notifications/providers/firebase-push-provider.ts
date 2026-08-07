@@ -55,6 +55,7 @@ function buildMulticast(
       challengeId: notification.challengeId ?? "",
       matchId: notification.matchId ?? "",
       tournamentId: notification.tournamentId ?? "",
+      notificationId: notification.notificationId ?? "",
       timestamp: notification.timestamp ?? new Date().toISOString(),
       priority,
       tag: notification.tag ?? "",

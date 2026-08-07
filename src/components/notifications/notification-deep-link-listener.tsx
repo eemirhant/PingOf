@@ -3,17 +3,33 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 
+import { recordNotificationOpenAction } from "@/lib/actions/notification-navigation";
 import {
   NOTIFICATION_NAVIGATE_MESSAGE,
+  parseNotificationDeepLink,
   type NotificationNavigateMessage,
 } from "@/lib/notifications/deep-link";
 import { toSafeInternalPath } from "@/lib/url/safe-path";
+
+export type NavigateFromNotificationOptions = {
+  source?: NotificationNavigateMessage["source"];
+  notificationType?: string;
+  entityId?: string;
+  organizationId?: string;
+  challengeId?: string;
+  matchId?: string;
+  tournamentId?: string;
+  notificationId?: string;
+};
 
 /**
  * Soft-navigate from SW / foreground notification clicks without full reload.
  * Dedupes rapid duplicate navigate messages.
  */
-export function navigateFromNotificationUrl(rawUrl: string | undefined | null): void {
+export function navigateFromNotificationUrl(
+  rawUrl: string | undefined | null,
+  options: NavigateFromNotificationOptions = {},
+): void {
   if (typeof window === "undefined") return;
   const path = toSafeInternalPath(rawUrl, "/notifications");
   const key = `pingof-nav:${path}`;
@@ -27,9 +43,23 @@ export function navigateFromNotificationUrl(rawUrl: string | undefined | null): 
   }
 
   window.dispatchEvent(
-    new CustomEvent("pingof:notification-navigate", { detail: { path } }),
+    new CustomEvent("pingof:notification-navigate", {
+      detail: {
+        path,
+        source: options.source ?? "foreground",
+        notificationType: options.notificationType,
+        entityId: options.entityId,
+        organizationId: options.organizationId,
+        challengeId: options.challengeId,
+        matchId: options.matchId,
+        tournamentId: options.tournamentId,
+        notificationId: options.notificationId,
+      },
+    }),
   );
 }
+
+type NavDetail = NavigateFromNotificationOptions & { path?: string };
 
 /**
  * Listens for SW postMessage + custom events and runs router.push once.
@@ -39,7 +69,7 @@ export function NotificationDeepLinkListener() {
   const lastPathRef = useRef<{ path: string; at: number } | null>(null);
 
   useEffect(() => {
-    function go(path: string) {
+    function go(path: string, meta: NavigateFromNotificationOptions = {}) {
       const now = Date.now();
       if (
         lastPathRef.current &&
@@ -49,21 +79,56 @@ export function NotificationDeepLinkListener() {
         return;
       }
       lastPathRef.current = { path, at: now };
+
+      const parsed = parseNotificationDeepLink(path);
+      void recordNotificationOpenAction({
+        source: meta.source ?? "sw",
+        url: path,
+        notificationType: meta.notificationType,
+        entityId: meta.entityId ?? parsed.matchId ?? parsed.challengeId,
+        organizationId: meta.organizationId,
+        challengeId: meta.challengeId ?? parsed.challengeId,
+        matchId: meta.matchId ?? parsed.matchId,
+        tournamentId: meta.tournamentId ?? parsed.tournamentId,
+        notificationId: meta.notificationId ?? parsed.notificationId,
+      });
+
       router.push(path);
     }
 
     function onCustom(event: Event) {
-      const detail = (event as CustomEvent<{ path?: string }>).detail;
-      if (detail?.path) go(detail.path);
+      const detail = (event as CustomEvent<NavDetail>).detail;
+      if (detail?.path) {
+        go(detail.path, {
+          source: detail.source ?? "foreground",
+          notificationType: detail.notificationType,
+          entityId: detail.entityId,
+          organizationId: detail.organizationId,
+          challengeId: detail.challengeId,
+          matchId: detail.matchId,
+          tournamentId: detail.tournamentId,
+          notificationId: detail.notificationId,
+        });
+      }
     }
 
     function onMessage(event: MessageEvent) {
       const data = event.data as NotificationNavigateMessage | null;
       if (!data || data.type !== NOTIFICATION_NAVIGATE_MESSAGE) return;
       const path = toSafeInternalPath(data.url, "/notifications");
-      go(path);
+      go(path, {
+        source: data.source ?? "sw",
+        notificationType: data.notificationType,
+        entityId: data.entityId,
+        organizationId: data.organizationId,
+        challengeId: data.challengeId,
+        matchId: data.matchId,
+        tournamentId: data.tournamentId,
+        notificationId: data.notificationId,
+      });
     }
 
+    // Landing via openWindow with entityMissing is handled by EntityMissingToast.
     window.addEventListener("pingof:notification-navigate", onCustom);
     navigator.serviceWorker?.addEventListener("message", onMessage);
 

@@ -539,6 +539,7 @@ export async function listenForegroundMessages(
     url?: string;
     notificationType?: string;
     entityId?: string;
+    organizationId?: string;
     challengeId?: string;
     matchId?: string;
     tournamentId?: string;
@@ -560,6 +561,7 @@ export async function listenForegroundMessages(
       url,
       notificationType: data.notificationType,
       entityId: data.entityId,
+      organizationId: data.organizationId,
       challengeId: data.challengeId,
       matchId: data.matchId,
       tournamentId: data.tournamentId,

@@ -179,11 +179,11 @@ export default async function SettingsPage() {
           background: "rgba(244,63,94,0.06)",
         }}
       >
-        <div className="card-title">Oturum</div>
-        <p className="text-text-secondary mb-3 text-sm">
-          Hesabından güvenli şekilde çıkış yapabilirsin.
-        </p>
+        <div className="card-title">Hesap</div>
         <LogoutButton label="Çıkış Yap" className="logout-btn--settings" />
+        <p className="text-text-secondary mt-3 text-sm">
+          Oturumunu güvenli şekilde sonlandır.
+        </p>
       </div>
     </div>
   );

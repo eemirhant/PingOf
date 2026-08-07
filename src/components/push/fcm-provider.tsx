@@ -35,21 +35,37 @@ export function FcmProvider({ enabled }: { enabled: boolean }) {
     void syncWebPushToken();
 
     let unsubscribe: (() => void) | undefined;
-    void listenForegroundMessages(({ title, body, url }) => {
+    void listenForegroundMessages((payload) => {
       if (!("Notification" in window) || Notification.permission !== "granted") {
         return;
       }
       try {
-        const path = toSafeInternalPath(url, "/notifications");
-        const n = new Notification(title, {
-          body,
+        const path = toSafeInternalPath(payload.url, "/notifications");
+        const n = new Notification(payload.title, {
+          body: payload.body,
           icon: "/icons/icon-192.png",
-          data: { url: path },
+          data: {
+            url: path,
+            notificationType: payload.notificationType ?? "",
+            entityId: payload.entityId ?? "",
+            organizationId: payload.organizationId ?? "",
+            challengeId: payload.challengeId ?? "",
+            matchId: payload.matchId ?? "",
+            tournamentId: payload.tournamentId ?? "",
+          },
         });
         n.onclick = () => {
           window.focus();
           n.close();
-          navigateFromNotificationUrl(path);
+          navigateFromNotificationUrl(path, {
+            source: "foreground",
+            notificationType: payload.notificationType,
+            entityId: payload.entityId ?? undefined,
+            organizationId: payload.organizationId ?? undefined,
+            challengeId: payload.challengeId ?? undefined,
+            matchId: payload.matchId ?? undefined,
+            tournamentId: payload.tournamentId ?? undefined,
+          });
         };
       } catch {
         // Safari / restricted contexts

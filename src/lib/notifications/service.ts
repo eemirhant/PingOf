@@ -76,6 +76,73 @@ export async function markNotificationRead(userId: string, notificationId: strin
   return existing;
 }
 
+/**
+ * Best-effort mark-read when opening via push/deep link without a row id.
+ * Matches unread rows by type + entity fragment in linkUrl.
+ */
+export async function markUnreadNotificationsFromDeepLink(
+  userId: string,
+  input: {
+    notificationId?: string | null;
+    notificationType?: string | null;
+    entityId?: string | null;
+    challengeId?: string | null;
+    matchId?: string | null;
+    tournamentId?: string | null;
+  },
+): Promise<number> {
+  if (input.notificationId?.trim()) {
+    try {
+      await markNotificationRead(userId, input.notificationId.trim());
+      return 1;
+    } catch {
+      // fall through to heuristic match
+    }
+  }
+
+  const fragments = [
+    input.challengeId,
+    input.matchId,
+    input.tournamentId,
+    input.entityId,
+  ]
+    .map((v) => (typeof v === "string" ? v.trim() : ""))
+    .filter(Boolean);
+
+  if (fragments.length === 0 && !input.notificationType?.trim()) {
+    return 0;
+  }
+
+  const unread = await prisma.notification.findMany({
+    where: {
+      userId,
+      isRead: false,
+      ...(input.notificationType?.trim()
+        ? { type: input.notificationType.trim().toUpperCase() }
+        : {}),
+    },
+    select: { id: true, linkUrl: true },
+    take: 20,
+    orderBy: { createdAt: "desc" },
+  });
+
+  const ids = unread
+    .filter((row) => {
+      if (fragments.length === 0) return true;
+      const url = row.linkUrl ?? "";
+      return fragments.some((f) => url.includes(f));
+    })
+    .map((row) => row.id);
+
+  if (ids.length === 0) return 0;
+
+  const result = await prisma.notification.updateMany({
+    where: { userId, id: { in: ids }, isRead: false },
+    data: { isRead: true },
+  });
+  return result.count;
+}
+
 export async function markAllNotificationsRead(userId: string) {
   const result = await prisma.notification.updateMany({
     where: { userId, isRead: false },

@@ -18,6 +18,7 @@ export type PushNotificationPayload = {
   challengeId?: string | null;
   matchId?: string | null;
   tournamentId?: string | null;
+  notificationId?: string | null;
   timestamp?: string;
   priority?: PushPriority;
   tag?: string;

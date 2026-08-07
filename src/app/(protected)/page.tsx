@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
 import { DashboardLeaderboardSection } from "@/components/dashboard/dashboard-leaderboard-section";
+import { UpcomingMatchesSection } from "@/components/dashboard/upcoming-matches-section";
 import { FormBadges } from "@/components/players/form-badges";
 import {
   canEnterResult,
@@ -124,7 +125,7 @@ export default async function HomePage() {
         </div>
       </div>
 
-      <div className="mb-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-8 grid gap-3 sm:grid-cols-2">
         <Link
           href="/matches/new"
           className="btn btn-primary flex h-14 items-center justify-center rounded-md text-base"
@@ -132,22 +133,10 @@ export default async function HomePage() {
           Maç Ekle
         </Link>
         <Link
-          href="/matches/new?type=planned"
-          className="btn btn-secondary flex h-14 items-center justify-center rounded-md text-base"
-        >
-          Maç Planla
-        </Link>
-        <Link
           href="/matches/new?type=challenge"
           className="btn btn-secondary flex h-14 items-center justify-center rounded-md text-base"
         >
           Meydan Oku
-        </Link>
-        <Link
-          href="/leaderboard"
-          className="btn btn-secondary flex h-14 items-center justify-center rounded-md text-base"
-        >
-          Sıralama
         </Link>
       </div>
 
@@ -211,71 +200,10 @@ export default async function HomePage() {
         </div>
       ) : null}
 
-      <div className="mb-8">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-text-secondary">
-            Yaklaşan Maçlarım
-          </h2>
-          <Link
-            href="/matches?time=UPCOMING"
-            className="text-accent-light text-sm font-semibold"
-          >
-            Tümü →
-          </Link>
-        </div>
-        {upcoming.length === 0 ? (
-          <div className="card text-center">
-            <p className="text-text-secondary text-sm">
-              Yaklaşan maçın yok. İleri tarihli bir maç planlayabilirsin.
-            </p>
-            <Link href="/matches/new?type=planned" className="btn btn-secondary btn-sm mt-3">
-              Maç Planla
-            </Link>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {upcoming.map((match) => {
-              const status = resolveMatchStatus(
-                match.status as MatchStatusValue,
-                match.scheduledAt,
-              );
-              const team1 =
-                formatTeamLabel(match.participants, 1, match.team1Name) || "Açık";
-              const team2 =
-                formatTeamLabel(match.participants, 2, match.team2Name) || "Açık";
-              return (
-                <Link
-                  key={match.id}
-                  href={`/matches/${match.id}`}
-                  className="flex min-h-11 items-center justify-between gap-3 rounded-md border border-border px-3 py-3 hover:bg-white/[0.03]"
-                >
-                  <div className="min-w-0">
-                    <div className="mb-1 flex flex-wrap gap-2">
-                      <span className="badge badge-planned">{matchStatusLabel(status)}</span>
-                      <span
-                        className={`badge ${match.format === "SINGLES" ? "badge-1v1" : "badge-2v2"}`}
-                      >
-                        {match.format === "SINGLES" ? "1v1" : "2v2"}
-                      </span>
-                    </div>
-                    <div className="truncate text-sm font-semibold">
-                      {team1} <span className="text-text-muted font-normal">vs</span> {team2}
-                    </div>
-                  </div>
-                  <div className="text-text-muted shrink-0 text-xs">
-                    {match.scheduledAt
-                      ? new Intl.DateTimeFormat("tr-TR", {
-                          dateStyle: "short",
-                          timeStyle: "short",
-                        }).format(match.scheduledAt)
-                      : "Saat belirtilmedi"}
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        )}
-      </div>
+      <UpcomingMatchesSection
+        currentUserId={session.user.id}
+        matches={upcoming}
+      />
 
       <DashboardLeaderboardSection
         currentUserId={session.user.id}

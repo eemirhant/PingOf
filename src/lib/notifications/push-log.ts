@@ -44,4 +44,19 @@ export const pushLog = {
   skipped(data?: LogData) {
     emit("info", "push_skipped", data);
   },
+  opened(data?: LogData) {
+    emit("info", "push_opened", data);
+  },
+  notificationClicked(data?: LogData) {
+    emit("info", "notification_clicked", data);
+  },
+  navigation(data?: LogData) {
+    emit("info", "notification_navigation", data);
+  },
+  markRead(data?: LogData) {
+    emit("info", "notification_mark_read", data);
+  },
+  deepLinkFailed(data?: LogData) {
+    emit("error", "deep_link_failed", data);
+  },
 };

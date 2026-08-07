@@ -20,7 +20,7 @@ export function ChallengeDeepLinkFocus({
     el.classList.add("challenge-deep-link-focus");
     const timer = window.setTimeout(() => {
       el.classList.remove("challenge-deep-link-focus");
-    }, 4000);
+    }, 3200);
     return () => window.clearTimeout(timer);
   }, [challengeId]);
 

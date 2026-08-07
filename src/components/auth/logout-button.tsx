@@ -32,6 +32,7 @@ export function LogoutButton({
       className={`btn btn-secondary btn-sm logout-btn ${className}`.trim()}
       disabled={pending}
       onClick={handleLogout}
+      aria-label={pending ? "Çıkış yapılıyor" : label}
     >
       <LogOut
         aria-hidden="true"
